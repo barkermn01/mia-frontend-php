@@ -314,6 +314,7 @@ function initializeImageUpload() {
     
     // Click to select files
     selectBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         imageInput.click();
     });

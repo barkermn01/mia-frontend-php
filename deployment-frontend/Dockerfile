@@ -43,6 +43,12 @@ RUN chown -R www-data:www-data /var/www/html \
 # Configure Apache virtual host
 COPY deployment-frontend/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 
+# Configure PHP for file uploads
+RUN echo "upload_max_filesize = 10M" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "post_max_size = 10M" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "max_file_uploads = 20" >> /usr/local/etc/php/conf.d/uploads.ini \
+    && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini
+
 # Create health check endpoint
 RUN echo '<?php http_response_code(200); echo "OK"; ?>' > /var/www/html/health.php
 

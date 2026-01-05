@@ -254,12 +254,20 @@ class Admin
         } catch (MiaException $e) {
             http_response_code(400);
             echo json_encode(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
         }
     }
 
     private function apiUploadImage(): void
     {
+        error_log("apiUploadImage called");
+        error_log("FILES data: " . json_encode($_FILES));
+        error_log("POST data keys: " . implode(', ', array_keys($_POST)));
+        
         if (!isset($_FILES['image']) || !isset($_POST['uploadToken'])) {
+            error_log("Missing required data - image file: " . (isset($_FILES['image']) ? 'YES' : 'NO') . ", uploadToken: " . (isset($_POST['uploadToken']) ? 'YES' : 'NO'));
             http_response_code(400);
             echo json_encode(['error' => 'Image file and upload token are required']);
             return;
@@ -268,18 +276,31 @@ class Admin
         $uploadToken = $_POST['uploadToken'];
         $uploadedFile = $_FILES['image'];
         
+        error_log("Upload token: " . substr($uploadToken, 0, 50) . "...");
+        error_log("Uploaded file error code: " . $uploadedFile['error']);
+        error_log("Uploaded file size: " . $uploadedFile['size']);
+        error_log("Uploaded file name: " . $uploadedFile['name']);
+        
         if ($uploadedFile['error'] !== UPLOAD_ERR_OK) {
+            error_log("File upload error detected: " . $uploadedFile['error']);
             http_response_code(400);
             echo json_encode(['error' => 'File upload error: ' . $uploadedFile['error']]);
             return;
         }
 
         try {
+            error_log("Calling s3->uploadImage...");
             $result = $this->client->s3->uploadImage($uploadToken, $uploadedFile['tmp_name']);
+            error_log("Image upload successful: " . json_encode($result));
             echo json_encode(['success' => true, 'data' => $result]);
         } catch (MiaException $e) {
+            error_log("Image upload failed: " . $e->getMessage());
             http_response_code(400);
             echo json_encode(['error' => $e->getMessage()]);
+        } catch (\Exception $e) {
+            error_log("Unexpected error in image upload: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Internal server error']);
         }
     }
 
