@@ -212,12 +212,6 @@ Resources:
               Value: !Ref Environment
             - Name: PORT
               Value: '3000'
-            - Name: MIA_API_URL
-              Value: 'https://api.miaai.me'
-            - Name: MIA_SSL_VERIFY
-              Value: 'true'
-            - Name: MIA_DEBUG
-              Value: 'false'
             - Name: LOG_LEVEL
               Value: 'info'
           LogConfiguration:

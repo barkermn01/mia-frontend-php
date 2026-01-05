@@ -9,7 +9,7 @@
                     <div class="space-y-2">
                         <!-- All Categories -->
                         <?php 
-                        $allCategoriesClass = !$category ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50';
+                        $allCategoriesClass = empty($selectedFilters) ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50';
                         $allCategoriesUrl = $search ? '/products?search=' . urlencode($search) : '/products';
                         ?>
                         <a href="<?= $allCategoriesUrl ?>" class="<?= $allCategoriesClass ?> block py-2 px-3 rounded transition-colors">
@@ -20,12 +20,29 @@
                         <?php if (!empty($categories['primary'])): ?>
                             <?php foreach ($categories['primary'] as $cat): ?>
                                 <?php 
-                                $isActive = $category === $cat['name'];
+                                $isActive = in_array($cat['name'], $selectedFilters);
                                 $linkClass = $isActive ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50';
                                 
-                                $url = '/products?category=' . urlencode($cat['name']);
-                                if ($search) {
-                                    $url .= '&search=' . urlencode($search);
+                                if ($isActive) {
+                                    // Remove this filter
+                                    $newFilters = array_filter($selectedFilters, function($f) use ($cat) { return $f !== $cat['name']; });
+                                } else {
+                                    // Add this filter
+                                    $newFilters = array_merge($selectedFilters, [$cat['name']]);
+                                }
+                                
+                                $url = '/products';
+                                $params = [];
+                                if ($search) $params['search'] = $search;
+                                if (!empty($newFilters)) {
+                                    $url .= '?';
+                                    if ($search) $url .= 'search=' . urlencode($search) . '&';
+                                    foreach ($newFilters as $filter) {
+                                        $url .= 'filters[]=' . urlencode($filter) . '&';
+                                    }
+                                    $url = rtrim($url, '&');
+                                } elseif ($search) {
+                                    $url .= '?search=' . urlencode($search);
                                 }
                                 ?>
                                 <a href="<?= $url ?>" class="<?= $linkClass ?> block py-2 px-3 rounded transition-colors">
@@ -61,12 +78,25 @@
                                         <div class="space-y-1">
                                             <?php foreach ($filterValues as $filter): ?>
                                                 <?php 
-                                                $isActive = $category === $filter['fullName'];
+                                                $isActive = in_array($filter['fullName'], $selectedFilters);
                                                 $linkClass = $isActive ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-600 hover:text-red-600 hover:bg-gray-50';
                                                 
-                                                $url = '/products?category=' . urlencode($filter['fullName']);
-                                                if ($search) {
-                                                    $url .= '&search=' . urlencode($search);
+                                                if ($isActive) {
+                                                    // Remove this filter
+                                                    $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter['fullName']; });
+                                                } else {
+                                                    // Add this filter
+                                                    $newFilters = array_merge($selectedFilters, [$filter['fullName']]);
+                                                }
+                                                
+                                                $url = '/products';
+                                                if ($search || !empty($newFilters)) {
+                                                    $url .= '?';
+                                                    if ($search) $url .= 'search=' . urlencode($search) . '&';
+                                                    foreach ($newFilters as $f) {
+                                                        $url .= 'filters[]=' . urlencode($f) . '&';
+                                                    }
+                                                    $url = rtrim($url, '&');
                                                 }
                                                 ?>
                                                 <a href="<?= $url ?>" class="<?= $linkClass ?> block py-1 px-2 rounded text-sm transition-colors">
@@ -117,16 +147,45 @@
             </div>
 
             <!-- Active Filters -->
-            <?php if ($category): ?>
+            <?php if (!empty($selectedFilters)): ?>
                 <div class="mb-6">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-600">Active filters:</span>
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
-                            Category: <?= htmlspecialchars($category) ?>
-                            <a href="/products<?= $search ? '?search=' . urlencode($search) : '' ?>" class="ml-2 hover:text-red-600">
-                                <i class="fas fa-times"></i>
-                            </a>
-                        </span>
+                    <div class="flex items-start space-x-2">
+                        <span class="text-sm text-gray-600 mt-1">Active filters:</span>
+                        <div class="flex flex-wrap gap-2">
+                            <?php foreach ($selectedFilters as $filter): ?>
+                                <?php 
+                                // Format the filter name for display
+                                if (strpos($filter, ':') !== false) {
+                                    // Filter category - show just the value part
+                                    $parts = explode(':', $filter, 2);
+                                    $displayName = trim($parts[1]);
+                                    $filterType = trim($parts[0]);
+                                } else {
+                                    // Primary category
+                                    $displayName = $filter;
+                                    $filterType = 'Category';
+                                }
+                                
+                                // Create URL to remove this specific filter
+                                $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter; });
+                                $url = '/products';
+                                if ($search || !empty($newFilters)) {
+                                    $url .= '?';
+                                    if ($search) $url .= 'search=' . urlencode($search) . '&';
+                                    foreach ($newFilters as $f) {
+                                        $url .= 'filters[]=' . urlencode($f) . '&';
+                                    }
+                                    $url = rtrim($url, '&');
+                                }
+                                ?>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
+                                    <?= htmlspecialchars($filterType) ?>: <?= htmlspecialchars($displayName) ?>
+                                    <a href="<?= $url ?>" class="ml-2 hover:text-red-600">
+                                        <i class="fas fa-times"></i>
+                                    </a>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
                 </div>
             <?php endif; ?>
@@ -158,8 +217,11 @@
                         $totalPages = ceil($products['total'] / $limit);
                         $currentPage = $page;
                         
-                        // Build base URL with existing parameters
-                        $params = array_filter(['search' => $search, 'category' => $category]);
+                        // Build base URL with existing parameters including filters
+                        $params = array_filter(['search' => $search]);
+                        if (!empty($selectedFilters)) {
+                            $params['filters'] = $selectedFilters;
+                        }
                         $baseUrl = '/products';
                         if (!empty($params)) {
                             $baseUrl .= '?' . http_build_query($params);

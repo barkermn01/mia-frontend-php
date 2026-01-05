@@ -382,6 +382,16 @@ class Storefront
         $page = (int)($_GET['page'] ?? 1);
         $search = $_GET['search'] ?? '';
         $category = $_GET['category'] ?? '';
+        $selectedFilters = $_GET['filters'] ?? [];
+        
+        error_log("URL Parameters - page: $page, search: '$search', category: '$category', filters: " . json_encode($selectedFilters));
+        
+        // Convert single category to filters array for backward compatibility
+        if ($category && !$selectedFilters) {
+            $selectedFilters = [$category];
+        }
+        
+        error_log("Selected Filters after processing: " . json_encode($selectedFilters));
         
         $filters = [
             'page' => $page,
@@ -392,31 +402,62 @@ class Storefront
             $filters['search'] = $search;
         }
         
-        if ($category) {
-            $filters['category'] = $category;
+        // Handle multiple filters with AND logic (comma-separated)
+        if ($selectedFilters) {
+            if (is_array($selectedFilters)) {
+                // Multiple filters - combine them with commas for AND logic
+                $filters['category'] = implode(',', $selectedFilters);
+            } else {
+                // Single filter
+                $filters['category'] = $selectedFilters;
+            }
         }
+
+        error_log("API Request Filters: " . json_encode($filters));
 
         $products = $this->getProducts($filters);
         
-        // Get categories for sidebar
-        $categories = $this->getCategories();
+        // Get categories for sidebar - pass current filters to get updated counts
+        $categoryFilters = [];
+        if ($selectedFilters) {
+            if (is_array($selectedFilters)) {
+                $categoryFilters['category'] = implode(',', $selectedFilters);
+            } else {
+                $categoryFilters['category'] = $selectedFilters;
+            }
+        }
+        if ($search) {
+            $categoryFilters['search'] = $search;
+        }
+        
+        $categories = $this->getCategories($categoryFilters);
         
         // Set page-specific resources
         $title = 'Products';
         if ($search) $title .= ' - Search: ' . htmlspecialchars($search);
-        if ($category) $title .= ' - Category: ' . htmlspecialchars($category);
+        if ($selectedFilters) {
+            $filterNames = array_map(function($filter) {
+                // Show just the value part for filter categories
+                if (strpos($filter, ':') !== false) {
+                    return explode(':', $filter, 2)[1];
+                }
+                return $filter;
+            }, is_array($selectedFilters) ? $selectedFilters : [$selectedFilters]);
+            $title .= ' - Filters: ' . htmlspecialchars(implode(', ', $filterNames));
+        }
         $title .= ' - OxWinches';
         
         $htmlResources = HtmlResources::getInstance();
         $htmlResources->setTitle($title);
         $htmlResources->setDescription('Browse our collection of products. Find exactly what you\'re looking for.');
-        $htmlResources->setKeywords('products, shop, browse, ' . ($category ? htmlspecialchars($category) : 'all categories'));
+        $htmlResources->setKeywords('products, shop, browse, ' . ($selectedFilters ? htmlspecialchars(implode(', ', is_array($selectedFilters) ? $selectedFilters : [$selectedFilters])) : 'all categories'));
         
         $content = $this->view->render('products', [
             'products' => $products,
             'categories' => $categories,
             'search' => $search,
-            'category' => $category,
+            'category' => $category, // Keep for backward compatibility
+            'selectedFilters' => is_array($selectedFilters) ? $selectedFilters : ($selectedFilters ? [$selectedFilters] : []),
             'page' => $page
         ]);
         
@@ -818,7 +859,9 @@ class Storefront
     private function getProducts(array $filters = []): array
     {
         try {
+            error_log("Calling API with filters: " . json_encode($filters));
             $products = $this->client->products->getProducts($filters);
+            error_log("API Response - Total products: " . ($products['total'] ?? 0));
             return $products;
         } catch (MiaException $e) {
             error_log("Failed to fetch products: " . $e->getMessage());
@@ -826,14 +869,14 @@ class Storefront
         }
     }
 
-    private function getCategories(): array
+    private function getCategories(array $filters = []): array
     {
         try {
-            $categories = $this->client->products->getCategories(['status' => 'active']);
+            $categories = $this->client->products->getCategories(array_merge(['status' => 'active'], $filters));
             $allCategories = $categories['categories'] ?? [];
             
             $primaryCategories = [];
-            $filters = [];
+            $filterGroups = [];
             
             foreach ($allCategories as $category) {
                 if (strpos($category['name'], ':') === false) {
@@ -845,11 +888,11 @@ class Storefront
                     $key = trim($parts[0]);
                     $value = trim($parts[1]);
                     
-                    if (!isset($filters[$key])) {
-                        $filters[$key] = [];
+                    if (!isset($filterGroups[$key])) {
+                        $filterGroups[$key] = [];
                     }
                     
-                    $filters[$key][] = [
+                    $filterGroups[$key][] = [
                         'name' => $value,
                         'fullName' => $category['name'],
                         'count' => $category['count']
@@ -859,7 +902,7 @@ class Storefront
             
             return [
                 'primary' => $primaryCategories,
-                'filters' => $filters
+                'filters' => $filterGroups
             ];
         } catch (MiaException $e) {
             error_log("Failed to fetch categories: " . $e->getMessage());
