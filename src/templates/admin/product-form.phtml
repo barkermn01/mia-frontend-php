@@ -78,7 +78,17 @@
                         Tags
                     </label>
                     <input type="text" id="tags" name="tags"
-                           value="<?= htmlspecialchars(is_array($product['tags'] ?? null) ? implode(', ', $product['tags']) : '') ?>"
+                           value="<?php
+                           $tagsValue = '';
+                           if (isset($product['tags'])) {
+                               if (is_array($product['tags'])) {
+                                   $tagsValue = implode(', ', $product['tags']);
+                               } elseif (is_string($product['tags'])) {
+                                   $tagsValue = $product['tags'];
+                               }
+                           }
+                           echo htmlspecialchars($tagsValue);
+                           ?>"
                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                            placeholder="Enter tags separated by commas">
                     <p class="text-sm text-gray-500 mt-1">Separate multiple tags with commas</p>
@@ -312,16 +322,23 @@ function initializeImageUpload() {
     
     if (!uploadArea || !imageInput || !selectBtn) return;
     
-    // Click to select files
+    // Function to open file dialog
+    function openFileDialog() {
+        imageInput.click();
+    }
+    
+    // Button click handler - just open dialog, no propagation issues
     selectBtn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        imageInput.click();
+        openFileDialog();
     });
     
+    // Upload area click handler - only if NOT clicking on button
     uploadArea.addEventListener('click', (e) => {
-        if (e.target === uploadArea || e.target.closest('#select-images-btn') === null) {
-            imageInput.click();
+        // Only trigger if clicking directly on upload area, not on button
+        if (e.target === uploadArea || (e.target.closest('#upload-area') && !e.target.closest('#select-images-btn'))) {
+            openFileDialog();
         }
     });
     

@@ -630,6 +630,12 @@ class Admin
             // Preserve form data for redisplay
             $formData = $_POST;
             
+            // Ensure tags are properly formatted for display
+            if (isset($formData['tags']) && is_string($formData['tags'])) {
+                // Tags are already a string from the form, keep as is
+                $formData['tags'] = $formData['tags'];
+            }
+            
             // Preserve uploaded images
             $uploadedImages = [];
             if (!empty($_POST['images'])) {
@@ -797,6 +803,12 @@ class Admin
             
             // Preserve form data for redisplay
             $formData = $_POST;
+            
+            // Ensure tags are properly formatted for display
+            if (isset($formData['tags']) && is_string($formData['tags'])) {
+                // Tags are already a string from the form, keep as is
+                $formData['tags'] = $formData['tags'];
+            }
             
             // Preserve uploaded images
             $uploadedImages = [];
