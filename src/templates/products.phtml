@@ -50,7 +50,8 @@
         <?php if ($products['total'] > count($products['items'])): ?>
             <div class="flex justify-center">
                 <?php
-                $totalPages = ceil($products['total'] / 12);
+                $limit = $products['limit'] ?? 12;
+                $totalPages = ceil($products['total'] / $limit);
                 $currentPage = $page;
                 $baseUrl = '/products?' . http_build_query(array_filter(['search' => $search, 'category' => $category]));
                 $baseUrl = rtrim($baseUrl, '?');

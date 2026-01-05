@@ -716,11 +716,12 @@ function initializeToastEditor() {
         toastEditor = new toastui.Editor({
             el: editorElement,
             height: '400px',
-            initialEditType: 'wysiwyg', // Start in WYSIWYG mode
-            previewStyle: 'vertical',
+            initialEditType: 'markdown', // Start in markdown mode only
+            previewStyle: 'vertical', // Show preview on the side
             initialValue: initialContent,
             theme: 'default',
             usageStatistics: false,
+            hideModeSwitch: true, // Hide the mode switch button to prevent WYSIWYG access
             toolbarItems: [
                 ['heading', 'bold', 'italic', 'strike'],
                 ['hr', 'quote'],
@@ -788,9 +789,6 @@ function updateFormSubmissionForEditor() {
 <script>
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    initializeImageUpload();
-    initializeVariants();
-    initializeFormSubmission();
     initializeToastEditor();
     updateFormSubmissionForEditor();
 });
