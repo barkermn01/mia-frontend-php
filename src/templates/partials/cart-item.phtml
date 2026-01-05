@@ -1,0 +1,43 @@
+<div class="flex items-center space-x-4 py-4 border-b border-gray-200">
+    <div class="flex-shrink-0">
+        <?php if (!empty($item['image'])): ?>
+            <img src="<?= htmlspecialchars($item['image']) ?>" 
+                 alt="<?= htmlspecialchars($item['title'] ?? $item['sku']) ?>"
+                 class="w-16 h-16 object-cover rounded">
+        <?php else: ?>
+            <div class="w-16 h-16 bg-gray-200 rounded flex items-center justify-center">
+                <i class="fas fa-image text-gray-400"></i>
+            </div>
+        <?php endif; ?>
+    </div>
+    
+    <div class="flex-1 min-w-0">
+        <h4 class="font-medium text-gray-900 truncate">
+            <?= htmlspecialchars($item['title'] ?? $item['sku']) ?>
+        </h4>
+        <p class="text-sm text-gray-500">SKU: <?= htmlspecialchars($item['sku']) ?></p>
+        <p class="text-sm font-medium text-blue-600">
+            <?= $view->formatPrice($item['price']) ?>
+        </p>
+    </div>
+    
+    <div class="flex items-center space-x-2">
+        <button onclick="updateCartItem('<?= htmlspecialchars($item['id']) ?>', <?= $item['qty'] - 1 ?>)"
+                class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
+                <?= $item['qty'] <= 1 ? 'disabled' : '' ?>>
+            <i class="fas fa-minus text-xs"></i>
+        </button>
+        
+        <span class="w-8 text-center font-medium"><?= $item['qty'] ?></span>
+        
+        <button onclick="updateCartItem('<?= htmlspecialchars($item['id']) ?>', <?= $item['qty'] + 1 ?>)"
+                class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+            <i class="fas fa-plus text-xs"></i>
+        </button>
+    </div>
+    
+    <button onclick="removeCartItem('<?= htmlspecialchars($item['id']) ?>')"
+            class="text-red-500 hover:text-red-700 p-2">
+        <i class="fas fa-trash"></i>
+    </button>
+</div>

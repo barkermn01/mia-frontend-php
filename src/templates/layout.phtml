@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= \Marti\Frontend\HtmlResources::getInstance()->getTitle() ?></title>
+    
+    <?= \Marti\Frontend\HtmlResources::getInstance()->renderMeta() ?>
+    <?= \Marti\Frontend\HtmlResources::getInstance()->renderFavicons() ?>
+    <?= \Marti\Frontend\HtmlResources::getInstance()->renderCss() ?>
+    <?= \Marti\Frontend\HtmlResources::getInstance()->renderJsHead() ?>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Header -->
+    <header class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <a href="/" class="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors">
+                    <i class="fas fa-store mr-2"></i>Mia Store
+                </a>
+
+                <!-- Navigation -->
+                <nav class="hidden md:flex space-x-8">
+                    <a href="/" class="text-gray-700 hover:text-blue-600 transition-colors">Home</a>
+                    <a href="/products" class="text-gray-700 hover:text-blue-600 transition-colors">Products</a>
+                </nav>
+
+                <!-- User Menu -->
+                <div class="flex items-center space-x-4">
+                    <!-- Cart -->
+                    <button id="cart-toggle" class="relative p-2 text-gray-700 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center <?= $cartCount > 0 ? '' : 'hidden' ?>">
+                            <?= $cartCount ?>
+                        </span>
+                    </button>
+
+                    <?php if ($isLoggedIn): ?>
+                        <!-- User Dropdown -->
+                        <div class="relative" x-data="{ open: false }">
+                            <button @click="open = !open" class="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors">
+                                <i class="fas fa-user"></i>
+                                <span class="hidden md:inline"><?= htmlspecialchars($customer['firstName'] ?? 'User') ?></span>
+                                <i class="fas fa-chevron-down text-sm"></i>
+                            </button>
+                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                                <a href="/account" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Account</a>
+                                <a href="/orders" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Orders</a>
+                                <?php if (isset($customer['role']) && in_array($customer['role'], ['site_admin', 'super_admin'])): ?>
+                                    <hr class="my-1">
+                                    <a href="/admin" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <i class="fas fa-cog mr-2"></i>Admin Panel
+                                    </a>
+                                <?php endif; ?>
+                                <hr class="my-1">
+                                <a href="/logout" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <div class="flex items-center space-x-3">
+                            <a href="/register" class="text-gray-700 hover:text-blue-600 transition-colors">
+                                Register
+                            </a>
+                            <a href="/login" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                                Login
+                            </a>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Mobile Menu Toggle -->
+                    <button id="mobile-menu-toggle" class="md:hidden p-2 text-gray-700">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Navigation -->
+            <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="/" class="text-gray-700 hover:text-blue-600 py-2">Home</a>
+                    <a href="/products" class="text-gray-700 hover:text-blue-600 py-2">Products</a>
+                    <?php if ($isLoggedIn): ?>
+                        <?php if (isset($customer['role']) && in_array($customer['role'], ['site_admin', 'super_admin'])): ?>
+                            <a href="/admin" class="text-gray-700 hover:text-blue-600 py-2">
+                                <i class="fas fa-cog mr-2"></i>Admin Panel
+                            </a>
+                        <?php endif; ?>
+                        <a href="/logout" class="text-gray-700 hover:text-blue-600 py-2">Logout</a>
+                    <?php else: ?>
+                        <a href="/login" class="text-gray-700 hover:text-blue-600 py-2">Login</a>
+                        <a href="/register" class="text-gray-700 hover:text-blue-600 py-2">Register</a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Cart Sidebar -->
+    <div id="cart-sidebar" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50" id="cart-overlay"></div>
+        <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl transform translate-x-full transition-transform duration-300" id="cart-panel">
+            <div class="flex flex-col h-full">
+                <div class="flex items-center justify-between p-4 border-b">
+                    <h2 class="text-lg font-semibold">Shopping Cart</h2>
+                    <button id="cart-close" class="p-2 hover:bg-gray-100 rounded">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="cart-content" class="flex-1 overflow-y-auto p-4">
+                    <!-- Cart items will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1">
+        <?= $content ?>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Mia Store</h3>
+                    <p class="text-gray-300">Your modern e-commerce solution powered by the Mia SDK.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Quick Links</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="/products" class="hover:text-white">Products</a></li>
+                        <li><a href="/about" class="hover:text-white">About</a></li>
+                        <li><a href="/contact" class="hover:text-white">Contact</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Customer Service</h4>
+                    <ul class="space-y-2 text-gray-300">
+                        <li><a href="/help" class="hover:text-white">Help Center</a></li>
+                        <li><a href="/returns" class="hover:text-white">Returns</a></li>
+                        <li><a href="/shipping" class="hover:text-white">Shipping Info</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold mb-4">Connect</h4>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-gray-300 hover:text-white"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
+                <p>&copy; 2024 Mia Store. Powered by Mia SDK.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Configuration for the JavaScript app
+        window.MiaStoreConfig = {
+            cartCount: <?= $cartCount ?>,
+            isLoggedIn: <?= $isLoggedIn ? 'true' : 'false' ?>
+        };
+    </script>
+    <?= \Marti\Frontend\HtmlResources::getInstance()->renderJsBody() ?>
+</body>
+</html>

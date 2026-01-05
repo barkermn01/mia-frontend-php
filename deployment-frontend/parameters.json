@@ -1,0 +1,30 @@
+[
+    {
+        "ParameterKey":  "ProjectName",
+        "ParameterValue":  "mia-frontend"
+    },
+    {
+        "ParameterKey":  "Environment",
+        "ParameterValue":  "production"
+    },
+    {
+        "ParameterKey":  "FrontendDomain",
+        "ParameterValue":  "store.miaai.me"
+    },
+    {
+        "ParameterKey":  "SSLCertificateArn",
+        "ParameterValue":  "arn:aws:acm:eu-west-2:959690686680:certificate/bea31ac9-71fe-40f1-95f7-06e6d5b94572"
+    },
+    {
+        "ParameterKey":  "ImageTag",
+        "ParameterValue":  "latest"
+    },
+    {
+        "ParameterKey":  "WebCpu",
+        "ParameterValue":  "256"
+    },
+    {
+        "ParameterKey":  "WebMemory",
+        "ParameterValue":  "512"
+    }
+]

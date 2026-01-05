@@ -1,0 +1,140 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <div class="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-green-100">
+                <i class="fas fa-user-plus text-green-600 text-xl"></i>
+            </div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Create your account
+            </h2>
+            <p class="mt-2 text-center text-sm text-gray-600">
+                Or
+                <a href="/login" class="font-medium text-blue-600 hover:text-blue-500">
+                    sign in to existing account
+                </a>
+            </p>
+        </div>
+        
+        <div class="bg-white py-8 px-6 shadow rounded-lg">
+            <?php if (isset($error)): ?>
+                <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-circle mr-2 mt-0.5"></i>
+                        <span><?= htmlspecialchars($error) ?></span>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($success)): ?>
+                <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                    <div class="flex">
+                        <i class="fas fa-check-circle mr-2 mt-0.5"></i>
+                        <span><?= htmlspecialchars($success) ?></span>
+                    </div>
+                </div>
+            <?php else: ?>
+                <form method="POST" class="space-y-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="first_name" class="block text-sm font-medium text-gray-700">
+                                First name
+                            </label>
+                            <div class="mt-1 relative">
+                                <input id="first_name" name="first_name" type="text" required
+                                       value="<?= htmlspecialchars($_POST['first_name'] ?? '') ?>"
+                                       class="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                       placeholder="First name">
+                                <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="last_name" class="block text-sm font-medium text-gray-700">
+                                Last name
+                            </label>
+                            <div class="mt-1 relative">
+                                <input id="last_name" name="last_name" type="text" required
+                                       value="<?= htmlspecialchars($_POST['last_name'] ?? '') ?>"
+                                       class="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                       placeholder="Last name">
+                                <i class="fas fa-user absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">
+                            Email address
+                        </label>
+                        <div class="mt-1 relative">
+                            <input id="email" name="email" type="email" autocomplete="email" required
+                                   value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+                                   class="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                   placeholder="Enter your email">
+                            <i class="fas fa-envelope absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">
+                            Password
+                        </label>
+                        <div class="mt-1 relative">
+                            <input id="password" name="password" type="password" required minlength="8"
+                                   class="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                   placeholder="At least 8 characters">
+                            <i class="fas fa-lock absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Password must be at least 8 characters long
+                        </p>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input id="terms" name="terms" type="checkbox" required
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="terms" class="ml-2 block text-sm text-gray-900">
+                            I agree to the
+                            <a href="/terms" class="text-blue-600 hover:text-blue-500">Terms of Service</a>
+                            and
+                            <a href="/privacy" class="text-blue-600 hover:text-blue-500">Privacy Policy</a>
+                        </label>
+                    </div>
+
+                    <div>
+                        <button type="submit"
+                                class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                                <i class="fas fa-user-plus text-green-500 group-hover:text-green-400"></i>
+                            </span>
+                            Create Account
+                        </button>
+                    </div>
+                </form>
+            <?php endif; ?>
+        </div>
+        
+        <!-- Benefits -->
+        <div class="bg-white py-6 px-6 shadow rounded-lg">
+            <h3 class="text-sm font-medium text-gray-900 mb-4">Why create an account?</h3>
+            <ul class="space-y-2 text-sm text-gray-600">
+                <li class="flex items-center">
+                    <i class="fas fa-check text-green-500 mr-2"></i>
+                    Save items for later with saved baskets
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-check text-green-500 mr-2"></i>
+                    Track your order history
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-check text-green-500 mr-2"></i>
+                    Faster checkout process
+                </li>
+                <li class="flex items-center">
+                    <i class="fas fa-check text-green-500 mr-2"></i>
+                    Exclusive member offers
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>

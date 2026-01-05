@@ -1,0 +1,118 @@
+<div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+    <div class="relative">
+        <?php if (!empty($product['images'])): ?>
+            <img src="<?= htmlspecialchars($product['images'][0]['url']) ?>" 
+                 alt="<?= htmlspecialchars($product['title']) ?>"
+                 class="w-full h-48 object-cover">
+        <?php else: ?>
+            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
+                <i class="fas fa-image text-4xl text-gray-400"></i>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($product['badge'])): ?>
+            <span class="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
+                <?= htmlspecialchars($product['badge']) ?>
+            </span>
+        <?php endif; ?>
+    </div>
+    
+    <div class="p-4">
+        <h3 class="font-semibold text-lg mb-2 line-clamp-2">
+            <?= htmlspecialchars($product['title']) ?>
+        </h3>
+        
+        <p class="text-gray-600 text-sm mb-3 line-clamp-2">
+            <?= htmlspecialchars($product['shortDescription'] ?? '') ?>
+        </p>
+        
+        <div class="flex items-center justify-between">
+            <?php 
+            // Determine price display based on variants
+            $priceDisplay = '';
+            $showAddToCart = false;
+            $singleVariantSku = '';
+            
+            if (!empty($product['variants'])) {
+                if (count($product['variants']) === 1) {
+                    // Single variant - show price and allow add to cart
+                    $priceDisplay = $view->formatPrice($product['variants'][0]['price']);
+                    $showAddToCart = true;
+                    $singleVariantSku = $product['variants'][0]['sku'];
+                } else {
+                    // Multiple variants - show "From: {lowest_price}"
+                    $prices = [];
+                    foreach ($product['variants'] as $variant) {
+                        if (isset($variant['price'])) {
+                            $prices[] = $view->getDisplayPrice($variant['price']);
+                        }
+                    }
+                    if (!empty($prices)) {
+                        $lowestPrice = min($prices);
+                        $currency = $view->getCurrency($product['variants'][0]['price']);
+                        $symbols = ['GBP' => '£', 'USD' => '$', 'EUR' => '€'];
+                        $symbol = $symbols[$currency] ?? $currency;
+                        $priceDisplay = 'From: ' . $symbol . number_format($lowestPrice, 2);
+                    } else {
+                        $priceDisplay = 'Price unavailable';
+                    }
+                    $showAddToCart = false;
+                }
+            } elseif (!empty($product['price'])) {
+                // Legacy price format
+                $priceDisplay = $view->formatPrice($product['price']);
+                $showAddToCart = false; // No variants means no SKU to add
+            }
+            ?>
+            
+            <?php if ($priceDisplay): ?>
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl font-bold text-blue-600">
+                        <?= $priceDisplay ?>
+                    </span>
+                    <?php 
+                    $originalPriceValue = $view->getDisplayPrice($product['originalPrice'] ?? 0);
+                    $currentPriceValue = 0;
+                    if (!empty($product['variants'])) {
+                        $currentPriceValue = $view->getDisplayPrice($product['variants'][0]['price']);
+                    } elseif (!empty($product['price'])) {
+                        $currentPriceValue = $view->getDisplayPrice($product['price']);
+                    }
+                    if (!empty($product['originalPrice']) && $originalPriceValue > $currentPriceValue): 
+                    ?>
+                        <span class="text-sm text-gray-500 line-through">
+                            <?= $view->formatPrice($product['originalPrice']) ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+            
+            <div class="flex space-x-2">
+                <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" 
+                   class="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-eye"></i>
+                </a>
+                
+                <?php if ($showAddToCart && $singleVariantSku): ?>
+                    <button onclick="addToCart('<?= htmlspecialchars($singleVariantSku) ?>', 1, this)" 
+                            class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-cart-plus"></i>
+                    </button>
+                <?php endif; ?>
+            </div>
+        </div>
+        
+        <?php if (!empty($product['rating'])): ?>
+            <div class="flex items-center mt-2">
+                <div class="flex text-yellow-400">
+                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                        <i class="fas fa-star<?= $i <= $product['rating'] ? '' : ' text-gray-300' ?>"></i>
+                    <?php endfor; ?>
+                </div>
+                <span class="text-sm text-gray-600 ml-2">
+                    (<?= $product['reviewCount'] ?? 0 ?> reviews)
+                </span>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>

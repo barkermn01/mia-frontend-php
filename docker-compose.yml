@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: deployment-frontend/Dockerfile
+    container_name: mia-frontend-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - ENV=development
+      - MIA_DEBUG=true
+      - CACHE_ENABLED=false
+      - MIA_API_URL=https://api.miaai.me
+      - MIA_SITE_ID=52c782d3-d71d-4ecb-a0ef-6b8c7f5b3781
+      - MIA_SSL_VERIFY=true
+    restart: unless-stopped
+    
+  # Optional: Add memcached for local development
+  memcached:
+    image: memcached:1.6-alpine
+    container_name: mia-memcached-dev
+    ports:
+      - "11211:11211"
+    command: memcached -m 64
+    restart: unless-stopped

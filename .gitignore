@@ -1,0 +1,7 @@
+/vendor/
+
+
+.kiro/*
+.kiro
+
+.env

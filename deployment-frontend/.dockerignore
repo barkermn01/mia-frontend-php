@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Dependencies (will be installed in container)
+node_modules/
+
+# Development files
+.env.local
+.env.development
+.env.test
+
+# Documentation
+README.md
+*.md
+
+# Deployment files (except the ones we need)
+backend-deployment/
+
+# Cache and temporary files
+.cache/
+tmp/
+temp/
+
+# Test files
+tests/
+test/
+*.test.php
+
+# Development tools
+.kiro/

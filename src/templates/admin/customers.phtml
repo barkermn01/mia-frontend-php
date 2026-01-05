@@ -1,0 +1,295 @@
+<div class="space-y-6">
+    <!-- Success Message -->
+    <?php if (isset($_GET['success'])): ?>
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-check-circle mr-2 mt-0.5"></i>
+                <span><?= htmlspecialchars($_GET['success']) ?></span>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-gray-900">Customer Management</h3>
+        <div class="text-sm text-gray-600">
+            Total Customers: <?= $total ?>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="GET" class="flex items-center space-x-4">
+            <div class="flex-1">
+                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
+                       placeholder="Search customers by name or email..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <button type="submit" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-search mr-2"></i>Search
+            </button>
+            <?php if ($search): ?>
+                <a href="?" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                    <i class="fas fa-times mr-2"></i>Clear
+                </a>
+            <?php endif; ?>
+        </form>
+    </div>
+
+    <!-- Customers Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <?php if (!empty($customers)): ?>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <?php foreach ($customers as $customer): ?>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-10 w-10">
+                                            <div class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-user text-blue-600"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">
+                                                <?= htmlspecialchars($customer['firstName'] ?? '') ?> <?= htmlspecialchars($customer['lastName'] ?? '') ?>
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                ID: <?= htmlspecialchars($customer['guid'] ?? $customer['id'] ?? 'N/A') ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900"><?= htmlspecialchars($customer['email'] ?? 'N/A') ?></div>
+                                    <?php if (!empty($customer['phone'])): ?>
+                                        <div class="text-sm text-gray-500"><?= htmlspecialchars($customer['phone']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php 
+                                    $status = $customer['status'] ?? 'active';
+                                    $statusClass = $status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                                    ?>
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <?= $statusClass ?>">
+                                        <?= ucfirst($status) ?>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <?php if (!empty($customer['createdAt'])): ?>
+                                        <?php
+                                        $createdAt = $customer['createdAt'];
+                                        if (is_array($createdAt) && isset($createdAt['$date']['$numberLong'])) {
+                                            $timestamp = $createdAt['$date']['$numberLong'] / 1000;
+                                            echo date('M j, Y', $timestamp);
+                                        } elseif (is_string($createdAt)) {
+                                            echo date('M j, Y', strtotime($createdAt));
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
+                                    <?php else: ?>
+                                        N/A
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span class="text-blue-600 font-medium"><?= $customer['orderCount'] ?? 0 ?></span>
+                                    <?php if (!empty($customer['totalSpent'])): ?>
+                                        <div class="text-xs text-gray-500">£<?= number_format($customer['totalSpent'] / 100, 2) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex space-x-2">
+                                        <button onclick="viewCustomer('<?= htmlspecialchars($customer['guid'] ?? $customer['id']) ?>')" 
+                                                class="text-blue-600 hover:text-blue-900" title="View Customer Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button onclick="editCustomer('<?= htmlspecialchars($customer['guid'] ?? $customer['id']) ?>')" 
+                                                class="text-green-600 hover:text-green-900" title="Edit Customer">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <?php if (($customer['status'] ?? 'active') === 'active'): ?>
+                                            <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['guid'] ?? $customer['id']) ?>', 'inactive')" 
+                                                    class="text-orange-600 hover:text-orange-900" title="Deactivate Customer">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['guid'] ?? $customer['id']) ?>', 'active')" 
+                                                    class="text-green-600 hover:text-green-900" title="Activate Customer">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <?php if ($total > 20): ?>
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing <?= (($page - 1) * 20) + 1 ?> to <?= min($page * 20, $total) ?> of <?= $total ?> results
+                        </div>
+                        <div class="flex space-x-2">
+                            <?php if ($page > 1): ?>
+                                <a href="?page=<?= $page - 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>" 
+                                   class="px-3 py-2 text-sm bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                    Previous
+                                </a>
+                            <?php endif; ?>
+                            <?php if ($page * 20 < $total): ?>
+                                <a href="?page=<?= $page + 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>" 
+                                   class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Next
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php else: ?>
+            <div class="text-center py-12">
+                <i class="fas fa-users text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No customers found</h3>
+                <p class="text-gray-500">
+                    <?= $search ? 'No customers match your search criteria.' : 'No customers have registered yet.' ?>
+                </p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Customer Details Modal -->
+<div id="customerModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-96 overflow-y-auto">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">Customer Details</h3>
+                    <button onclick="closeCustomerModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="customerModalContent" class="px-6 py-4">
+                <!-- Customer details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewCustomer(customerId) {
+    // Show modal
+    document.getElementById('customerModal').classList.remove('hidden');
+    document.getElementById('customerModalContent').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i></div>';
+    
+    // Fetch customer details
+    fetch(`<?= $adminPath ?>/api/customers/${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayCustomerDetails(data.customer);
+            } else {
+                document.getElementById('customerModalContent').innerHTML = '<div class="text-red-600">Failed to load customer details: ' + data.message + '</div>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('customerModalContent').innerHTML = '<div class="text-red-600">Error loading customer details: ' + error.message + '</div>';
+        });
+}
+
+function displayCustomerDetails(customer) {
+    const content = `
+        <div class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Name</label>
+                    <p class="text-sm text-gray-900">${customer.firstName || ''} ${customer.lastName || ''}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <p class="text-sm text-gray-900">${customer.email || 'N/A'}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Phone</label>
+                    <p class="text-sm text-gray-900">${customer.phone || 'N/A'}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Status</label>
+                    <p class="text-sm text-gray-900">${customer.status || 'active'}</p>
+                </div>
+            </div>
+            ${customer.addresses && customer.addresses.length > 0 ? `
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Addresses</label>
+                    ${customer.addresses.map(addr => `
+                        <div class="bg-gray-50 p-3 rounded mb-2">
+                            <p class="text-sm">${addr.line1 || ''}</p>
+                            ${addr.line2 ? `<p class="text-sm">${addr.line2}</p>` : ''}
+                            <p class="text-sm">${addr.city || ''}, ${addr.state || ''} ${addr.postalCode || ''}</p>
+                            <p class="text-sm">${addr.country || ''}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : ''}
+        </div>
+    `;
+    document.getElementById('customerModalContent').innerHTML = content;
+}
+
+function closeCustomerModal() {
+    document.getElementById('customerModal').classList.add('hidden');
+}
+
+function editCustomer(customerId) {
+    alert('Customer editing functionality will be implemented in a future update.');
+}
+
+function toggleCustomerStatus(customerId, newStatus) {
+    if (!confirm(`Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} this customer?`)) {
+        return;
+    }
+    
+    fetch(`<?= $adminPath ?>/api/customers/${customerId}/status`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Failed to update customer status: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error updating customer status: ' + error.message);
+    });
+}
+
+// Close modal when clicking outside
+document.getElementById('customerModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCustomerModal();
+    }
+});
+</script>

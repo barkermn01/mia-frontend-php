@@ -1,0 +1,45 @@
+<?php if (!empty($cart['items'])): ?>
+    <div class="space-y-4">
+        <?php foreach ($cart['items'] as $item): ?>
+            <?= $view->partial('cart-item', ['item' => $item]) ?>
+        <?php endforeach; ?>
+    </div>
+    
+    <?php 
+    // Calculate total from cart items since API doesn't provide it
+    $total = 0;
+    foreach ($cart['items'] as $item) {
+        $total += ($item['price'] * $item['qty']);
+    }
+    ?>
+    
+    <div class="border-t border-gray-200 pt-4 mt-4">
+        <div class="flex justify-between items-center mb-4">
+            <span class="text-lg font-semibold">Total:</span>
+            <span class="text-xl font-bold text-blue-600">
+                £<?= number_format($total / 100, 2) ?>
+            </span>
+        </div>
+        
+        <div class="space-y-2">
+            <a href="/cart" 
+               class="w-full bg-gray-100 text-gray-800 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors text-center block">
+                View Cart
+            </a>
+            <a href="/checkout" 
+               class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center block">
+                Checkout
+            </a>
+        </div>
+    </div>
+<?php else: ?>
+    <div class="text-center py-8">
+        <i class="fas fa-shopping-cart text-4xl text-gray-400 mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
+        <p class="text-gray-500 mb-4">Add some products to get started!</p>
+        <a href="/products" 
+           class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-block">
+            Browse Products
+        </a>
+    </div>
+<?php endif; ?>

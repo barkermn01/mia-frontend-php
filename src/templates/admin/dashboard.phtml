@@ -1,0 +1,109 @@
+<div class="space-y-6">
+    <!-- Welcome Section -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+            Welcome back, <?= htmlspecialchars($user['email']) ?>!
+        </h3>
+        <p class="text-gray-600">
+            You are logged in as <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $user['role']))) ?>
+        </p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
+                        <i class="fas fa-box text-white"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Products</p>
+                    <p class="text-2xl font-semibold text-gray-900"><?= number_format($stats['total_products']) ?></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
+                        <i class="fas fa-shopping-cart text-white"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Orders</p>
+                    <p class="text-2xl font-semibold text-gray-900"><?= number_format($stats['total_orders']) ?></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-purple-500 rounded-md flex items-center justify-center">
+                        <i class="fas fa-users text-white"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Customers</p>
+                    <p class="text-2xl font-semibold text-gray-900"><?= number_format($stats['total_customers']) ?></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
+                        <i class="fas fa-pound-sign text-white"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Revenue</p>
+                    <p class="text-2xl font-semibold text-gray-900">£<?= number_format($stats['revenue'] / 100, 2) ?></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="<?= $adminPath ?>/products" class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                <i class="fas fa-plus-circle text-blue-600 text-xl mr-3"></i>
+                <div>
+                    <div class="font-medium text-gray-900">Manage Products</div>
+                    <div class="text-sm text-gray-600">Add, edit, or remove products</div>
+                </div>
+            </a>
+            
+            <a href="<?= $adminPath ?>/orders" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+                <i class="fas fa-list-alt text-green-600 text-xl mr-3"></i>
+                <div>
+                    <div class="font-medium text-gray-900">View Orders</div>
+                    <div class="text-sm text-gray-600">Process and manage orders</div>
+                </div>
+            </a>
+            
+            <a href="<?= $adminPath ?>/settings" class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+                <i class="fas fa-cog text-purple-600 text-xl mr-3"></i>
+                <div>
+                    <div class="font-medium text-gray-900">Settings</div>
+                    <div class="text-sm text-gray-600">Configure system settings</div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <div class="text-center py-8 text-gray-500">
+            <i class="fas fa-clock text-4xl mb-4"></i>
+            <p>No recent activity to display</p>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,7 @@
+<?php
+use Marti\Frontend\MarkdownRenderer;
+
+if (!empty($content)):
+    echo MarkdownRenderer::render($content);
+endif;
+?>

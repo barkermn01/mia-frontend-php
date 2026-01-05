@@ -1,0 +1,47 @@
+{
+    "name": "marti/frontend",
+    "type": "project",
+    "description": "MIA PHP Frontend Platform - E-commerce system with admin interface",
+    "autoload": {
+        "psr-4": {
+            "Marti\\Frontend\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Marti\\Frontend\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Mia AI Team",
+            "email": "support@miaai.local"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/barkermn01/mia-php-sdk.git"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "mia/php-sdk": "dev-master",
+        "psr/container": "^2.0",
+        "psr/http-message": "^2.0",
+        "psr/log": "^3.0",
+        "league/commonmark": "^2.4",
+        "symfony/http-foundation": "^7.0",
+        "twig/twig": "^3.8"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "giorgiosironi/eris": "^0.14"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
