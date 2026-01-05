@@ -101,7 +101,6 @@ function Start-Container {
         -v "${PWD}:/var/www/html" `
         -e "ENV=development" `
         -e "MIA_DEBUG=true" `
-        -e "CACHE_ENABLED=false" `
         $imageName
     
     if ($LASTEXITCODE -ne 0) {

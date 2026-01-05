@@ -1,115 +1,238 @@
 <div class="container mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Products</h1>
-            <p class="text-gray-600">Discover our amazing collection</p>
-        </div>
-        
-        <!-- Search -->
-        <div class="mt-4 md:mt-0">
-            <form method="GET" class="flex space-x-2">
-                <div class="relative">
-                    <input type="text" name="search" placeholder="Search products..." 
-                           value="<?= htmlspecialchars($search) ?>"
-                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                </div>
-                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Search
-                </button>
-                <?php if ($search): ?>
-                    <a href="/products" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
-                        Clear
-                    </a>
-                <?php endif; ?>
-            </form>
-        </div>
-    </div>
-
-    <!-- Search Results Info -->
-    <?php if ($search): ?>
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p class="text-blue-800">
-                <i class="fas fa-search mr-2"></i>
-                Showing results for: <strong><?= htmlspecialchars($search) ?></strong>
-                (<?= $products['total'] ?? 0 ?> products found)
-            </p>
-        </div>
-    <?php endif; ?>
-
-    <!-- Products Grid -->
-    <?php if (!empty($products['items'])): ?>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-            <?php foreach ($products['items'] as $product): ?>
-                <?= $view->partial('product-card', ['product' => $product]) ?>
-            <?php endforeach; ?>
-        </div>
-        
-        <!-- Pagination -->
-        <?php if ($products['total'] > count($products['items'])): ?>
-            <div class="flex justify-center">
-                <?php
-                $limit = $products['limit'] ?? 12;
-                $totalPages = ceil($products['total'] / $limit);
-                $currentPage = $page;
-                $baseUrl = '/products?' . http_build_query(array_filter(['search' => $search, 'category' => $category]));
-                $baseUrl = rtrim($baseUrl, '?');
-                ?>
-                
-                <nav class="flex items-center space-x-2">
-                    <?php if ($currentPage > 1): ?>
-                        <a href="<?= $baseUrl ?><?= $baseUrl ? '&' : '?' ?>page=<?= $currentPage - 1 ?>" 
-                           class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                            <i class="fas fa-chevron-left"></i>
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Categories Sidebar -->
+        <div class="lg:w-1/4">
+            <div class="space-y-6 sticky top-24">
+                <!-- Primary Categories -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Categories</h3>
+                    <div class="space-y-2">
+                        <!-- All Categories -->
+                        <?php 
+                        $allCategoriesClass = !$category ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50';
+                        $allCategoriesUrl = $search ? '/products?search=' . urlencode($search) : '/products';
+                        ?>
+                        <a href="<?= $allCategoriesUrl ?>" class="<?= $allCategoriesClass ?> block py-2 px-3 rounded transition-colors">
+                            All Categories
                         </a>
-                    <?php endif; ?>
-                    
-                    <?php for ($i = max(1, $currentPage - 2); $i <= min($totalPages, $currentPage + 2); $i++): ?>
-                        <?php if ($i === $currentPage): ?>
-                            <span class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium">
-                                <?= $i ?>
-                            </span>
+                        
+                        <!-- Individual Primary Categories -->
+                        <?php if (!empty($categories['primary'])): ?>
+                            <?php foreach ($categories['primary'] as $cat): ?>
+                                <?php 
+                                $isActive = $category === $cat['name'];
+                                $linkClass = $isActive ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50';
+                                
+                                $url = '/products?category=' . urlencode($cat['name']);
+                                if ($search) {
+                                    $url .= '&search=' . urlencode($search);
+                                }
+                                ?>
+                                <a href="<?= $url ?>" class="<?= $linkClass ?> block py-2 px-3 rounded transition-colors">
+                                    <div class="flex justify-between items-center">
+                                        <span class="capitalize"><?= htmlspecialchars($cat['name']) ?></span>
+                                        <span class="text-sm text-gray-500"><?= $cat['count'] ?></span>
+                                    </div>
+                                </a>
+                            <?php endforeach; ?>
                         <?php else: ?>
-                            <a href="<?= $baseUrl ?><?= $baseUrl ? '&' : '?' ?>page=<?= $i ?>" 
-                               class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                <?= $i ?>
+                            <p class="text-gray-500 text-sm">No categories available</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <?php if (!empty($categories['filters'])): ?>
+                    <div class="bg-white rounded-lg shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Filters</h3>
+                        <div class="space-y-4">
+                            <?php 
+                            $visibleFilters = array_filter($categories['filters'], function($filterValues) {
+                                return count($filterValues) > 1;
+                            });
+                            $filterCount = 0;
+                            $totalVisibleFilters = count($visibleFilters);
+                            ?>
+                            <?php foreach ($categories['filters'] as $filterKey => $filterValues): ?>
+                                <?php if (count($filterValues) > 1): // Only show filter groups with more than 1 option ?>
+                                    <?php $filterCount++; ?>
+                                    <div class="<?= $filterCount < $totalVisibleFilters ? 'border-b border-gray-200 pb-4' : 'pb-4' ?>">
+                                        <h4 class="font-medium text-gray-700 mb-2"><?= htmlspecialchars($filterKey) ?></h4>
+                                        <div class="space-y-1">
+                                            <?php foreach ($filterValues as $filter): ?>
+                                                <?php 
+                                                $isActive = $category === $filter['fullName'];
+                                                $linkClass = $isActive ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-600 hover:text-red-600 hover:bg-gray-50';
+                                                
+                                                $url = '/products?category=' . urlencode($filter['fullName']);
+                                                if ($search) {
+                                                    $url .= '&search=' . urlencode($search);
+                                                }
+                                                ?>
+                                                <a href="<?= $url ?>" class="<?= $linkClass ?> block py-1 px-2 rounded text-sm transition-colors">
+                                                    <div class="flex justify-between items-center">
+                                                        <span><?= htmlspecialchars($filter['name']) ?></span>
+                                                        <span class="text-xs text-gray-400"><?= $filter['count'] ?></span>
+                                                    </div>
+                                                </a>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="lg:w-3/4">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Products</h1>
+                    <p class="text-gray-600">Discover our amazing collection</p>
+                </div>
+                
+                <!-- Search -->
+                <div class="mt-4 md:mt-0">
+                    <form method="GET" class="flex space-x-2">
+                        <div class="relative">
+                            <input type="text" name="search" placeholder="Search products..." 
+                                   value="<?= htmlspecialchars($search) ?>"
+                                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Search
+                        </button>
+                        <?php if ($search || $category): ?>
+                            <a href="/products" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                                Clear
                             </a>
                         <?php endif; ?>
-                    <?php endfor; ?>
-                    
-                    <?php if ($currentPage < $totalPages): ?>
-                        <a href="<?= $baseUrl ?><?= $baseUrl ? '&' : '?' ?>page=<?= $currentPage + 1 ?>" 
-                           class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
-                    <?php endif; ?>
-                </nav>
+                    </form>
+                </div>
             </div>
-        <?php endif; ?>
-        
-    <?php else: ?>
-        <!-- Empty State -->
-        <div class="text-center py-16">
-            <div class="bg-white rounded-lg shadow-lg p-12 max-w-md mx-auto">
-                <i class="fas fa-search text-6xl text-gray-400 mb-6"></i>
-                <h2 class="text-2xl font-bold text-gray-800 mb-4">No Products Found</h2>
-                <?php if ($search): ?>
-                    <p class="text-gray-600 mb-6">
-                        No products match your search for "<strong><?= htmlspecialchars($search) ?></strong>"
+
+            <!-- Active Filters -->
+            <?php if ($category): ?>
+                <div class="mb-6">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-600">Active filters:</span>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
+                            Category: <?= htmlspecialchars($category) ?>
+                            <a href="/products<?= $search ? '?search=' . urlencode($search) : '' ?>" class="ml-2 hover:text-red-600">
+                                <i class="fas fa-times"></i>
+                            </a>
+                        </span>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Search Results Info -->
+            <?php if ($search): ?>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <p class="text-blue-800">
+                        <i class="fas fa-search mr-2"></i>
+                        Showing results for: <strong><?= htmlspecialchars($search) ?></strong>
+                        (<?= $products['total'] ?? 0 ?> products found)
                     </p>
-                    <a href="/products" 
-                       class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block">
-                        View All Products
-                    </a>
-                <?php else: ?>
-                    <p class="text-gray-600 mb-6">Check back soon for new products!</p>
-                    <a href="/" 
-                       class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block">
-                        Back to Home
-                    </a>
+                </div>
+            <?php endif; ?>
+
+            <!-- Products Grid -->
+            <?php if (!empty($products['items'])): ?>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <?php foreach ($products['items'] as $product): ?>
+                        <?= $view->partial('product-card', ['product' => $product]) ?>
+                    <?php endforeach; ?>
+                </div>
+                
+                <!-- Pagination -->
+                <?php if ($products['total'] > count($products['items'])): ?>
+                    <div class="flex justify-center">
+                        <?php
+                        $limit = $products['limit'] ?? 12;
+                        $totalPages = ceil($products['total'] / $limit);
+                        $currentPage = $page;
+                        
+                        // Build base URL with existing parameters
+                        $params = array_filter(['search' => $search, 'category' => $category]);
+                        $baseUrl = '/products';
+                        if (!empty($params)) {
+                            $baseUrl .= '?' . http_build_query($params);
+                        }
+                        ?>
+                        
+                        <nav class="flex items-center space-x-2">
+                            <?php if ($currentPage > 1): ?>
+                                <?php 
+                                $prevParams = $params;
+                                $prevParams['page'] = $currentPage - 1;
+                                ?>
+                                <a href="/products?<?= http_build_query($prevParams) ?>" 
+                                   class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = max(1, $currentPage - 2); $i <= min($totalPages, $currentPage + 2); $i++): ?>
+                                <?php if ($i === $currentPage): ?>
+                                    <span class="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium">
+                                        <?= $i ?>
+                                    </span>
+                                <?php else: ?>
+                                    <?php 
+                                    $pageParams = $params;
+                                    $pageParams['page'] = $i;
+                                    ?>
+                                    <a href="/products?<?= http_build_query($pageParams) ?>" 
+                                       class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <?= $i ?>
+                                    </a>
+                                <?php endif; ?>
+                            <?php endfor; ?>
+                            
+                            <?php if ($currentPage < $totalPages): ?>
+                                <?php 
+                                $nextParams = $params;
+                                $nextParams['page'] = $currentPage + 1;
+                                ?>
+                                <a href="/products?<?= http_build_query($nextParams) ?>" 
+                                   class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            <?php endif; ?>
+                        </nav>
+                    </div>
                 <?php endif; ?>
-            </div>
+                
+            <?php else: ?>
+                <!-- Empty State -->
+                <div class="text-center py-16">
+                    <div class="bg-white rounded-lg shadow-lg p-12 max-w-md mx-auto">
+                        <i class="fas fa-search text-6xl text-gray-400 mb-6"></i>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">No Products Found</h2>
+                        <?php if ($search): ?>
+                            <p class="text-gray-600 mb-6">
+                                No products match your search for "<strong><?= htmlspecialchars($search) ?></strong>"
+                            </p>
+                            <a href="/products" 
+                               class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block">
+                                View All Products
+                            </a>
+                        <?php else: ?>
+                            <p class="text-gray-600 mb-6">Check back soon for new products!</p>
+                            <a href="/" 
+                               class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-block">
+                                Back to Home
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
-    <?php endif; ?>
+    </div>
 </div>

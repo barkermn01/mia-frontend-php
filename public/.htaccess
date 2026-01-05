@@ -1,7 +1,6 @@
 RewriteEngine On
 
-# Handle Angular and other front-end router, API requests
-RewriteCond %{REQUEST_URI} !^/api/
+# Handle all requests through index.php (including API routes)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]

@@ -5,22 +5,11 @@ namespace Marti\Frontend;
 class View
 {
     private $templatePath;
-    private $cache;
     private $data = [];
-    private $cacheTtl;
-    private $cacheEnabled;
 
-    public function __construct(string $templatePath, \Memcached $cache, int $cacheTtl = 300)
+    public function __construct(string $templatePath)
     {
         $this->templatePath = rtrim($templatePath, '/');
-        $this->cache = $cache;
-        $this->cacheTtl = $cacheTtl;
-        
-        // Get cache enabled setting from environment
-        $this->cacheEnabled = filter_var(
-            $_ENV['CACHE_ENABLED'] ?? getenv('CACHE_ENABLED') ?: 'true', 
-            FILTER_VALIDATE_BOOLEAN
-        );
     }
 
     public function assign(string $key, $value): void
@@ -37,18 +26,6 @@ class View
     {
         // Merge data and add view instance
         $templateData = array_merge($this->data, $data, ['view' => $this]);
-        
-        // Generate cache key (exclude view object from cache key)
-        $cacheData = array_merge($this->data, $data);
-        $cacheKey = 'template_' . $template . '_' . md5(serialize($cacheData));
-        
-        // Check cache if enabled
-        if ($this->cacheEnabled) {
-            $cached = $this->cache->get($cacheKey);
-            if ($cached !== false) {
-                return $cached;
-            }
-        }
 
         // Start output buffering
         ob_start();
@@ -67,11 +44,6 @@ class View
         // Get rendered content
         $content = ob_get_clean();
         
-        // Cache the rendered template if enabled
-        if ($this->cacheEnabled) {
-            $this->cache->set($cacheKey, $content, $this->cacheTtl);
-        }
-        
         return $content;
     }
 
@@ -84,19 +56,6 @@ class View
     public function partial(string $template, array $data = []): string
     {
         return $this->render('partials/' . $template, $data); // Partials use same cache setting
-    }
-
-    public function clearCache(?string $template = null): void
-    {
-        if ($template) {
-            // Clear specific template cache pattern
-            $pattern = 'template_' . $template . '_*';
-            // Note: Memcached doesn't support pattern deletion, 
-            // so we'd need to track keys or use a different approach
-        } else {
-            // Clear all template cache (flush all)
-            $this->cache->flush();
-        }
     }
 
     /**

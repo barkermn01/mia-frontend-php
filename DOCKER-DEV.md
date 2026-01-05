@@ -71,7 +71,6 @@ tail -f /var/log/apache2/error.log  # View Apache errors
 The container runs with development settings:
 - `ENV=development`
 - `MIA_DEBUG=true`
-- `CACHE_ENABLED=false`
 - Volume mounting for live code changes
 
 ## PowerShell Script Commands

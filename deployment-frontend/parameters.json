@@ -9,7 +9,7 @@
     },
     {
         "ParameterKey":  "FrontendDomain",
-        "ParameterValue":  "store.miaai.me"
+        "ParameterValue":  "oxwinches.miaai.me"
     },
     {
         "ParameterKey":  "SSLCertificateArn",
@@ -21,10 +21,10 @@
     },
     {
         "ParameterKey":  "WebCpu",
-        "ParameterValue":  "256"
+        "ParameterValue":  "512"
     },
     {
         "ParameterKey":  "WebMemory",
-        "ParameterValue":  "512"
+        "ParameterValue":  "2048"
     }
 ]

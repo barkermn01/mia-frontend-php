@@ -54,10 +54,6 @@ class Admin
             'site_id' => $_ENV['MIA_SITE_ID'] ?? getenv('MIA_SITE_ID') ?: null,
             'verify_ssl' => filter_var($_ENV['MIA_VERIFY_SSL'] ?? getenv('MIA_VERIFY_SSL') ?: 'true', FILTER_VALIDATE_BOOLEAN),
             'debug' => filter_var($_ENV['MIA_DEBUG'] ?? getenv('MIA_DEBUG') ?: 'false', FILTER_VALIDATE_BOOLEAN),
-            'cache_enabled' => filter_var($_ENV['CACHE_ENABLED'] ?? getenv('CACHE_ENABLED') ?: 'true', FILTER_VALIDATE_BOOLEAN),
-            'memcached_host' => $_ENV['MEMCACHED_HOST'] ?? getenv('MEMCACHED_HOST') ?: 'localhost',
-            'memcached_port' => $_ENV['MEMCACHED_PORT'] ?? getenv('MEMCACHED_PORT') ?: 11211,
-            'cache_ttl' => $_ENV['CACHE_TTL'] ?? getenv('CACHE_TTL') ?: 300,
             'admin_address' => rtrim($_ENV['ADMIN_ADDRESS'] ?? getenv('ADMIN_ADDRESS') ?: 'admin/', '/')
         ];
 
@@ -92,25 +88,17 @@ class Admin
 
     private function initializeCache(): void
     {
-        $this->cache = new \Memcached();
-        $this->cache->addServer($this->config['memcached_host'], $this->config['memcached_port']);
-        
-        if (!$this->config['cache_enabled']) {
-            $this->cache->flush();
-        }
+        // No external cache dependency - use simple in-memory cache or no cache
+        $this->cache = null;
     }
 
     private function initializeView(): void
     {
-        $this->view = new View(__DIR__ . '/templates/admin', $this->cache, $this->config['cache_ttl']);
-        
-        if (!$this->config['cache_enabled']) {
-            $this->view->clearCache();
-        }
+        $this->view = new View(__DIR__ . '/templates/admin');
         
         // Initialize HTML resources with admin defaults
         HtmlResources::getInstance()->addDefaults();
-        HtmlResources::getInstance()->setTitle('Admin Panel - Mia Store');
+        HtmlResources::getInstance()->setTitle('Admin Panel - OxWinches');
     }
 
     public function handleRequest(): void
@@ -786,9 +774,6 @@ class Admin
                 }
             }
             
-            // Clear cache to ensure updated product data is shown
-            $this->cache->flush();
-            
             // Redirect to products list with success message
             $imageCount = count($images);
             $successMessage = "Product updated successfully. Images: {$imageCount}";
@@ -894,9 +879,6 @@ class Admin
 
             // Call the API to delete the product
             $result = $this->client->products->deleteProduct($productId);
-            
-            // Clear cache to ensure deleted product is removed from listings
-            $this->cache->flush();
             
             echo json_encode(['success' => true, 'message' => 'Product deleted successfully']);
         } catch (\Exception $e) {

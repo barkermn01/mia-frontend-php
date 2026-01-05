@@ -2,9 +2,13 @@
     <!-- Breadcrumb -->
     <nav class="mb-8">
         <ol class="flex items-center space-x-2 text-sm text-gray-600">
-            <li><a href="/" class="hover:text-blue-600">Home</a></li>
+            <li><a href="/" class="hover:text-red-600">Home</a></li>
             <li><i class="fas fa-chevron-right text-xs"></i></li>
-            <li><a href="/products" class="hover:text-blue-600">Products</a></li>
+            <li><a href="/products" class="hover:text-red-600">Products</a></li>
+            <?php if (!empty($product['categories']) && is_array($product['categories'])): ?>
+                <li><i class="fas fa-chevron-right text-xs"></i></li>
+                <li><a href="/products?category=<?= urlencode($product['categories'][0]) ?>" class="hover:text-red-600 capitalize"><?= htmlspecialchars($product['categories'][0]) ?></a></li>
+            <?php endif; ?>
             <li><i class="fas fa-chevron-right text-xs"></i></li>
             <li class="text-gray-900"><?= htmlspecialchars($product['title']) ?></li>
         </ol>

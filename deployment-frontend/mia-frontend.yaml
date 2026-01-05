@@ -218,10 +218,6 @@ Resources:
               Value: 'true'
             - Name: MIA_DEBUG
               Value: 'false'
-            - Name: CACHE_ENABLED
-              Value: 'true'
-            - Name: CACHE_TTL
-              Value: '3600'
             - Name: LOG_LEVEL
               Value: 'info'
           LogConfiguration:
@@ -264,7 +260,7 @@ Outputs:
     Value: !GetAtt ApplicationLoadBalancer.DNSName
 
   FrontendDomain:
-    Description: Frontend domain
+    Description: Frontend storefront domain
     Value: !Ref FrontendDomain
 
   ECSClusterName:

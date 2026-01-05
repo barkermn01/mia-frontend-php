@@ -43,7 +43,6 @@ The container is configured with:
 - `MIA_API_URL`: Backend API URL
 - `MIA_SITE_ID`: Site identifier
 - `MIA_SSL_VERIFY`: SSL verification (true/false)
-- `CACHE_ENABLED`: Enable template caching
 - `LOG_LEVEL`: Logging level
 
 ## Architecture

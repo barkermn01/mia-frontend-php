@@ -1,17 +1,50 @@
 <!-- Hero Section -->
-<section class="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-    <div class="container mx-auto px-4 py-16">
-        <div class="text-center">
-            <h1 class="text-4xl md:text-6xl font-bold mb-6">Welcome to Mia Store</h1>
-            <p class="text-xl md:text-2xl mb-8 opacity-90">
-                Discover amazing products powered by the Mia SDK
-            </p>
-            <a href="/products" class="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-flex items-center">
-                <i class="fas fa-shopping-bag mr-2"></i>
-                Shop Now
-            </a>
+<section class="hero-gradient text-white relative overflow-hidden">
+    <div class="container mx-auto px-4 py-16 relative z-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div class="text-center lg:text-left">
+                <h1 class="text-4xl md:text-6xl font-bold mb-6">Welcome to OxWinches</h1>
+                <p class="text-xl md:text-2xl mb-8 opacity-90">
+                    Premium winches and marine equipment powered by Mia AI Store
+                </p>
+                <a href="/products" class="btn-primary px-8 py-3 rounded-lg font-semibold inline-flex items-center">
+                    <i class="fas fa-shopping-bag mr-2"></i>
+                    Shop Now
+                </a>
+            </div>
+            <div class="text-center lg:text-right">
+                <!-- Image Carousel -->
+                <div class="relative bg-black rounded-lg shadow-2xl overflow-hidden" id="hero-carousel">
+                    <div class="carousel-container relative h-80 lg:h-96">
+                        <!-- Slide 1: Full Logo -->
+                        <div class="carousel-slide active absolute inset-0 flex items-center justify-center p-8 transition-opacity duration-1000">
+                            <img src="/images/logo.png" alt="OxWinches Full Logo" class="max-w-full max-h-full object-contain">
+                        </div>
+                        <!-- Slide 2: Ox Image -->
+                        <div class="carousel-slide absolute inset-0 flex items-center justify-center p-8 transition-opacity duration-1000 opacity-0">
+                            <img src="/images/ox.jpg" alt="OxWinches Marine Equipment" class="max-w-full max-h-full object-contain rounded">
+                        </div>
+                    </div>
+                    
+                    <!-- Carousel Indicators -->
+                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                        <button class="carousel-indicator active w-3 h-3 rounded-full bg-white opacity-50 hover:opacity-75 transition-opacity" data-slide="0"></button>
+                        <button class="carousel-indicator w-3 h-3 rounded-full bg-white opacity-30 hover:opacity-75 transition-opacity" data-slide="1"></button>
+                    </div>
+                    
+                    <!-- Carousel Navigation -->
+                    <button class="carousel-prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="carousel-next absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+    <!-- Background overlay for better text readability -->
+    <div class="absolute inset-0 bg-black bg-opacity-20"></div>
 </section>
 
 <!-- Error Message -->
@@ -31,7 +64,6 @@
 <section class="container mx-auto px-4 py-16">
     <div class="text-center mb-12">
         <h2 class="text-3xl font-bold text-gray-800 mb-4">Featured Products</h2>
-        <p class="text-gray-600 text-lg">Handpicked items just for you</p>
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -61,32 +93,32 @@
 <section class="bg-gray-100 py-16">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-800 mb-4">Why Choose Mia Store?</h2>
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Why Choose OxWinches?</h2>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="text-center">
-                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-shipping-fast text-2xl text-blue-600"></i>
+                <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background-color: var(--ox-red-light);">
+                    <i class="fas fa-ship text-2xl" style="color: var(--ox-red);"></i>
                 </div>
-                <h3 class="text-xl font-semibold mb-2">Fast Shipping</h3>
-                <p class="text-gray-600">Quick and reliable delivery to your doorstep</p>
+                <h3 class="text-xl font-semibold mb-2">Marine Grade</h3>
+                <p class="text-gray-600">Built to withstand harsh marine environments</p>
             </div>
             
             <div class="text-center">
-                <div class="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-shield-alt text-2xl text-green-600"></i>
+                <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background-color: var(--ox-red-light);">
+                    <i class="fas fa-tools text-2xl" style="color: var(--ox-red);"></i>
                 </div>
-                <h3 class="text-xl font-semibold mb-2">Secure Shopping</h3>
-                <p class="text-gray-600">Your data and payments are always protected</p>
+                <h3 class="text-xl font-semibold mb-2">Professional Grade</h3>
+                <p class="text-gray-600">Heavy-duty winches for professional use</p>
             </div>
             
             <div class="text-center">
-                <div class="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-headset text-2xl text-purple-600"></i>
+                <div class="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style="background-color: var(--ox-red-light);">
+                    <i class="fas fa-headset text-2xl" style="color: var(--ox-red);"></i>
                 </div>
-                <h3 class="text-xl font-semibold mb-2">24/7 Support</h3>
-                <p class="text-gray-600">We're here to help whenever you need us</p>
+                <h3 class="text-xl font-semibold mb-2">Expert Support</h3>
+                <p class="text-gray-600">Technical support from marine equipment experts</p>
             </div>
         </div>
     </div>

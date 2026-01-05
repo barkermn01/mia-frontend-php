@@ -349,4 +349,87 @@ window.TooltipSystem = {
 // Initialize tooltip system when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     TooltipSystem.init();
+    
+    // Initialize hero carousel
+    HeroCarousel.init();
 });
+
+// Hero Carousel System
+window.HeroCarousel = {
+    currentSlide: 0,
+    slides: [],
+    indicators: [],
+    autoPlayInterval: null,
+    autoPlayDelay: 4000, // 4 seconds
+    
+    init() {
+        const carousel = document.getElementById('hero-carousel');
+        if (!carousel) return;
+        
+        this.slides = carousel.querySelectorAll('.carousel-slide');
+        this.indicators = carousel.querySelectorAll('.carousel-indicator');
+        
+        if (this.slides.length === 0) return;
+        
+        // Set up event listeners
+        this.setupEventListeners(carousel);
+        
+        // Start auto-play
+        this.startAutoPlay();
+        
+        // Pause auto-play on hover
+        carousel.addEventListener('mouseenter', () => this.stopAutoPlay());
+        carousel.addEventListener('mouseleave', () => this.startAutoPlay());
+    },
+    
+    setupEventListeners(carousel) {
+        // Navigation buttons
+        const prevBtn = carousel.querySelector('.carousel-prev');
+        const nextBtn = carousel.querySelector('.carousel-next');
+        
+        if (prevBtn) prevBtn.addEventListener('click', () => this.prevSlide());
+        if (nextBtn) nextBtn.addEventListener('click', () => this.nextSlide());
+        
+        // Indicator buttons
+        this.indicators.forEach((indicator, index) => {
+            indicator.addEventListener('click', () => this.goToSlide(index));
+        });
+    },
+    
+    goToSlide(slideIndex) {
+        if (slideIndex < 0 || slideIndex >= this.slides.length) return;
+        
+        // Hide current slide
+        this.slides[this.currentSlide].classList.remove('active');
+        this.indicators[this.currentSlide].classList.remove('active');
+        
+        // Show new slide
+        this.currentSlide = slideIndex;
+        this.slides[this.currentSlide].classList.add('active');
+        this.indicators[this.currentSlide].classList.add('active');
+    },
+    
+    nextSlide() {
+        const nextIndex = (this.currentSlide + 1) % this.slides.length;
+        this.goToSlide(nextIndex);
+    },
+    
+    prevSlide() {
+        const prevIndex = (this.currentSlide - 1 + this.slides.length) % this.slides.length;
+        this.goToSlide(prevIndex);
+    },
+    
+    startAutoPlay() {
+        this.stopAutoPlay(); // Clear any existing interval
+        this.autoPlayInterval = setInterval(() => {
+            this.nextSlide();
+        }, this.autoPlayDelay);
+    },
+    
+    stopAutoPlay() {
+        if (this.autoPlayInterval) {
+            clearInterval(this.autoPlayInterval);
+            this.autoPlayInterval = null;
+        }
+    }
+};

@@ -56,10 +56,6 @@ class Storefront
             'site_id' => $_ENV['MIA_SITE_ID'] ?? getenv('MIA_SITE_ID') ?: null,
             'verify_ssl' => filter_var($_ENV['MIA_VERIFY_SSL'] ?? getenv('MIA_VERIFY_SSL') ?: 'true', FILTER_VALIDATE_BOOLEAN),
             'debug' => filter_var($_ENV['MIA_DEBUG'] ?? getenv('MIA_DEBUG') ?: 'false', FILTER_VALIDATE_BOOLEAN),
-            'cache_enabled' => filter_var($_ENV['CACHE_ENABLED'] ?? getenv('CACHE_ENABLED') ?: 'true', FILTER_VALIDATE_BOOLEAN),
-            'memcached_host' => $_ENV['MEMCACHED_HOST'] ?? getenv('MEMCACHED_HOST') ?: 'localhost',
-            'memcached_port' => $_ENV['MEMCACHED_PORT'] ?? getenv('MEMCACHED_PORT') ?: 11211,
-            'cache_ttl' => $_ENV['CACHE_TTL'] ?? getenv('CACHE_TTL') ?: 300, // 5 minutes
         ];
 
         if (!$this->config['site_id']) {
@@ -95,23 +91,13 @@ class Storefront
 
     private function initializeCache(): void
     {
-        $this->cache = new \Memcached();
-        $this->cache->addServer($this->config['memcached_host'], $this->config['memcached_port']);
-        
-        // Clear all cache if caching is disabled (for development)
-        if (!$this->config['cache_enabled']) {
-            $this->cache->flush();
-        }
+        // No external cache dependency - use simple in-memory cache or no cache
+        $this->cache = null;
     }
 
     private function initializeView(): void
     {
-        $this->view = new View(__DIR__ . '/templates', $this->cache, $this->config['cache_ttl']);
-        
-        // Clear cache if caching is disabled (for development)
-        if (!$this->config['cache_enabled']) {
-            $this->view->clearCache();
-        }
+        $this->view = new View(__DIR__ . '/templates');
         
         // Initialize HTML resources with defaults
         HtmlResources::getInstance()->addDefaults();
@@ -248,6 +234,9 @@ class Storefront
                         $this->apiRemoveFromCart();
                     }
                     break;
+                case '/api/categories':
+                    $this->apiGetCategories();
+                    break;
                 default:
                     http_response_code(404);
                     echo json_encode(['error' => 'API endpoint not found']);
@@ -350,6 +339,20 @@ class Storefront
         }
     }
 
+    private function apiGetCategories(): void
+    {
+        try {
+            $categories = $this->client->products->getCategories(['status' => 'active']);
+            echo json_encode([
+                'success' => true,
+                'categories' => $categories['categories'] ?? [],
+                'total' => $categories['total'] ?? 0
+            ]);
+        } catch (MiaException $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     private function showHomePage(): void
     {
         // Set content type to HTML
@@ -357,9 +360,9 @@ class Storefront
         
         // Set page-specific resources
         $htmlResources = HtmlResources::getInstance();
-        $htmlResources->setTitle('Welcome to Mia Store');
-        $htmlResources->setDescription('Discover amazing products powered by the Mia SDK');
-        $htmlResources->setKeywords('ecommerce, store, products, mia, sdk');
+        $htmlResources->setTitle('Welcome to OxWinches');
+        $htmlResources->setDescription('Premium winches and marine equipment powered by Mia AI Store');
+        $htmlResources->setKeywords('winches, marine equipment, boat winches, anchor winches, oxwinches');
         
         $products = $this->getProducts(['limit' => 8]);
         
@@ -395,11 +398,14 @@ class Storefront
 
         $products = $this->getProducts($filters);
         
+        // Get categories for sidebar
+        $categories = $this->getCategories();
+        
         // Set page-specific resources
         $title = 'Products';
         if ($search) $title .= ' - Search: ' . htmlspecialchars($search);
         if ($category) $title .= ' - Category: ' . htmlspecialchars($category);
-        $title .= ' - Mia Store';
+        $title .= ' - OxWinches';
         
         $htmlResources = HtmlResources::getInstance();
         $htmlResources->setTitle($title);
@@ -408,6 +414,7 @@ class Storefront
         
         $content = $this->view->render('products', [
             'products' => $products,
+            'categories' => $categories,
             'search' => $search,
             'category' => $category,
             'page' => $page
@@ -438,7 +445,7 @@ class Storefront
             
             // Add product-specific resources
             $htmlResources = HtmlResources::getInstance();
-            $htmlResources->setTitle(htmlspecialchars($product['title']) . ' - Mia Store');
+            $htmlResources->setTitle(htmlspecialchars($product['title']) . ' - OxWinches');
             $htmlResources->setDescription(strip_tags($product['description'] ?? ''));
             $htmlResources->addJsBody('/js/product.js'); // Product JS needs to be after DOM and config
             
@@ -481,7 +488,7 @@ class Storefront
             
             // Set page-specific resources
             $htmlResources = HtmlResources::getInstance();
-            $htmlResources->setTitle('Shopping Cart - Mia Store');
+            $htmlResources->setTitle('Shopping Cart - OxWinches');
             $htmlResources->setDescription('Review your shopping cart and proceed to checkout.');
             $htmlResources->setKeywords('cart, shopping cart, checkout, review order');
             
@@ -509,7 +516,7 @@ class Storefront
             ]);
             
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Checkout - Mia Store',
+                'title' => 'Checkout - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => $this->getCustomer(),
                 'isLoggedIn' => $this->isLoggedIn()
@@ -529,7 +536,7 @@ class Storefront
         $content = $this->view->render('login');
         
         echo $this->view->renderLayout('layout', $content, [
-            'title' => 'Login - Mia Store',
+            'title' => 'Login - OxWinches',
             'cartCount' => $this->getCartItemCount(),
             'customer' => null,
             'isLoggedIn' => false
@@ -547,7 +554,7 @@ class Storefront
             error_log("Login failed - Missing email or password");
             $content = $this->view->render('login', ['error' => 'Email and password are required']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Login - Mia Store',
+                'title' => 'Login - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -592,7 +599,7 @@ class Storefront
             ]));
             $content = $this->view->render('login', ['error' => 'Invalid email or password']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Login - Mia Store',
+                'title' => 'Login - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -606,7 +613,7 @@ class Storefront
             ]));
             $content = $this->view->render('login', ['error' => 'Login failed: ' . $e->getMessage()]);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Login - Mia Store',
+                'title' => 'Login - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -620,7 +627,7 @@ class Storefront
             ]));
             $content = $this->view->render('login', ['error' => 'Login failed: ' . $e->getMessage()]);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Login - Mia Store',
+                'title' => 'Login - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -638,7 +645,7 @@ class Storefront
         $content = $this->view->render('register');
         
         echo $this->view->renderLayout('layout', $content, [
-            'title' => 'Register - Mia Store',
+            'title' => 'Register - OxWinches',
             'cartCount' => $this->getCartItemCount(),
             'customer' => null,
             'isLoggedIn' => false
@@ -655,7 +662,7 @@ class Storefront
         if (!$email || !$password || !$firstName || !$lastName) {
             $content = $this->view->render('register', ['error' => 'All fields are required']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Register - Mia Store',
+                'title' => 'Register - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -673,7 +680,7 @@ class Storefront
             
             $content = $this->view->render('register', ['success' => 'Registration successful! Please check your email to verify your account.']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Register - Mia Store',
+                'title' => 'Register - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -681,7 +688,7 @@ class Storefront
         } catch (ValidationException $e) {
             $content = $this->view->render('register', ['error' => 'Invalid data: ' . $e->getMessage()]);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Register - Mia Store',
+                'title' => 'Register - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -689,7 +696,7 @@ class Storefront
         } catch (MiaException $e) {
             $content = $this->view->render('register', ['error' => 'Registration failed: ' . $e->getMessage()]);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Register - Mia Store',
+                'title' => 'Register - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -754,7 +761,7 @@ class Storefront
             ]);
             
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'My Account - Mia Store',
+                'title' => 'My Account - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => $this->getCustomer(),
                 'isLoggedIn' => $this->isLoggedIn()
@@ -797,7 +804,7 @@ class Storefront
             ]);
             
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Order History - Mia Store',
+                'title' => 'Order History - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => $this->getCustomer(),
                 'isLoggedIn' => $this->isLoggedIn()
@@ -810,28 +817,53 @@ class Storefront
 
     private function getProducts(array $filters = []): array
     {
-        $cacheKey = 'products_' . md5(serialize($filters));
-        
-        // Check cache only if caching is enabled
-        if ($this->config['cache_enabled']) {
-            $cached = $this->cache->get($cacheKey);
-            if ($cached !== false) {
-                return $cached;
-            }
-        }
-
         try {
             $products = $this->client->products->getProducts($filters);
-            
-            // Cache only if caching is enabled
-            if ($this->config['cache_enabled']) {
-                $this->cache->set($cacheKey, $products, $this->config['cache_ttl']);
-            }
-            
             return $products;
         } catch (MiaException $e) {
             error_log("Failed to fetch products: " . $e->getMessage());
             return ['items' => [], 'total' => 0];
+        }
+    }
+
+    private function getCategories(): array
+    {
+        try {
+            $categories = $this->client->products->getCategories(['status' => 'active']);
+            $allCategories = $categories['categories'] ?? [];
+            
+            $primaryCategories = [];
+            $filters = [];
+            
+            foreach ($allCategories as $category) {
+                if (strpos($category['name'], ':') === false) {
+                    // Primary category (no colon)
+                    $primaryCategories[] = $category;
+                } else {
+                    // Filter category (has colon) - group by key
+                    $parts = explode(':', $category['name'], 2);
+                    $key = trim($parts[0]);
+                    $value = trim($parts[1]);
+                    
+                    if (!isset($filters[$key])) {
+                        $filters[$key] = [];
+                    }
+                    
+                    $filters[$key][] = [
+                        'name' => $value,
+                        'fullName' => $category['name'],
+                        'count' => $category['count']
+                    ];
+                }
+            }
+            
+            return [
+                'primary' => $primaryCategories,
+                'filters' => $filters
+            ];
+        } catch (MiaException $e) {
+            error_log("Failed to fetch categories: " . $e->getMessage());
+            return ['primary' => [], 'filters' => []];
         }
     }
 
@@ -866,7 +898,7 @@ class Storefront
         http_response_code(404);
         $content = $this->view->render('404');
         echo $this->view->renderLayout('layout', $content, [
-            'title' => 'Page Not Found - Mia Store',
+            'title' => 'Page Not Found - OxWinches',
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
             'isLoggedIn' => $this->isLoggedIn()
@@ -877,7 +909,7 @@ class Storefront
     {
         $content = $this->view->render('error', ['message' => $message]);
         echo $this->view->renderLayout('layout', $content, [
-            'title' => 'Error - Mia Store',
+            'title' => 'Error - OxWinches',
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
             'isLoggedIn' => $this->isLoggedIn()

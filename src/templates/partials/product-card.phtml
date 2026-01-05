@@ -1,14 +1,16 @@
-<div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
+<div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 product-card">
     <div class="relative">
-        <?php if (!empty($product['images'])): ?>
-            <img src="<?= htmlspecialchars($product['images'][0]['url']) ?>" 
-                 alt="<?= htmlspecialchars($product['title']) ?>"
-                 class="w-full h-48 object-cover">
-        <?php else: ?>
-            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                <i class="fas fa-image text-4xl text-gray-400"></i>
-            </div>
-        <?php endif; ?>
+        <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" class="block">
+            <?php if (!empty($product['images'])): ?>
+                <img src="<?= htmlspecialchars($product['images'][0]['url']) ?>" 
+                     alt="<?= htmlspecialchars($product['title']) ?>"
+                     class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
+            <?php else: ?>
+                <div class="w-full h-48 bg-gray-200 flex items-center justify-center hover:bg-gray-300 transition-colors">
+                    <i class="fas fa-image text-4xl text-gray-400"></i>
+                </div>
+            <?php endif; ?>
+        </a>
         
         <?php if (!empty($product['badge'])): ?>
             <span class="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
@@ -18,13 +20,17 @@
     </div>
     
     <div class="p-4">
-        <h3 class="font-semibold text-lg mb-2 line-clamp-2">
-            <?= htmlspecialchars($product['title']) ?>
-        </h3>
+        <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" class="block hover:text-red-600 transition-colors">
+            <h3 class="font-semibold text-lg mb-2 line-clamp-2">
+                <?= htmlspecialchars($product['title']) ?>
+            </h3>
+        </a>
         
-        <p class="text-gray-600 text-sm mb-3 line-clamp-2">
-            <?= htmlspecialchars($product['shortDescription'] ?? '') ?>
-        </p>
+        <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" class="block hover:text-red-600 transition-colors">
+            <p class="text-gray-600 text-sm mb-3 line-clamp-2">
+                <?= htmlspecialchars($product['shortDescription'] ?? '') ?>
+            </p>
+        </a>
         
         <div class="flex items-center justify-between">
             <?php 

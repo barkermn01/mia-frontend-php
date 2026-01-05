@@ -2,6 +2,8 @@
 
 A simple PHP storefront built using only the Mia SDK and memcached for caching. No templating frameworks - just pure PHP with clean separation of concerns.
 
+*Currently configured for OxWinches - Premium winches and marine equipment store.*
+
 ## Features
 
 - **Product Catalog**: Browse and search products with pagination
@@ -11,6 +13,8 @@ A simple PHP storefront built using only the Mia SDK and memcached for caching. 
 - **Saved Baskets**: Save and load shopping carts (authenticated users)
 - **Caching**: Memcached integration for improved performance
 - **Responsive Design**: Mobile-friendly CSS without frameworks
+
+*Currently themed for marine equipment and winches.*
 
 ## Requirements
 

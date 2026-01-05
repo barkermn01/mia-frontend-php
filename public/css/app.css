@@ -1,4 +1,122 @@
-/* Mia Store - Main Stylesheet */
+/* OxWinches - Main Stylesheet */
+
+/* Brand Color Variables */
+:root {
+    --ox-black: #000000;
+    --ox-white: #ffffff;
+    --ox-red: #dc2626;
+    --ox-red-hover: #b91c1c;
+    --ox-red-light: #fef2f2;
+    --ox-red-border: #fecaca;
+    --ox-gray-50: #f9fafb;
+    --ox-gray-100: #f3f4f6;
+    --ox-gray-200: #e5e7eb;
+    --ox-gray-300: #d1d5db;
+    --ox-gray-400: #9ca3af;
+    --ox-gray-500: #6b7280;
+    --ox-gray-600: #4b5563;
+    --ox-gray-700: #374151;
+    --ox-gray-800: #1f2937;
+    --ox-gray-900: #111827;
+}
+
+/* Brand Color Overrides for Tailwind Classes */
+.bg-blue-600, .bg-blue-700 {
+    background-color: var(--ox-red) !important;
+}
+
+.bg-blue-600:hover, .hover\:bg-blue-700:hover {
+    background-color: var(--ox-red-hover) !important;
+}
+
+.text-blue-600, .text-blue-500 {
+    color: var(--ox-red) !important;
+}
+
+.text-blue-600:hover, .hover\:text-blue-500:hover, .hover\:text-blue-600:hover {
+    color: var(--ox-red-hover) !important;
+}
+
+.border-blue-500, .focus\:border-blue-500:focus {
+    border-color: var(--ox-red) !important;
+}
+
+.ring-blue-500, .focus\:ring-blue-500:focus {
+    --tw-ring-color: var(--ox-red) !important;
+}
+
+.bg-blue-50 {
+    background-color: var(--ox-red-light) !important;
+}
+
+.border-blue-200 {
+    border-color: var(--ox-red-border) !important;
+}
+
+.text-blue-800 {
+    color: var(--ox-red-hover) !important;
+}
+
+/* Header Styling */
+header {
+    background-color: var(--ox-white);
+    border-bottom: 2px solid var(--ox-red);
+}
+
+/* Hero Section Brand Colors */
+.hero-gradient {
+    background: linear-gradient(135deg, var(--ox-black) 0%, var(--ox-red) 100%);
+}
+
+/* Button Styling */
+.btn-primary {
+    background-color: var(--ox-red);
+    color: var(--ox-white);
+    border: 2px solid var(--ox-red);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--ox-red-hover);
+    border-color: var(--ox-red-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: var(--ox-white);
+    color: var(--ox-red);
+    border: 2px solid var(--ox-red);
+}
+
+.btn-secondary:hover {
+    background-color: var(--ox-red);
+    color: var(--ox-white);
+}
+
+/* Footer Styling */
+footer {
+    background-color: var(--ox-black);
+    color: var(--ox-white);
+}
+
+footer a {
+    color: var(--ox-gray-300);
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: var(--ox-red);
+}
+
+/* Focus States for Accessibility */
+button:focus,
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--ox-red);
+    outline-offset: 2px;
+}
 
 /* Cart Animation */
 .cart-animation {
@@ -34,6 +152,16 @@
     transform: translateX(0);
 }
 
+/* Success Toast */
+.toast.bg-green-500 {
+    background-color: var(--ox-red) !important;
+}
+
+/* Error Toast */
+.toast.bg-red-500 {
+    background-color: var(--ox-gray-800) !important;
+}
+
 /* Line Clamp Utilities (for older browsers) */
 .line-clamp-2 {
     display: -webkit-box;
@@ -48,23 +176,16 @@
 }
 
 #cart-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--ox-gray-100);
 }
 
 #cart-content::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--ox-red);
     border-radius: 3px;
 }
 
 #cart-content::-webkit-scrollbar-thumb:hover {
-    background: #a1a1a1;
-}
-
-/* Focus States for Accessibility */
-button:focus,
-a:focus {
-    outline: 2px solid #3B82F6;
-    outline-offset: 2px;
+    background: var(--ox-red-hover);
 }
 
 /* Smooth Transitions */
@@ -82,6 +203,13 @@ a:focus {
     visibility: hidden;
     pointer-events: none;
     transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+    background-color: var(--ox-gray-800);
+    color: var(--ox-white);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    max-width: 300px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .tooltip-content.show {
@@ -118,7 +246,7 @@ a:focus {
     margin-left: 8px;
 }
 
-/* Tooltip arrow (optional) */
+/* Tooltip arrow */
 .tooltip-content::before {
     content: '';
     position: absolute;
@@ -131,26 +259,181 @@ a:focus {
     top: 100%;
     left: 50%;
     transform: translateX(-50%);
-    border-top-color: #1f2937;
+    border-top-color: var(--ox-gray-800);
 }
 
 .tooltip-content.tooltip-bottom::before {
     bottom: 100%;
     left: 50%;
     transform: translateX(-50%);
-    border-bottom-color: #1f2937;
+    border-bottom-color: var(--ox-gray-800);
 }
 
 .tooltip-content.tooltip-left::before {
     left: 100%;
     top: 50%;
     transform: translateY(-50%);
-    border-left-color: #1f2937;
+    border-left-color: var(--ox-gray-800);
 }
 
 .tooltip-content.tooltip-right::before {
     right: 100%;
     top: 50%;
     transform: translateY(-50%);
-    border-right-color: #1f2937;
+    border-right-color: var(--ox-gray-800);
+}
+
+/* Product Cards */
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(220, 38, 38, 0.15);
+}
+
+/* Navigation Links */
+nav a {
+    position: relative;
+    transition: color 0.3s ease;
+}
+
+nav a:hover {
+    color: var(--ox-red);
+}
+
+nav a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--ox-red);
+    transition: width 0.3s ease;
+}
+
+nav a:hover::after {
+    width: 100%;
+}
+
+/* Form Elements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+    border: 2px solid var(--ox-gray-300);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--ox-red);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+/* Checkbox and Radio Styling */
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: var(--ox-red);
+}
+
+/* Admin Panel Styling */
+.admin-sidebar {
+    background-color: var(--ox-black);
+    color: var(--ox-white);
+}
+
+.admin-sidebar a {
+    color: var(--ox-gray-300);
+    transition: all 0.3s ease;
+}
+
+.admin-sidebar a:hover,
+.admin-sidebar a.active {
+    color: var(--ox-white);
+    background-color: var(--ox-red);
+}
+
+/* Mobile Menu */
+#mobile-menu {
+    background-color: var(--ox-white);
+    border-top: 2px solid var(--ox-red);
+}
+
+/* Cart Sidebar */
+#cart-sidebar .bg-white {
+    background-color: var(--ox-white);
+    border-left: 3px solid var(--ox-red);
+}
+
+/* Hero Carousel */
+.carousel-container {
+    position: relative;
+    background-color: var(--ox-black);
+}
+
+.carousel-slide {
+    transition: opacity 1s ease-in-out;
+}
+
+.carousel-slide.active {
+    opacity: 1 !important;
+}
+
+.carousel-indicator {
+    transition: opacity 0.3s ease-in-out;
+}
+
+.carousel-indicator.active {
+    opacity: 1 !important;
+    background-color: var(--ox-red);
+}
+
+/* Hide controls by default */
+.carousel-prev,
+.carousel-next {
+    z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Hide indicators by default */
+#hero-carousel .absolute.bottom-4 {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* Show controls on hover */
+#hero-carousel:hover .carousel-prev,
+#hero-carousel:hover .carousel-next {
+    opacity: 1;
+}
+
+#hero-carousel:hover .absolute.bottom-4 {
+    opacity: 1;
+}
+
+.carousel-prev:hover,
+.carousel-next:hover {
+    background-color: var(--ox-red) !important;
+}
+
+/* Carousel auto-play animation */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
