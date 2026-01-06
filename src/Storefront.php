@@ -364,7 +364,8 @@ class Storefront
         $htmlResources->setDescription('Premium winches and marine equipment powered by Mia AI Store');
         $htmlResources->setKeywords('winches, marine equipment, boat winches, anchor winches, oxwinches');
         
-        $products = $this->getProducts(['limit' => 8]);
+        // Get featured products (products with "Featured" tag)
+        $products = $this->getProducts(['tag' => 'Featured', 'limit' => 8]);
         
         $content = $this->view->render('home', [
             'products' => $products
