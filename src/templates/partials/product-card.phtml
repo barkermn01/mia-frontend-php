@@ -2,7 +2,7 @@
     <div class="relative">
         <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" class="block">
             <?php if (!empty($product['images'])): ?>
-                <img src="<?= htmlspecialchars($product['images'][0]['url']) ?>" 
+                <img src="<?= is_array($product['images'][0])?$product['images'][0]['url']:$product['images'][0] ?>" 
                      alt="<?= htmlspecialchars($product['title']) ?>"
                      class="w-full h-48 object-cover hover:scale-105 transition-transform duration-300">
             <?php else: ?>

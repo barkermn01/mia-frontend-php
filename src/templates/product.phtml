@@ -20,7 +20,7 @@
             <div class="aspect-square bg-white rounded-lg shadow-lg overflow-hidden">
                 <?php if (!empty($product['images'])): ?>
                     <img id="main-image" 
-                         src="<?= htmlspecialchars($product['images'][0]['url']) ?>" 
+                         src="<?= is_array($product['images'][0])?$product['images'][0]['url']:$product['images'][0] ?>" 
                          alt="<?= htmlspecialchars($product['title']) ?>"
                          class="w-full h-full object-cover">
                 <?php else: ?>
@@ -34,9 +34,9 @@
             <?php if (!empty($product['images']) && count($product['images']) > 1): ?>
                 <div class="flex space-x-2 overflow-x-auto">
                     <?php foreach ($product['images'] as $index => $image): ?>
-                        <button onclick="changeMainImage('<?= htmlspecialchars($image['url']) ?>')"
+                        <button onclick="changeMainImage('<?= is_array($image)?$image['url']:$image; ?>')"
                                 class="flex-shrink-0 w-20 h-20 bg-white rounded-lg shadow border-2 border-transparent hover:border-blue-500 overflow-hidden">
-                            <img src="<?= htmlspecialchars($image['url']) ?>" 
+                            <img src="<?= is_array($image)?$image['url']:$image; ?>" 
                                  alt="Product image <?= $index + 1 ?>"
                                  class="w-full h-full object-cover">
                         </button>
@@ -127,16 +127,71 @@
                                 <?php foreach ($variants as $index => $variant): ?>
                                     <option value="<?= htmlspecialchars($variant['sku']) ?>" 
                                             data-price="<?= htmlspecialchars(json_encode($variant['price'])) ?>"
-                                            data-stock="<?= $variant['stock'] ?? 0 ?>"
+                                            data-stock="<?= htmlspecialchars(json_encode($variant['stock'] ?? [])) ?>"
+                                            data-attributes="<?= htmlspecialchars(json_encode($variant['attributes'] ?? [])) ?>"
                                             <?= $index === 0 ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($view->getVariantName($variant)) ?>
+                                        <?php if (!$view->isInStock($variant)): ?>
+                                            (Out of Stock)
+                                        <?php endif; ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        
+                        <!-- Variant Attributes Display -->
+                        <div id="variant-attributes" class="space-y-2">
+                            <?php 
+                            $firstVariant = $variants[0];
+                            if (!empty($firstVariant['attributes'])): 
+                            ?>
+                                <?php foreach ($firstVariant['attributes'] as $key => $value): ?>
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-medium text-gray-600"><?= htmlspecialchars(ucfirst($key)) ?>:</span>
+                                        <span class="text-gray-900"><?= htmlspecialchars($value) ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- Stock Display -->
+                        <div id="stock-display" class="text-sm">
+                            <?php 
+                            $stockDisplay = $view->getStockDisplay($variants[0]);
+                            $isInStock = $view->isInStock($variants[0]);
+                            ?>
+                            <span class="<?= $isInStock ? 'text-green-600' : 'text-red-600' ?>">
+                                <i class="fas fa-<?= $isInStock ? 'check-circle' : 'times-circle' ?> mr-1"></i>
+                                <?= htmlspecialchars($stockDisplay) ?>
+                            </span>
+                        </div>
                     <?php else: ?>
-                        <!-- Single variant - no dropdown needed, just hidden input -->
+                        <!-- Single variant - show attributes and stock -->
                         <input type="hidden" id="single-variant-sku" value="<?= htmlspecialchars($variants[0]['sku']) ?>">
+                        
+                        <?php if (!empty($variants[0]['attributes'])): ?>
+                            <div class="space-y-2">
+                                <h4 class="text-sm font-medium text-gray-700">Product Details:</h4>
+                                <?php foreach ($variants[0]['attributes'] as $key => $value): ?>
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="font-medium text-gray-600"><?= htmlspecialchars(ucfirst($key)) ?>:</span>
+                                        <span class="text-gray-900"><?= htmlspecialchars($value) ?></span>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- Stock Display -->
+                        <div class="text-sm">
+                            <?php 
+                            $stockDisplay = $view->getStockDisplay($variants[0]);
+                            $isInStock = $view->isInStock($variants[0]);
+                            ?>
+                            <span class="<?= $isInStock ? 'text-green-600' : 'text-red-600' ?>">
+                                <i class="fas fa-<?= $isInStock ? 'check-circle' : 'times-circle' ?> mr-1"></i>
+                                <?= htmlspecialchars($stockDisplay) ?>
+                            </span>
+                        </div>
                     <?php endif; ?>
 
                     <div>
@@ -160,7 +215,7 @@
                     <div class="flex space-x-4">
                         <button id="add-to-cart-btn" 
                                 onclick="addToCartFromProduct()" 
-                                class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                                class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
                             <i class="fas fa-cart-plus mr-2"></i>
                             Add to Cart
                         </button>
@@ -210,3 +265,189 @@
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+// Enhanced variant handling functions
+function updateVariantInfo(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const priceData = JSON.parse(selectedOption.getAttribute('data-price') || '0');
+    const stockData = JSON.parse(selectedOption.getAttribute('data-stock') || '{}');
+    const attributesData = JSON.parse(selectedOption.getAttribute('data-attributes') || '{}');
+    
+    // Update price display
+    updatePriceDisplay(priceData);
+    
+    // Update stock display
+    updateStockDisplay(stockData);
+    
+    // Update attributes display
+    updateAttributesDisplay(attributesData);
+    
+    // Update add to cart button state
+    updateAddToCartButton(stockData);
+}
+
+function updatePriceDisplay(priceData) {
+    const priceElement = document.getElementById('current-price');
+    if (priceElement) {
+        let displayPrice = '';
+        
+        if (Array.isArray(priceData) && priceData[0] && priceData[0].unit) {
+            // Multi-currency format
+            const currency = priceData[0].currency || 'GBP';
+            const amount = priceData[0].unit / 100;
+            const symbols = {'GBP': '£', 'USD': '$', 'EUR': '€'};
+            const symbol = symbols[currency] || currency;
+            displayPrice = symbol + amount.toFixed(2);
+        } else if (typeof priceData === 'object' && priceData.unit) {
+            // Single currency object
+            const amount = priceData.unit / 100;
+            displayPrice = '£' + amount.toFixed(2);
+        } else if (typeof priceData === 'number') {
+            // Simple number (already in display format)
+            displayPrice = '£' + (priceData / 100).toFixed(2);
+        }
+        
+        if (displayPrice) {
+            priceElement.textContent = displayPrice;
+        }
+    }
+}
+
+function updateStockDisplay(stockData) {
+    const stockElement = document.getElementById('stock-display');
+    if (stockElement) {
+        const available = stockData.available || 0;
+        const unlimited = stockData.unlimited || false;
+        const inventoryType = stockData.inventoryType || 'physical';
+        
+        let stockText = '';
+        let isInStock = false;
+        let stockClass = '';
+        
+        if (unlimited || inventoryType === 'digital') {
+            stockText = 'In Stock';
+            isInStock = true;
+            stockClass = 'text-green-600';
+        } else if (available > 0) {
+            if (available <= 5) {
+                stockText = `Only ${available} left`;
+            } else {
+                stockText = `${available} available`;
+            }
+            isInStock = true;
+            stockClass = 'text-green-600';
+        } else {
+            stockText = 'Out of Stock';
+            isInStock = false;
+            stockClass = 'text-red-600';
+        }
+        
+        const icon = isInStock ? 'check-circle' : 'times-circle';
+        stockElement.innerHTML = `<span class="${stockClass}">
+            <i class="fas fa-${icon} mr-1"></i>
+            ${stockText}
+        </span>`;
+    }
+}
+
+function updateAttributesDisplay(attributesData) {
+    const attributesElement = document.getElementById('variant-attributes');
+    if (attributesElement) {
+        let attributesHtml = '';
+        
+        for (const [key, value] of Object.entries(attributesData)) {
+            attributesHtml += `
+                <div class="flex items-center space-x-2 text-sm">
+                    <span class="font-medium text-gray-600">${key.charAt(0).toUpperCase() + key.slice(1)}:</span>
+                    <span class="text-gray-900">${value}</span>
+                </div>
+            `;
+        }
+        
+        attributesElement.innerHTML = attributesHtml;
+    }
+}
+
+function updateAddToCartButton(stockData) {
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    if (addToCartBtn) {
+        const available = stockData.available || 0;
+        const unlimited = stockData.unlimited || false;
+        const inventoryType = stockData.inventoryType || 'physical';
+        
+        const isInStock = unlimited || inventoryType === 'digital' || available > 0;
+        
+        if (isInStock) {
+            addToCartBtn.disabled = false;
+            addToCartBtn.classList.remove('disabled:bg-gray-400', 'disabled:cursor-not-allowed');
+            addToCartBtn.classList.add('hover:bg-blue-700');
+        } else {
+            addToCartBtn.disabled = true;
+            addToCartBtn.classList.add('disabled:bg-gray-400', 'disabled:cursor-not-allowed');
+            addToCartBtn.classList.remove('hover:bg-blue-700');
+        }
+    }
+}
+
+// Initialize variant display on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const variantSelect = document.getElementById('variant-select');
+    if (variantSelect) {
+        // Trigger initial update
+        updateVariantInfo(variantSelect);
+    } else {
+        // Single variant - check stock for add to cart button
+        const singleVariantSku = document.getElementById('single-variant-sku');
+        if (singleVariantSku) {
+            // For single variants, we need to get stock info from PHP
+            <?php if (!empty($variants) && count($variants) === 1): ?>
+                const stockData = <?= json_encode($variants[0]['stock'] ?? []) ?>;
+                updateAddToCartButton(stockData);
+            <?php endif; ?>
+        }
+    }
+});
+
+// Existing functions (changeQuantity, addToCartFromProduct, etc.) remain the same
+function changeQuantity(delta) {
+    const quantityInput = document.getElementById('quantity');
+    const currentValue = parseInt(quantityInput.value) || 1;
+    const newValue = Math.max(1, Math.min(10, currentValue + delta));
+    quantityInput.value = newValue;
+}
+
+function changeMainImage(imageUrl) {
+    const mainImage = document.getElementById('main-image');
+    if (mainImage) {
+        mainImage.src = imageUrl;
+    }
+}
+
+function addToCartFromProduct() {
+    const variantSelect = document.getElementById('variant-select');
+    const singleVariantSku = document.getElementById('single-variant-sku');
+    const quantityInput = document.getElementById('quantity');
+    
+    let sku = '';
+    if (variantSelect) {
+        sku = variantSelect.value;
+    } else if (singleVariantSku) {
+        sku = singleVariantSku.value;
+    }
+    
+    const quantity = parseInt(quantityInput.value) || 1;
+    
+    if (!sku) {
+        alert('Please select a variant');
+        return;
+    }
+    
+    // Call the existing addToCart function from the main layout
+    if (typeof addToCart === 'function') {
+        addToCart(sku, quantity);
+    } else {
+        console.error('addToCart function not found');
+    }
+}
+</script>

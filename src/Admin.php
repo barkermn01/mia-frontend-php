@@ -577,9 +577,15 @@ class Admin
                         if (!empty($variant['sku']) && !empty($variant['price'])) {
                             $processedVariant = [
                                 'sku' => $variant['sku'],
-                                'price' => round($variant['price'] * 100), // Keep old format for now
+                                'price' => round($variant['price'] * 100), // Convert to pence/cents
                                 'attributes' => $variant['attributes'] ?? []
                             ];
+                            
+                            // Add presentable name if provided
+                            if (!empty($variant['presentableName'])) {
+                                $processedVariant['presentableName'] = $variant['presentableName'];
+                            }
+                            
                             $variants[] = $processedVariant;
                         }
                     }
@@ -710,14 +716,30 @@ class Admin
             $variants = [];
             if (!empty($_POST['variants'])) {
                 $variantData = json_decode($_POST['variants'], true);
+                error_log("Raw variant data from form: " . print_r($variantData, true));
+                
                 if (is_array($variantData)) {
                     foreach ($variantData as $variant) {
                         if (!empty($variant['sku']) && !empty($variant['price'])) {
                             $processedVariant = [
                                 'sku' => $variant['sku'],
-                                'price' => round($variant['price'] * 100),
+                                'price' => round($variant['price'] * 100), // Convert to pence/cents
                                 'attributes' => $variant['attributes'] ?? []
                             ];
+                            
+                            // Add UUID if it exists (for existing variants)
+                            if (!empty($variant['uuid'])) {
+                                $processedVariant['uuid'] = $variant['uuid'];
+                                error_log("Processing EXISTING variant: {$variant['sku']} with UUID: {$variant['uuid']}");
+                            } else {
+                                error_log("Processing NEW variant: {$variant['sku']} (no UUID)");
+                            }
+                            
+                            // Add presentable name if provided
+                            if (!empty($variant['presentableName'])) {
+                                $processedVariant['presentableName'] = $variant['presentableName'];
+                            }
+                            
                             $variants[] = $processedVariant;
                         }
                     }
@@ -731,7 +753,8 @@ class Admin
                 try {
                     $existingVariants = $this->client->products->getProductVariants($productId);
                     
-                    // Create a map of existing variants by SKU
+                    // Create a map of existing variants by UUID
+                    $existingVariantsByUuid = [];
                     $existingVariantsBySku = [];
                     if (!empty($existingVariants)) {
                         $variantsList = $existingVariants;
@@ -740,32 +763,61 @@ class Admin
                         }
                         
                         foreach ($variantsList as $existingVariant) {
+                            $variantId = $existingVariant['uuid'] ?? $existingVariant['id'] ?? null;
+                            if ($variantId) {
+                                $existingVariantsByUuid[$variantId] = $existingVariant;
+                            }
                             if (isset($existingVariant['sku'])) {
                                 $existingVariantsBySku[$existingVariant['sku']] = $existingVariant;
                             }
                         }
                     }
                     
+                    // Track which existing variants are being kept
+                    $keptVariantUuids = [];
+                    
                     // Process each variant from the form
                     foreach ($variants as $variant) {
                         try {
                             $sku = $variant['sku'];
+                            $uuid = $variant['uuid'] ?? null;
                             
-                            if (isset($existingVariantsBySku[$sku])) {
-                                // Update existing variant
+                            if ($uuid && isset($existingVariantsByUuid[$uuid])) {
+                                // Update existing variant by UUID
+                                $this->client->products->updateVariant($productId, $uuid, $variant);
+                                $keptVariantUuids[] = $uuid;
+                            } elseif (isset($existingVariantsBySku[$sku])) {
+                                // Update existing variant by SKU (fallback)
                                 $existingVariant = $existingVariantsBySku[$sku];
                                 $existingVariantId = $existingVariant['uuid'] ?? $existingVariant['id'] ?? null;
                                 
                                 if ($existingVariantId) {
                                     $this->client->products->updateVariant($productId, $existingVariantId, $variant);
+                                    $keptVariantUuids[] = $existingVariantId;
                                 }
                             } else {
                                 // Create new variant
-                                $this->client->products->createVariant($productId, $variant);
+                                $newVariant = $this->client->products->createVariant($productId, $variant);
+                                // Track the new variant ID if returned
+                                if (isset($newVariant['uuid']) || isset($newVariant['id'])) {
+                                    $keptVariantUuids[] = $newVariant['uuid'] ?? $newVariant['id'];
+                                }
                             }
                         } catch (\Exception $e) {
                             // Log variant processing errors but continue
                             error_log("Failed to process variant {$variant['sku']}: " . $e->getMessage());
+                        }
+                    }
+                    
+                    // Delete variants that were removed from the form
+                    foreach ($existingVariantsByUuid as $existingUuid => $existingVariant) {
+                        if (!in_array($existingUuid, $keptVariantUuids)) {
+                            try {
+                                $this->client->products->deleteVariant($productId, $existingUuid);
+                                error_log("Deleted variant with UUID: {$existingUuid}");
+                            } catch (\Exception $e) {
+                                error_log("Failed to delete variant {$existingUuid}: " . $e->getMessage());
+                            }
                         }
                     }
                 } catch (\Exception $e) {
