@@ -169,6 +169,23 @@ class Admin
             case '/customers':
                 $this->showCustomers();
                 break;
+            case '/site-admins':
+                $this->showSiteAdmins();
+                break;
+            case '/site-admins/add':
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                    $this->handleAddSiteAdmin();
+                } else {
+                    $this->showAddSiteAdmin();
+                }
+                break;
+            case '/site-admins/edit':
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                    $this->handleEditSiteAdmin();
+                } else {
+                    $this->showEditSiteAdmin();
+                }
+                break;
             case '/settings':
                 $this->showSettings();
                 break;
@@ -200,6 +217,28 @@ class Admin
                 case '/upload-image':
                     if ($method === 'POST') {
                         $this->apiUploadImage();
+                    }
+                    break;
+                case '/stock/variants':
+                    if ($method === 'GET') {
+                        $this->apiGetProductVariantsStock();
+                    }
+                    break;
+                case '/stock/adjust':
+                    if ($method === 'POST') {
+                        $this->apiAdjustStock();
+                    }
+                    break;
+                case '/site-admins':
+                    if ($method === 'GET') {
+                        $this->apiGetSiteAdmins();
+                    } elseif ($method === 'POST') {
+                        $this->apiCreateSiteAdmin();
+                    }
+                    break;
+                case '/site-admins/delete':
+                    if ($method === 'POST') {
+                        $this->apiDeleteSiteAdmin();
                     }
                     break;
                 default:
@@ -388,7 +427,8 @@ class Admin
 
             $content = $this->view->render('dashboard', [
                 'stats' => $stats,
-                'user' => $_SESSION['customer']
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [
@@ -887,6 +927,7 @@ class Admin
     private function apiGetCustomer(string $customerId): void
     {
         try {
+            // Use customer service admin endpoint for customer details
             $customer = $this->client->customer->getCustomer($customerId);
             echo json_encode(['success' => true, 'customer' => $customer]);
         } catch (MiaException $e) {
@@ -907,6 +948,7 @@ class Admin
                 return;
             }
 
+            // Use customer service admin endpoint for customer status updates
             $result = $this->client->customer->updateCustomerStatus($customerId, $status);
             echo json_encode(['success' => true, 'message' => 'Customer status updated successfully']);
         } catch (MiaException $e) {
@@ -983,11 +1025,18 @@ class Admin
                 $params['search'] = $search;
             }
 
+            // Debug: Log the request
+            error_log("showCustomers - Fetching customers with params: " . json_encode($params));
+
+            // Use admin API endpoint for customer management
             $customers = $this->client->customer->listCustomers($params);
             
+            // Debug: Log the response
+            error_log("showCustomers - Response: " . json_encode($customers));
+            
             $content = $this->view->render('customers', [
-                'customers' => $customers['items'] ?? $customers['data'] ?? [],
-                'total' => $customers['total'] ?? $customers['count'] ?? 0,
+                'customers' => $customers['customers'] ?? [],
+                'total' => $customers['pagination']['total'] ?? 0,
                 'page' => $page,
                 'search' => $search,
                 'adminPath' => $this->adminPath
@@ -999,6 +1048,7 @@ class Admin
                 'adminPath' => $this->adminPath
             ]);
         } catch (MiaException $e) {
+            error_log("showCustomers - Error: " . $e->getMessage());
             $this->showError("Failed to load customers: " . $e->getMessage());
         }
     }
@@ -1039,5 +1089,395 @@ class Admin
             'user' => $_SESSION['customer'],
             'adminPath' => $this->adminPath
         ]);
+    }
+
+    private function apiGetProductVariantsStock(): void
+    {
+        $productId = $_GET['productId'] ?? '';
+        
+        if (!$productId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Product ID is required']);
+            return;
+        }
+
+        try {
+            // Get product variants
+            $variants = $this->client->products->getProductVariants($productId);
+            
+            if (!isset($variants['items'])) {
+                throw new \Exception('No variants found for product');
+            }
+
+            // Get stock information for each variant
+            $variantsWithStock = [];
+            foreach ($variants['items'] as $variant) {
+                try {
+                    $stockInfo = $this->client->stock->getStock($variant['sku']);
+                    $variant['stockInfo'] = $stockInfo;
+                } catch (\Exception $e) {
+                    // If stock info fails, use default values
+                    $variant['stockInfo'] = [
+                        'available' => $variant['stock']['available'] ?? 0,
+                        'reserved' => $variant['stock']['reserved'] ?? 0,
+                        'allocated' => $variant['stock']['allocated'] ?? 0,
+                        'unlimited' => $variant['stock']['unlimited'] ?? false,
+                        'inventoryType' => $variant['stock']['inventoryType'] ?? 'physical'
+                    ];
+                }
+                $variantsWithStock[] = $variant;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'variants' => $variantsWithStock
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to get stock information: ' . $e->getMessage()]);
+        }
+    }
+
+    private function apiAdjustStock(): void
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input || !isset($input['sku']) || !isset($input['adjustment'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'SKU and adjustment amount are required']);
+            return;
+        }
+
+        $sku = $input['sku'];
+        $adjustment = (int)$input['adjustment'];
+        $reason = $input['reason'] ?? 'Manual adjustment via admin panel';
+
+        if ($adjustment === 0) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Adjustment amount cannot be zero']);
+            return;
+        }
+
+        try {
+            $result = $this->client->stock->adjustStock([
+                'sku' => $sku,
+                'delta' => $adjustment,
+                'reason' => $reason
+            ]);
+
+            echo json_encode([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to adjust stock: ' . $e->getMessage()]);
+        }
+    }
+
+    // ==================== SITE ADMIN MANAGEMENT ====================
+
+    private function showSiteAdmins(): void
+    {
+        try {
+            $page = (int)($_GET['page'] ?? 1);
+            $search = $_GET['search'] ?? '';
+            
+            $filters = [
+                'page' => $page,
+                'limit' => 20
+            ];
+            
+            if ($search) {
+                $filters['search'] = $search;
+            }
+
+            // Get site admins using the admin service
+            $admins = $this->client->admin->getUsers($filters);
+            
+            $content = $this->view->render('site-admins', [
+                'admins' => $admins['items'] ?? $admins['data'] ?? [],
+                'total' => $admins['total'] ?? $admins['count'] ?? 0,
+                'page' => $page,
+                'search' => $search,
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Site Admins - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        } catch (\Exception $e) {
+            $this->showError("Failed to load site admins: " . $e->getMessage());
+        }
+    }
+
+    private function showAddSiteAdmin(): void
+    {
+        try {
+            $content = $this->view->render('site-admin-form', [
+                'admin' => null,
+                'isEdit' => false,
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Add Site Admin - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        } catch (\Exception $e) {
+            $this->showError("Failed to load add site admin form: " . $e->getMessage());
+        }
+    }
+
+    private function showEditSiteAdmin(): void
+    {
+        $adminId = $_GET['id'] ?? '';
+        if (!$adminId) {
+            $this->showError("Admin ID is required");
+            return;
+        }
+
+        try {
+            $admin = $this->client->admin->getUser($adminId);
+            
+            $content = $this->view->render('site-admin-form', [
+                'admin' => $admin,
+                'isEdit' => true,
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Edit Site Admin - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        } catch (\Exception $e) {
+            $this->showError("Failed to load site admin: " . $e->getMessage());
+        }
+    }
+
+    private function handleAddSiteAdmin(): void
+    {
+        try {
+            $data = [
+                'email' => $_POST['email'] ?? '',
+                'firstName' => $_POST['firstName'] ?? '',
+                'lastName' => $_POST['lastName'] ?? '',
+                'role' => $_POST['role'] ?? 'site_admin',
+                'password' => $_POST['password'] ?? '',
+                'status' => $_POST['status'] ?? 'active'
+            ];
+
+            // Validate required fields
+            if (empty($data['email'])) {
+                throw new \Exception('Email is required');
+            }
+            
+            if (empty($data['firstName'])) {
+                throw new \Exception('First name is required');
+            }
+
+            if (empty($data['lastName'])) {
+                throw new \Exception('Last name is required');
+            }
+
+            if (empty($data['password'])) {
+                throw new \Exception('Password is required');
+            }
+
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new \Exception('Please enter a valid email address');
+            }
+
+            $result = $this->client->admin->createUser($data);
+            
+            header("Location: {$this->adminPath}/site-admins?success=" . urlencode('Site admin created successfully'));
+            exit;
+        } catch (\Exception $e) {
+            // Preserve form data for redisplay
+            $formData = $_POST;
+            
+            $content = $this->view->render('site-admin-form', [
+                'admin' => $formData,
+                'isEdit' => false,
+                'error' => $e->getMessage(),
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Add Site Admin - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        }
+    }
+
+    private function handleEditSiteAdmin(): void
+    {
+        $adminId = $_POST['admin_id'] ?? '';
+        
+        // Debug: Log what we received from the form
+        error_log("handleEditSiteAdmin - POST data: " . json_encode($_POST));
+        error_log("handleEditSiteAdmin - admin_id: " . $adminId);
+        
+        if (!$adminId) {
+            $this->showError("Admin ID is required");
+            return;
+        }
+
+        try {
+            $data = [
+                'email' => $_POST['email'] ?? '',
+                'firstName' => $_POST['firstName'] ?? '',
+                'lastName' => $_POST['lastName'] ?? '',
+                'role' => $_POST['role'] ?? 'site_admin',
+                'status' => $_POST['status'] ?? 'active'
+            ];
+
+            // Only include password if provided
+            if (!empty($_POST['password'])) {
+                $data['password'] = $_POST['password'];
+            }
+
+            // Debug: Log what we're sending to the API
+            error_log("handleEditSiteAdmin - Data being sent to API: " . json_encode($data));
+
+            // Validate required fields
+            if (empty($data['email'])) {
+                throw new \Exception('Email is required');
+            }
+            
+            if (empty($data['firstName'])) {
+                throw new \Exception('First name is required');
+            }
+
+            if (empty($data['lastName'])) {
+                throw new \Exception('Last name is required');
+            }
+
+            if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+                throw new \Exception('Please enter a valid email address');
+            }
+
+            $result = $this->client->admin->updateUser($adminId, $data);
+            
+            // Debug: Log the API response
+            error_log("handleEditSiteAdmin - API response: " . json_encode($result));
+            
+            header("Location: {$this->adminPath}/site-admins?success=" . urlencode('Site admin updated successfully'));
+            exit;
+        } catch (\Exception $e) {
+            // Preserve form data for redisplay
+            $formData = $_POST;
+            $formData['id'] = $adminId;
+            
+            $content = $this->view->render('site-admin-form', [
+                'admin' => $formData,
+                'isEdit' => true,
+                'error' => $e->getMessage(),
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Edit Site Admin - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        }
+    }
+
+    // ==================== SITE ADMIN API ENDPOINTS ====================
+
+    private function apiGetSiteAdmins(): void
+    {
+        try {
+            $page = (int)($_GET['page'] ?? 1);
+            $search = $_GET['search'] ?? '';
+            
+            $filters = [
+                'page' => $page,
+                'limit' => 20
+            ];
+            
+            if ($search) {
+                $filters['search'] = $search;
+            }
+
+            $admins = $this->client->admin->getUsers($filters);
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $admins
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to get site admins: ' . $e->getMessage()]);
+        }
+    }
+
+    private function apiCreateSiteAdmin(): void
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input || !isset($input['email']) || !isset($input['name'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Email and name are required']);
+            return;
+        }
+
+        try {
+            $data = [
+                'email' => $input['email'],
+                'firstName' => $input['firstName'] ?? '',
+                'lastName' => $input['lastName'] ?? '',
+                'role' => $input['role'] ?? 'site_admin',
+                'password' => $input['password'] ?? '',
+                'status' => $input['status'] ?? 'active'
+            ];
+
+            if (empty($data['password'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Password is required']);
+                return;
+            }
+
+            $result = $this->client->admin->createUser($data);
+
+            echo json_encode([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to create site admin: ' . $e->getMessage()]);
+        }
+    }
+
+    private function apiDeleteSiteAdmin(): void
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input || !isset($input['adminId'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Admin ID is required']);
+            return;
+        }
+
+        $adminId = $input['adminId'];
+
+        try {
+            $result = $this->client->admin->deleteUser($adminId);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Site admin deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to delete site admin: ' . $e->getMessage()]);
+        }
     }
 }

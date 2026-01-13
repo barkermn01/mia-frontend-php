@@ -219,7 +219,8 @@ The application handles these routes:
 
 - `GET /` - Homepage with featured products
 - `GET /products` - Product listing with search and pagination
-- `GET /product?id={id}` - Product details page
+- `GET /product/{UUID}/{product-slug}` - Product details page (SEO-friendly URLs)
+- `GET /product?id={id}` - Legacy product URLs (redirects to SEO-friendly format)
 - `GET|POST /cart` - Shopping cart management
 - `GET|POST /login` - Customer authentication
 - `GET|POST /register` - Customer registration

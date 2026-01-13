@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5823bb53cb86ca170bf0d63a28b67cd3",
+    "content-hash": "fea0ad40e6dd7b1cb7f3f081a5fe6e41",
     "packages": [
         {
             "name": "dflydev/dot-access-data",
@@ -601,12 +601,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:barkermn01/mia-php-sdk.git",
-                "reference": "c429a4aafcf1af9918a1dba342f91c508214dc72"
+                "reference": "1e1ac17e083c40f0b7294d711ad1af8ac21c8a14"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/barkermn01/mia-php-sdk/zipball/c429a4aafcf1af9918a1dba342f91c508214dc72",
-                "reference": "c429a4aafcf1af9918a1dba342f91c508214dc72",
+                "url": "https://api.github.com/repos/barkermn01/mia-php-sdk/zipball/1e1ac17e083c40f0b7294d711ad1af8ac21c8a14",
+                "reference": "1e1ac17e083c40f0b7294d711ad1af8ac21c8a14",
                 "shasum": ""
             },
             "require": {
@@ -643,7 +643,7 @@
                 "source": "https://github.com/barkermn01/mia-php-sdk/tree/master",
                 "issues": "https://github.com/barkermn01/mia-php-sdk/issues"
             },
-            "time": "2026-01-13T17:19:48+00:00"
+            "time": "2026-01-13T22:27:09+00:00"
         },
         {
             "name": "nette/schema",

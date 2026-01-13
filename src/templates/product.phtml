@@ -213,12 +213,46 @@
                     </div>
 
                     <div class="flex space-x-4">
-                        <button id="add-to-cart-btn" 
-                                onclick="addToCartFromProduct()" 
-                                class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
-                            <i class="fas fa-cart-plus mr-2"></i>
-                            Add to Cart
-                        </button>
+                        <?php
+                        // Determine if we should show the add to cart button initially
+                        $showAddToCartButton = true;
+                        $initialButtonText = 'Add to Cart';
+                        $initialButtonClass = 'bg-blue-600 hover:bg-blue-700';
+                        $initialButtonIcon = 'cart-plus';
+                        
+                        if (!empty($variants)) {
+                            if (count($variants) === 1) {
+                                // Single variant - check its stock
+                                $isInStock = $view->isInStock($variants[0]);
+                                if (!$isInStock) {
+                                    $showAddToCartButton = false;
+                                }
+                            } else {
+                                // Multiple variants - check first variant stock
+                                $isInStock = $view->isInStock($variants[0]);
+                                if (!$isInStock) {
+                                    $initialButtonText = 'Out of Stock';
+                                    $initialButtonClass = 'bg-gray-400 cursor-not-allowed';
+                                    $initialButtonIcon = 'times';
+                                }
+                            }
+                        }
+                        ?>
+                        
+                        <?php if ($showAddToCartButton): ?>
+                            <button id="add-to-cart-btn" 
+                                    onclick="addToCartFromProduct()" 
+                                    class="flex-1 <?= $initialButtonClass ?> text-white py-3 px-6 rounded-lg font-medium transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                    <?= $initialButtonClass === 'bg-gray-400 cursor-not-allowed' ? 'disabled' : '' ?>>
+                                <i class="fas fa-<?= $initialButtonIcon ?> mr-2"></i>
+                                <?= $initialButtonText ?>
+                            </button>
+                        <?php else: ?>
+                            <div class="flex-1 bg-gray-100 text-gray-500 py-3 px-6 rounded-lg font-medium text-center">
+                                <i class="fas fa-times mr-2"></i>
+                                Out of Stock
+                            </div>
+                        <?php endif; ?>
                         
                         <button class="bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors">
                             <i class="fas fa-heart"></i>
@@ -269,86 +303,15 @@
 <script>
 // Enhanced variant handling functions
 function updateVariantInfo(selectElement) {
+    // Let product.js handle everything including stock, price, and attributes
+    if (window.ProductPage && window.ProductPage.updateVariantInfo) {
+        window.ProductPage.updateVariantInfo(selectElement);
+    }
+    
+    // Update attributes display (this is still handled here)
     const selectedOption = selectElement.options[selectElement.selectedIndex];
-    const priceData = JSON.parse(selectedOption.getAttribute('data-price') || '0');
-    const stockData = JSON.parse(selectedOption.getAttribute('data-stock') || '{}');
     const attributesData = JSON.parse(selectedOption.getAttribute('data-attributes') || '{}');
-    
-    // Update price display
-    updatePriceDisplay(priceData);
-    
-    // Update stock display
-    updateStockDisplay(stockData);
-    
-    // Update attributes display
     updateAttributesDisplay(attributesData);
-    
-    // Update add to cart button state
-    updateAddToCartButton(stockData);
-}
-
-function updatePriceDisplay(priceData) {
-    const priceElement = document.getElementById('current-price');
-    if (priceElement) {
-        let displayPrice = '';
-        
-        if (Array.isArray(priceData) && priceData[0] && priceData[0].unit) {
-            // Multi-currency format
-            const currency = priceData[0].currency || 'GBP';
-            const amount = priceData[0].unit / 100;
-            const symbols = {'GBP': '£', 'USD': '$', 'EUR': '€'};
-            const symbol = symbols[currency] || currency;
-            displayPrice = symbol + amount.toFixed(2);
-        } else if (typeof priceData === 'object' && priceData.unit) {
-            // Single currency object
-            const amount = priceData.unit / 100;
-            displayPrice = '£' + amount.toFixed(2);
-        } else if (typeof priceData === 'number') {
-            // Simple number (already in display format)
-            displayPrice = '£' + (priceData / 100).toFixed(2);
-        }
-        
-        if (displayPrice) {
-            priceElement.textContent = displayPrice;
-        }
-    }
-}
-
-function updateStockDisplay(stockData) {
-    const stockElement = document.getElementById('stock-display');
-    if (stockElement) {
-        const available = stockData.available || 0;
-        const unlimited = stockData.unlimited || false;
-        const inventoryType = stockData.inventoryType || 'physical';
-        
-        let stockText = '';
-        let isInStock = false;
-        let stockClass = '';
-        
-        if (unlimited || inventoryType === 'digital') {
-            stockText = 'In Stock';
-            isInStock = true;
-            stockClass = 'text-green-600';
-        } else if (available > 0) {
-            if (available <= 5) {
-                stockText = `Only ${available} left`;
-            } else {
-                stockText = `${available} available`;
-            }
-            isInStock = true;
-            stockClass = 'text-green-600';
-        } else {
-            stockText = 'Out of Stock';
-            isInStock = false;
-            stockClass = 'text-red-600';
-        }
-        
-        const icon = isInStock ? 'check-circle' : 'times-circle';
-        stockElement.innerHTML = `<span class="${stockClass}">
-            <i class="fas fa-${icon} mr-1"></i>
-            ${stockText}
-        </span>`;
-    }
 }
 
 function updateAttributesDisplay(attributesData) {
@@ -369,43 +332,15 @@ function updateAttributesDisplay(attributesData) {
     }
 }
 
-function updateAddToCartButton(stockData) {
-    const addToCartBtn = document.getElementById('add-to-cart-btn');
-    if (addToCartBtn) {
-        const available = stockData.available || 0;
-        const unlimited = stockData.unlimited || false;
-        const inventoryType = stockData.inventoryType || 'physical';
-        
-        const isInStock = unlimited || inventoryType === 'digital' || available > 0;
-        
-        if (isInStock) {
-            addToCartBtn.disabled = false;
-            addToCartBtn.classList.remove('disabled:bg-gray-400', 'disabled:cursor-not-allowed');
-            addToCartBtn.classList.add('hover:bg-blue-700');
-        } else {
-            addToCartBtn.disabled = true;
-            addToCartBtn.classList.add('disabled:bg-gray-400', 'disabled:cursor-not-allowed');
-            addToCartBtn.classList.remove('hover:bg-blue-700');
-        }
-    }
-}
-
 // Initialize variant display on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Let product.js handle initialization
     const variantSelect = document.getElementById('variant-select');
     if (variantSelect) {
-        // Trigger initial update
-        updateVariantInfo(variantSelect);
-    } else {
-        // Single variant - check stock for add to cart button
-        const singleVariantSku = document.getElementById('single-variant-sku');
-        if (singleVariantSku) {
-            // For single variants, we need to get stock info from PHP
-            <?php if (!empty($variants) && count($variants) === 1): ?>
-                const stockData = <?= json_encode($variants[0]['stock'] ?? []) ?>;
-                updateAddToCartButton(stockData);
-            <?php endif; ?>
-        }
+        // Only update attributes, product.js handles stock and price
+        const selectedOption = variantSelect.options[variantSelect.selectedIndex];
+        const attributesData = JSON.parse(selectedOption.getAttribute('data-attributes') || '{}');
+        updateAttributesDisplay(attributesData);
     }
 });
 

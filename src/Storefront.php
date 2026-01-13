@@ -147,7 +147,53 @@ class Storefront
         }
     }
 
+    /**
+     * Generate a URL-safe slug from product title
+     */
+    private function generateProductSlug(string $title): string
+    {
+        // Convert to lowercase and replace non-alphanumeric characters with hyphens
+        $slug = strtolower(trim($title));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+        $slug = trim($slug, '-');
+        
+        // Limit length to 50 characters for reasonable URLs
+        if (strlen($slug) > 50) {
+            $slug = substr($slug, 0, 50);
+            $slug = rtrim($slug, '-');
+        }
+        
+        return $slug ?: 'product';
+    }
 
+    /**
+     * Generate SEO-friendly product URL
+     */
+    public function generateProductUrl(array $product): string
+    {
+        $id = $product['id'] ?? $product['uuid'] ?? '';
+        $title = $product['title'] ?? 'Product';
+        $slug = $this->generateProductSlug($title);
+        
+        return "/product/{$id}/{$slug}";
+    }
+
+    /**
+     * Redirect legacy product URLs to SEO-friendly format
+     */
+    private function redirectToSeoUrl(string $productId): void
+    {
+        try {
+            $product = $this->client->products->getProduct($productId);
+            $seoUrl = $this->generateProductUrl($product);
+            
+            header("Location: {$seoUrl}", true, 301); // 301 permanent redirect for SEO
+            exit;
+        } catch (\Exception $e) {
+            // If we can't fetch the product, fall back to showing 404
+            $this->show404();
+        }
+    }
 
     public function handleRequest(): void
     {
@@ -159,6 +205,19 @@ class Storefront
         // Handle API routes for AJAX
         if (strpos($path, '/api/') === 0) {
             $this->handleApiRequest($path, $method);
+            return;
+        }
+
+        // Handle SEO-friendly product URLs: /product/{UUID}/{slug}
+        if (preg_match('/^\/product\/([a-f0-9\-]{36})\/([^\/]+)$/', $path, $matches)) {
+            $_GET['id'] = $matches[1]; // Set the product ID for the showProduct method
+            $this->showProduct();
+            return;
+        }
+
+        // Handle legacy product URLs and redirect to SEO-friendly format
+        if ($path === '/product' && !empty($_GET['id'])) {
+            $this->redirectToSeoUrl($_GET['id']);
             return;
         }
 

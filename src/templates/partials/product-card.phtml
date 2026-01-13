@@ -1,6 +1,20 @@
+<?php
+// Generate SEO-friendly product URL
+$productId = $product['id'] ?? $product['uuid'] ?? '';
+$productTitle = $product['title'] ?? 'Product';
+$productSlug = strtolower(trim($productTitle));
+$productSlug = preg_replace('/[^a-z0-9]+/', '-', $productSlug);
+$productSlug = trim($productSlug, '-');
+if (strlen($productSlug) > 50) {
+    $productSlug = substr($productSlug, 0, 50);
+    $productSlug = rtrim($productSlug, '-');
+}
+$productSlug = $productSlug ?: 'product';
+$productUrl = "/product/{$productId}/{$productSlug}";
+?>
 <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 product-card">
     <div class="relative">
-        <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" class="block">
+        <a href="<?= $productUrl ?>" class="block">
             <?php if (!empty($product['images'])): ?>
                 <img src="<?= is_array($product['images'][0])?$product['images'][0]['url']:$product['images'][0] ?>" 
                      alt="<?= htmlspecialchars($product['title']) ?>"
@@ -17,16 +31,30 @@
                 <?= htmlspecialchars($product['badge']) ?>
             </span>
         <?php endif; ?>
+        
+        <?php 
+        // Show stock status badge for single variant products
+        if (!empty($product['variants']) && count($product['variants']) === 1):
+            $isInStock = $view->isInStock($product['variants'][0]);
+            if (!$isInStock):
+        ?>
+            <span class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
+                Out of Stock
+            </span>
+        <?php 
+            endif;
+        endif; 
+        ?>
     </div>
     
     <div class="p-4">
-        <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" class="block hover:text-red-600 transition-colors">
+        <a href="<?= $productUrl ?>" class="block hover:text-red-600 transition-colors">
             <h3 class="font-semibold text-lg mb-2 line-clamp-2">
                 <?= htmlspecialchars($product['title']) ?>
             </h3>
         </a>
         
-        <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" class="block hover:text-red-600 transition-colors">
+        <a href="<?= $productUrl ?>" class="block hover:text-red-600 transition-colors">
             <p class="text-gray-600 text-sm mb-3 line-clamp-2">
                 <?= htmlspecialchars($product['shortDescription'] ?? '') ?>
             </p>
@@ -94,16 +122,26 @@
             <?php endif; ?>
             
             <div class="flex space-x-2">
-                <a href="/product?id=<?= urlencode($product['id'] ?? '') ?>" 
+                <a href="<?= $productUrl ?>" 
                    class="bg-gray-100 text-gray-700 px-3 py-2 rounded hover:bg-gray-200 transition-colors">
                     <i class="fas fa-eye"></i>
                 </a>
                 
                 <?php if ($showAddToCart && $singleVariantSku): ?>
-                    <button onclick="addToCart('<?= htmlspecialchars($singleVariantSku) ?>', 1, this)" 
-                            class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition-colors">
-                        <i class="fas fa-cart-plus"></i>
-                    </button>
+                    <?php 
+                    // Check if the single variant is in stock
+                    $isInStock = true;
+                    if (!empty($product['variants'][0])) {
+                        $isInStock = $view->isInStock($product['variants'][0]);
+                    }
+                    ?>
+                    <?php if ($isInStock): ?>
+                        <button onclick="addToCart('<?= htmlspecialchars($singleVariantSku) ?>', 1, this)" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded transition-colors"
+                                title="Add to cart">
+                            <i class="fas fa-cart-plus"></i>
+                        </button>
+                    <?php endif; ?>
                 <?php endif; ?>
             </div>
         </div>

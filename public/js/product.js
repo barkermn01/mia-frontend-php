@@ -18,10 +18,19 @@ window.ProductPage = {
             if (firstOption) {
                 this.selectedSku = firstOption.value;
                 this.updatePriceDisplay(firstOption.dataset.price);
+                this.updateStockInfo(firstOption.dataset.stock);
             }
         } else if (singleVariantSku) {
             // Single variant - use hidden input value
             this.selectedSku = singleVariantSku.value;
+            
+            // For single variants, get stock info from the page data
+            const stockDisplayElement = document.querySelector('#stock-display span');
+            if (stockDisplayElement) {
+                // Check if it shows "Out of Stock" to determine initial button state
+                const isOutOfStock = stockDisplayElement.textContent.includes('Out of Stock');
+                this.updateAddToCartButton(!isOutOfStock);
+            }
         }
     },
     
@@ -43,10 +52,95 @@ window.ProductPage = {
         // Update price display
         this.updatePriceDisplay(price);
         
-        // Update add to cart button state
+        // Update stock display and add to cart button state
+        this.updateStockInfo(stock);
+    },
+    
+    // Update stock information and button state
+    updateStockInfo(stockData) {
+        let stockInfo = {};
+        
+        // Parse stock data
+        if (typeof stockData === 'string') {
+            try {
+                stockInfo = JSON.parse(stockData);
+            } catch (e) {
+                console.warn('Failed to parse stock data:', stockData);
+                stockInfo = {};
+            }
+        } else if (typeof stockData === 'object') {
+            stockInfo = stockData || {};
+        }
+        
+        const available = stockInfo.available || 0;
+        const unlimited = stockInfo.unlimited || false;
+        const inventoryType = stockInfo.inventoryType || 'physical';
+        
+        // Determine if in stock
+        const isInStock = unlimited || inventoryType === 'digital' || available > 0;
+        
+        // Update stock display
+        this.updateStockDisplay(stockInfo, isInStock);
+        
+        // Update add to cart button
+        this.updateAddToCartButton(isInStock);
+    },
+    
+    // Update stock display text
+    updateStockDisplay(stockInfo, isInStock) {
+        const stockElement = document.getElementById('stock-display');
+        if (!stockElement) return;
+        
+        const available = stockInfo.available || 0;
+        const unlimited = stockInfo.unlimited || false;
+        const inventoryType = stockInfo.inventoryType || 'physical';
+        
+        let stockText = '';
+        let stockClass = '';
+        let icon = '';
+        
+        if (unlimited || inventoryType === 'digital') {
+            stockText = 'In Stock';
+            stockClass = 'text-green-600';
+            icon = 'check-circle';
+        } else if (available > 0) {
+            if (available <= 5) {
+                stockText = `Only ${available} left`;
+            } else {
+                stockText = `${available} available`;
+            }
+            stockClass = 'text-green-600';
+            icon = 'check-circle';
+        } else {
+            stockText = 'Out of Stock';
+            stockClass = 'text-red-600';
+            icon = 'times-circle';
+        }
+        
+        stockElement.innerHTML = `<span class="${stockClass}">
+            <i class="fas fa-${icon} mr-1"></i>
+            ${stockText}
+        </span>`;
+    },
+    
+    // Update add to cart button state
+    updateAddToCartButton(isInStock) {
         const addToCartBtn = document.getElementById('add-to-cart-btn');
-        if (addToCartBtn) {
-            addToCartBtn.disabled = !this.selectedSku;
+        if (!addToCartBtn) {
+            // Button doesn't exist (probably out of stock single variant)
+            return;
+        }
+        
+        if (isInStock) {
+            addToCartBtn.disabled = false;
+            addToCartBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            addToCartBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            addToCartBtn.innerHTML = '<i class="fas fa-cart-plus mr-2"></i>Add to Cart';
+        } else {
+            addToCartBtn.disabled = true;
+            addToCartBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+            addToCartBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+            addToCartBtn.innerHTML = '<i class="fas fa-times mr-2"></i>Out of Stock';
         }
     },
     
@@ -68,6 +162,9 @@ window.ProductPage = {
                     } else if (parsed.unit) {
                         displayPrice = parsed.unit / 100;
                         currency = parsed.currency || 'GBP';
+                    } else if (typeof parsed === 'number') {
+                        // Simple number as string
+                        displayPrice = parsed / 100;
                     }
                 } catch (e) {
                     // If parsing fails, treat as old format (number as string)
@@ -80,7 +177,7 @@ window.ProductPage = {
                 // New format (array of currency objects)
                 displayPrice = priceData[0].unit / 100;
                 currency = priceData[0].currency;
-            } else if (priceData.unit) {
+            } else if (priceData && priceData.unit) {
                 // New format (single currency object)
                 displayPrice = priceData.unit / 100;
                 currency = priceData.currency || 'GBP';
@@ -134,8 +231,16 @@ window.ProductPage = {
         const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
         const addToCartBtn = document.getElementById('add-to-cart-btn');
         
-        if (addToCartBtn && window.addToCart) {
+        // Check if button exists and is not disabled
+        if (addToCartBtn && !addToCartBtn.disabled && window.addToCart) {
             addToCart(sku, quantity, addToCartBtn);
+        } else if (!addToCartBtn) {
+            // Button doesn't exist, probably out of stock
+            if (window.MiaStore) {
+                MiaStore.showToast('This product is currently out of stock', 'error');
+            } else {
+                alert('This product is currently out of stock');
+            }
         }
     }
 };
