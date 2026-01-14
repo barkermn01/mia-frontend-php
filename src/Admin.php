@@ -166,6 +166,13 @@ class Admin
             case '/orders':
                 $this->showOrders();
                 break;
+            case '/stock':
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                    $this->handleStockUpdate();
+                } else {
+                    $this->showStock();
+                }
+                break;
             case '/customers':
                 $this->showCustomers();
                 break;
@@ -580,6 +587,11 @@ class Admin
                 'status' => $_POST['status'] ?? 'active'
             ];
 
+            // Add weight if provided
+            if (!empty($_POST['weight']) && is_numeric($_POST['weight'])) {
+                $data['weight'] = (float)$_POST['weight'];
+            }
+
             // Validate required fields
             if (empty($data['title'])) {
                 throw new \Exception('Product title is required');
@@ -724,6 +736,11 @@ class Admin
                 'tags' => !empty($_POST['tags']) ? array_map('trim', explode(',', $_POST['tags'])) : [],
                 'status' => $_POST['status'] ?? 'active'
             ];
+
+            // Add weight if provided
+            if (!empty($_POST['weight']) && is_numeric($_POST['weight'])) {
+                $data['weight'] = (float)$_POST['weight'];
+            }
 
             // Validate required fields
             if (empty($data['title'])) {
@@ -1007,6 +1024,106 @@ class Admin
             ]);
         } catch (MiaException $e) {
             $this->showError("Failed to load orders: " . $e->getMessage());
+        }
+    }
+
+    private function showStock(): void
+    {
+        try {
+            $page = (int)($_GET['page'] ?? 1);
+            $search = $_GET['search'] ?? '';
+            
+            $filters = [
+                'page' => $page,
+                'limit' => 20
+            ];
+            
+            if ($search) {
+                $filters['search'] = $search;
+            }
+
+            $products = $this->client->products->getProducts($filters);
+            
+            // Fetch variants and stock for each product
+            $productsWithStock = [];
+            foreach ($products['items'] ?? [] as $product) {
+                try {
+                    $variants = $this->client->products->getProductVariants($product['id']);
+                    $product['variants'] = $variants['items'] ?? [];
+                    
+                    // Fetch stock for each variant
+                    foreach ($product['variants'] as &$variant) {
+                        try {
+                            $stock = $this->client->stock->getStock($variant['sku']);
+                            $variant['stock'] = $stock;
+                        } catch (\Exception $e) {
+                            $variant['stock'] = [
+                                'available' => 0,
+                                'unlimited' => false,
+                                'inventoryType' => 'physical'
+                            ];
+                        }
+                    }
+                } catch (MiaException $e) {
+                    $product['variants'] = [];
+                }
+                $productsWithStock[] = $product;
+            }
+            
+            $content = $this->view->render('stock', [
+                'products' => $productsWithStock,
+                'total' => $products['total'] ?? 0,
+                'page' => $page,
+                'search' => $search,
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Stock Management - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        } catch (MiaException $e) {
+            $this->showError("Failed to load stock: " . $e->getMessage());
+        }
+    }
+
+    private function handleStockUpdate(): void
+    {
+        try {
+            $updates = $_POST['stock_updates'] ?? [];
+            
+            if (empty($updates)) {
+                throw new \Exception('No stock updates provided');
+            }
+
+            $successCount = 0;
+            $errors = [];
+
+            foreach ($updates as $sku => $update) {
+                try {
+                    $delta = (int)($update['delta'] ?? 0);
+                    $reason = $update['reason'] ?? 'Manual adjustment';
+                    
+                    if ($delta !== 0) {
+                        $this->client->stock->adjustStock($sku, $delta, $reason);
+                        $successCount++;
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "SKU {$sku}: " . $e->getMessage();
+                }
+            }
+
+            $message = "Successfully updated {$successCount} stock level(s)";
+            if (!empty($errors)) {
+                $message .= ". Errors: " . implode(', ', $errors);
+            }
+
+            header("Location: {$this->adminPath}/stock?page=" . ($_POST['page'] ?? 1) . "&success=" . urlencode($message));
+            exit;
+        } catch (\Exception $e) {
+            header("Location: {$this->adminPath}/stock?page=" . ($_POST['page'] ?? 1) . "&error=" . urlencode($e->getMessage()));
+            exit;
         }
     }
 

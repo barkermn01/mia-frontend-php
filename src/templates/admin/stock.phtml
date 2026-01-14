@@ -1,0 +1,356 @@
+<div class="space-y-6">
+    <!-- Success Message -->
+    <?php if (isset($_GET['success'])): ?>
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-check-circle mr-2 mt-0.5"></i>
+                <span><?= htmlspecialchars($_GET['success']) ?></span>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Error Message -->
+    <?php if (isset($_GET['error'])): ?>
+        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-exclamation-circle mr-2 mt-0.5"></i>
+                <span><?= htmlspecialchars($_GET['error']) ?></span>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Stock Management</h3>
+            <p class="text-sm text-gray-600 mt-1">Update stock levels for multiple products at once</p>
+        </div>
+        <div class="text-sm text-gray-600">
+            Total Products: <?= $total ?>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="GET" class="flex items-center space-x-4">
+            <div class="flex-1">
+                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
+                       placeholder="Search products by title or SKU..." 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <button type="submit" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                <i class="fas fa-search mr-2"></i>Search
+            </button>
+            <?php if ($search): ?>
+                <a href="?" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                    <i class="fas fa-times mr-2"></i>Clear
+                </a>
+            <?php endif; ?>
+        </form>
+    </div>
+
+    <!-- Stock Form -->
+    <?php if (!empty($products)): ?>
+        <form method="POST" action="<?= $adminPath ?>/stock" class="space-y-4">
+            <input type="hidden" name="page" value="<?= $page ?>">
+            
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="p-6 space-y-6">
+                    <?php foreach ($products as $product): ?>
+                        <div class="border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
+                            <!-- Product Header -->
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex items-start space-x-4">
+                                    <?php if (!empty($product['images'])): ?>
+                                        <img src="<?= is_array($product['images'][0]) ? $product['images'][0]['url'] : $product['images'][0] ?>" 
+                                             alt="<?= htmlspecialchars($product['title']) ?>"
+                                             class="w-16 h-16 object-cover rounded-lg">
+                                    <?php else: ?>
+                                        <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                            <i class="fas fa-image text-gray-400"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900"><?= htmlspecialchars($product['title']) ?></h4>
+                                        <p class="text-sm text-gray-600"><?= count($product['variants']) ?> variant(s)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Variants Stock Management -->
+                            <?php if (!empty($product['variants'])): ?>
+                                <div class="space-y-3">
+                                    <?php foreach ($product['variants'] as $variant): ?>
+                                        <?php
+                                        $stock = $variant['stock'] ?? [];
+                                        $available = $stock['available'] ?? 0;
+                                        $unlimited = $stock['unlimited'] ?? false;
+                                        $inventoryType = $stock['inventoryType'] ?? 'physical';
+                                        $sku = $variant['sku'];
+                                        
+                                        // Determine stock status
+                                        $isInStock = $unlimited || $inventoryType === 'digital' || $available > 0;
+                                        $stockClass = $isInStock ? 'text-green-600' : 'text-red-600';
+                                        $stockIcon = $isInStock ? 'check-circle' : 'times-circle';
+                                        
+                                        // Stock display text
+                                        if ($unlimited || $inventoryType === 'digital') {
+                                            $stockText = 'Unlimited';
+                                        } else {
+                                            $stockText = $available . ' available';
+                                        }
+                                        ?>
+                                        
+                                        <div class="bg-gray-50 rounded-lg p-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                                                <!-- Variant Info (4 cols) -->
+                                                <div class="md:col-span-4">
+                                                    <div class="font-medium text-gray-900">
+                                                        <?= htmlspecialchars($variant['presentableName'] ?? 'Default Variant') ?>
+                                                    </div>
+                                                    <div class="text-sm text-gray-600">
+                                                        SKU: <?= htmlspecialchars($sku) ?>
+                                                    </div>
+                                                    <?php if (!empty($variant['attributes'])): ?>
+                                                        <div class="text-xs text-gray-500 mt-1">
+                                                            <?php foreach ($variant['attributes'] as $key => $value): ?>
+                                                                <span class="inline-block mr-2"><?= htmlspecialchars(ucfirst($key)) ?>: <?= htmlspecialchars($value) ?></span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+
+                                                <!-- Current Stock (2 cols) -->
+                                                <div class="md:col-span-2">
+                                                    <div class="text-sm text-gray-600">Current Stock</div>
+                                                    <div class="font-semibold <?= $stockClass ?>">
+                                                        <i class="fas fa-<?= $stockIcon ?> mr-1"></i>
+                                                        <?= $stockText ?>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Adjustment (3 cols) -->
+                                                <div class="md:col-span-3">
+                                                    <label class="block text-sm text-gray-600 mb-1">Adjustment</label>
+                                                    <div class="flex items-center space-x-2">
+                                                        <button type="button" 
+                                                                onclick="adjustStockInput('<?= htmlspecialchars($sku) ?>', -1)"
+                                                                class="w-8 h-8 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors">
+                                                            <i class="fas fa-minus"></i>
+                                                        </button>
+                                                        <input type="number" 
+                                                               id="stock_<?= htmlspecialchars($sku) ?>"
+                                                               name="stock_updates[<?= htmlspecialchars($sku) ?>][delta]" 
+                                                               value="0"
+                                                               class="w-20 text-center px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                                        <button type="button" 
+                                                                onclick="adjustStockInput('<?= htmlspecialchars($sku) ?>', 1)"
+                                                                class="w-8 h-8 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Reason (3 cols) -->
+                                                <div class="md:col-span-3">
+                                                    <label class="block text-sm text-gray-600 mb-1">Reason</label>
+                                                    <select name="stock_updates[<?= htmlspecialchars($sku) ?>][reason]"
+                                                            class="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                                        <option value="Manual adjustment">Manual adjustment</option>
+                                                        <option value="Stock received">Stock received</option>
+                                                        <option value="Stock damaged">Stock damaged</option>
+                                                        <option value="Stock returned">Stock returned</option>
+                                                        <option value="Inventory count">Inventory count</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-sm text-gray-500 italic">No variants available</div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex justify-end space-x-4">
+                <a href="<?= $adminPath ?>/stock" class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition-colors">
+                    <i class="fas fa-times mr-2"></i>Reset
+                </a>
+                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>Update Stock Levels
+                </button>
+            </div>
+        </form>
+
+        <!-- Pagination -->
+        <?php if ($total > 20): ?>
+            <div class="bg-white rounded-lg shadow px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Showing <?= (($page - 1) * 20) + 1 ?> to <?= min($page * 20, $total) ?> of <?= $total ?> products
+                    </div>
+                    <div class="flex space-x-2">
+                        <?php if ($page > 1): ?>
+                            <a href="?page=<?= $page - 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>" 
+                               class="px-3 py-2 text-sm bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                Previous
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($page * 20 < $total): ?>
+                            <a href="?page=<?= $page + 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>" 
+                               class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                                Next
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+    <?php else: ?>
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <i class="fas fa-warehouse text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+            <p class="text-gray-500">
+                <?= $search ? 'No products match your search criteria.' : 'No products available for stock management.' ?>
+            </p>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script>
+// Track if there are unsaved changes
+let hasUnsavedChanges = false;
+
+// Track changes to stock inputs
+function adjustStockInput(sku, delta) {
+    const input = document.getElementById('stock_' + sku);
+    if (input) {
+        const currentValue = parseInt(input.value) || 0;
+        input.value = currentValue + delta;
+        markAsChanged();
+    }
+}
+
+// Mark form as changed
+function markAsChanged() {
+    hasUnsavedChanges = true;
+}
+
+// Initialize change tracking
+document.addEventListener('DOMContentLoaded', function() {
+    // Track all stock adjustment inputs
+    const stockInputs = document.querySelectorAll('input[name^="stock_updates"]');
+    stockInputs.forEach(input => {
+        input.addEventListener('change', markAsChanged);
+        input.addEventListener('input', markAsChanged);
+    });
+    
+    // Track reason selects
+    const reasonSelects = document.querySelectorAll('select[name^="stock_updates"]');
+    reasonSelects.forEach(select => {
+        select.addEventListener('change', markAsChanged);
+    });
+    
+    // Handle form submission - clear the flag
+    const form = document.querySelector('form[method="POST"]');
+    if (form) {
+        form.addEventListener('submit', function() {
+            hasUnsavedChanges = false;
+        });
+    }
+    
+    // Intercept pagination and navigation links
+    const navigationLinks = document.querySelectorAll('a[href*="page="], a[href*="search="], a[href="?"]');
+    navigationLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                showUnsavedChangesModal(this.href);
+            }
+        });
+    });
+    
+    // Warn before leaving page
+    window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+            return e.returnValue;
+        }
+    });
+});
+
+// Show custom modal for unsaved changes
+function showUnsavedChangesModal(targetUrl) {
+    // Create modal HTML
+    const modalHtml = `
+        <div id="unsaved-changes-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-gray-900">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                            Unsaved Changes
+                        </h3>
+                    </div>
+                </div>
+                <div class="px-6 py-4">
+                    <p class="text-gray-700 mb-4">
+                        You have unsaved stock changes. If you leave this page, your changes will be lost.
+                    </p>
+                    <p class="text-gray-600 text-sm">
+                        Would you like to save your changes before continuing?
+                    </p>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end space-x-3">
+                    <button onclick="closeUnsavedChangesModal()" 
+                            class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button onclick="discardChanges('${targetUrl}')" 
+                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Discard Changes
+                    </button>
+                    <button onclick="saveChanges()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Close the modal
+function closeUnsavedChangesModal() {
+    const modal = document.getElementById('unsaved-changes-modal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// Discard changes and navigate
+function discardChanges(targetUrl) {
+    hasUnsavedChanges = false;
+    closeUnsavedChangesModal();
+    window.location.href = targetUrl;
+}
+
+// Save changes
+function saveChanges() {
+    const form = document.querySelector('form[method="POST"]');
+    if (form) {
+        hasUnsavedChanges = false;
+        closeUnsavedChangesModal();
+        form.submit();
+    }
+}
+</script>

@@ -601,12 +601,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:barkermn01/mia-php-sdk.git",
-                "reference": "1e1ac17e083c40f0b7294d711ad1af8ac21c8a14"
+                "reference": "fc8cf5a553c1f69dfeb5e3ef9607832f1eaf498a"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/barkermn01/mia-php-sdk/zipball/1e1ac17e083c40f0b7294d711ad1af8ac21c8a14",
-                "reference": "1e1ac17e083c40f0b7294d711ad1af8ac21c8a14",
+                "url": "https://api.github.com/repos/barkermn01/mia-php-sdk/zipball/fc8cf5a553c1f69dfeb5e3ef9607832f1eaf498a",
+                "reference": "fc8cf5a553c1f69dfeb5e3ef9607832f1eaf498a",
                 "shasum": ""
             },
             "require": {
@@ -643,7 +643,7 @@
                 "source": "https://github.com/barkermn01/mia-php-sdk/tree/master",
                 "issues": "https://github.com/barkermn01/mia-php-sdk/issues"
             },
-            "time": "2026-01-13T22:27:09+00:00"
+            "time": "2026-01-14T16:12:37+00:00"
         },
         {
             "name": "nette/schema",
