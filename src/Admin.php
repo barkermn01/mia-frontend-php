@@ -194,7 +194,11 @@ class Admin
                 }
                 break;
             case '/settings':
-                $this->showSettings();
+                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                    $this->handleSettingsUpdate();
+                } else {
+                    $this->showSettings();
+                }
                 break;
             default:
                 $this->show404();
@@ -246,6 +250,11 @@ class Admin
                 case '/site-admins/delete':
                     if ($method === 'POST') {
                         $this->apiDeleteSiteAdmin();
+                    }
+                    break;
+                case '/settings/delete':
+                    if ($method === 'POST') {
+                        $this->apiDeleteSetting();
                     }
                     break;
                 default:
@@ -1106,7 +1115,11 @@ class Admin
                     $reason = $update['reason'] ?? 'Manual adjustment';
                     
                     if ($delta !== 0) {
-                        $this->client->stock->adjustStock($sku, $delta, $reason);
+                        $this->client->stock->adjustStock([
+                            'sku' => $sku,
+                            'delta' => $delta,
+                            'reason' => $reason
+                        ]);
                         $successCount++;
                     }
                 } catch (\Exception $e) {
@@ -1173,17 +1186,85 @@ class Admin
     private function showSettings(): void
     {
         try {
+            $siteId = $this->config['site_id'];
+            
+            // Get all site settings
+            $allSettings = $this->client->siteSettings->getAllSettings($siteId);
+            $settings = $allSettings['settings'] ?? [];
+            
+            // Add Toast UI Editor resources for markdown settings
+            $htmlResources = \Marti\Frontend\HtmlResources::getInstance();
+            $htmlResources->addCss('https://uicdn.toast.com/editor/latest/toastui-editor.min.css');
+            $htmlResources->addCss('/css/markdown.css');
+            $htmlResources->addJsBody('https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js');
+            
             $content = $this->view->render('settings', [
-                'config' => $this->config
+                'settings' => $settings,
+                'siteId' => $siteId,
+                'adminPath' => $this->adminPath
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [
-                'title' => 'Settings - Admin Panel',
+                'title' => 'Site Settings - Admin Panel',
                 'user' => $_SESSION['customer'],
                 'adminPath' => $this->adminPath
             ]);
         } catch (MiaException $e) {
             $this->showError("Failed to load settings: " . $e->getMessage());
+        }
+    }
+
+    private function handleSettingsUpdate(): void
+    {
+        try {
+            $siteId = $this->config['site_id'];
+            $settingName = $_POST['setting_name'] ?? '';
+            $settingType = $_POST['setting_type'] ?? 'text';
+            $settingValue = $_POST['setting_value'] ?? '';
+            
+            if (empty($settingName)) {
+                throw new \Exception('Setting name is required');
+            }
+            
+            // Handle JSON type - decode if it's a string
+            if ($settingType === 'json' && is_string($settingValue)) {
+                $decoded = json_decode($settingValue, true);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new \Exception('Invalid JSON: ' . json_last_error_msg());
+                }
+                $settingValue = $decoded;
+            }
+            
+            // Update the setting using the appropriate method
+            $this->client->siteSettings->updateSetting($siteId, $settingName, $settingType, $settingValue);
+            
+            header("Location: {$this->adminPath}/settings?success=" . urlencode("Setting '{$settingName}' updated successfully"));
+            exit;
+        } catch (\Exception $e) {
+            header("Location: {$this->adminPath}/settings?error=" . urlencode($e->getMessage()));
+            exit;
+        }
+    }
+
+    private function apiDeleteSetting(): void
+    {
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $settingName = $input['settingName'] ?? '';
+            
+            if (empty($settingName)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Setting name is required']);
+                return;
+            }
+            
+            $siteId = $this->config['site_id'];
+            $this->client->siteSettings->deleteSetting($siteId, $settingName);
+            
+            echo json_encode(['success' => true, 'message' => 'Setting deleted successfully']);
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 
