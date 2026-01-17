@@ -296,6 +296,26 @@ class Storefront
                 case '/api/categories':
                     $this->apiGetCategories();
                     break;
+                case '/api/customer/update-shipping-address':
+                    if ($method === 'POST') {
+                        $this->apiUpdateShippingAddress();
+                    }
+                    break;
+                case '/api/cart/save-basket':
+                    if ($method === 'POST') {
+                        $this->apiSaveBasket();
+                    }
+                    break;
+                case '/api/cart/load-basket':
+                    if ($method === 'POST') {
+                        $this->apiLoadBasket();
+                    }
+                    break;
+                case '/api/cart/delete-basket':
+                    if ($method === 'POST') {
+                        $this->apiDeleteBasket();
+                    }
+                    break;
                 default:
                     http_response_code(404);
                     echo json_encode(['error' => 'API endpoint not found']);
@@ -310,6 +330,39 @@ class Storefront
     {
         try {
             $cart = $this->client->cart->getCart($this->cartId);
+            
+            // Enrich cart items with product data (title, image)
+            if (!empty($cart['items'])) {
+                foreach ($cart['items'] as &$item) {
+                    try {
+                        // Get product details using the productId from cart item
+                        $product = $this->client->products->getProduct($item['productId']);
+                        $item['productTitle'] = $product['title'] ?? $item['sku'];
+                        $item['title'] = $product['title'] ?? $item['sku'];
+                        // Get first image from images array
+                        $item['image'] = !empty($product['images']) ? $product['images'][0] : null;
+                        
+                        // Find the specific variant by SKU to get the display name
+                        // Only show variant if product has multiple variants
+                        $item['variantName'] = null;
+                        if (!empty($product['variants']) && count($product['variants']) > 1) {
+                            foreach ($product['variants'] as $variant) {
+                                if ($variant['sku'] === $item['sku']) {
+                                    $item['variantName'] = $variant['presentableName'] ?? null;
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // If we can't fetch product details, just use SKU
+                        error_log("Failed to enrich cart item {$item['sku']}: " . $e->getMessage());
+                        $item['title'] = $item['sku'];
+                        $item['productTitle'] = $item['sku'];
+                    }
+                }
+                unset($item); // Break reference
+            }
+            
             error_log("Cart data: " . json_encode($cart));
             $html = $this->view->render('cart-sidebar', ['cart' => $cart]);
             
@@ -409,6 +462,203 @@ class Storefront
             ]);
         } catch (MiaException $e) {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    private function apiUpdateShippingAddress(): void
+    {
+        try {
+            error_log("=== UPDATE SHIPPING ADDRESS START ===");
+            
+            if (!$this->isLoggedIn()) {
+                error_log("Not logged in");
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Authentication required']);
+                exit;
+            }
+            
+            error_log("User is logged in");
+            
+            $input = json_decode(file_get_contents('php://input'), true);
+            error_log("Input received: " . json_encode($input));
+            
+            $shippingAddress = $input['shippingAddress'] ?? null;
+            
+            if (!$shippingAddress) {
+                error_log("No shipping address in input");
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Shipping address is required']);
+                exit;
+            }
+            
+            // Ensure auth token is set on client
+            if (isset($_SESSION['auth_token'])) {
+                $this->client->setAuthToken($_SESSION['auth_token']);
+                error_log("Auth token set: " . substr($_SESSION['auth_token'], 0, 20) . '...');
+            } else {
+                error_log("No auth token in session!");
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Authentication token not found']);
+                exit;
+            }
+            
+            error_log("Calling updateProfile with address: " . json_encode($shippingAddress));
+            
+            $result = $this->client->customer->updateProfile([
+                'shippingAddress' => $shippingAddress
+            ]);
+            
+            error_log("Update profile result: " . json_encode($result));
+            
+            // Update session customer data
+            if (!isset($_SESSION['customer'])) {
+                $_SESSION['customer'] = [];
+            }
+            $_SESSION['customer']['shippingAddress'] = $shippingAddress;
+            
+            error_log("Session updated, sending success response");
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Shipping address updated']);
+            exit;
+            
+        } catch (MiaException $e) {
+            error_log("MiaException: " . $e->getMessage());
+            error_log("Exception trace: " . $e->getTraceAsString());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        } catch (\Exception $e) {
+            error_log("General Exception: " . $e->getMessage());
+            error_log("Exception trace: " . $e->getTraceAsString());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'An error occurred: ' . $e->getMessage()]);
+            exit;
+        }
+    }
+
+    private function apiSaveBasket(): void
+    {
+        if (!$this->isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Authentication required']);
+            exit;
+        }
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $basketName = $input['name'] ?? '';
+        
+        if (!$basketName) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Basket name is required']);
+            exit;
+        }
+        
+        try {
+            // Ensure auth token is set
+            if (isset($_SESSION['auth_token'])) {
+                $this->client->setAuthToken($_SESSION['auth_token']);
+            }
+            
+            error_log("Saving basket with cart ID: " . $this->cartId . ", name: " . $basketName);
+            
+            // Verify cart exists first
+            $cart = $this->client->cart->getCart($this->cartId);
+            error_log("Cart verified, has " . count($cart['items'] ?? []) . " items");
+            
+            $result = $this->client->cart->saveBasket([
+                'cartId' => $this->cartId,
+                'name' => $basketName,
+                'displayName' => $basketName
+            ]);
+            
+            error_log("Basket saved successfully: " . json_encode($result));
+            
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Basket saved successfully']);
+            exit;
+        } catch (MiaException $e) {
+            error_log("Failed to save basket: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        }
+    }
+
+    private function apiLoadBasket(): void
+    {
+        if (!$this->isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Authentication required']);
+            exit;
+        }
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $basketName = $input['basketName'] ?? '';
+        
+        if (!$basketName) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Basket name is required']);
+            exit;
+        }
+        
+        try {
+            // Ensure auth token is set
+            if (isset($_SESSION['auth_token'])) {
+                $this->client->setAuthToken($_SESSION['auth_token']);
+            }
+            
+            $result = $this->client->cart->loadSavedBasket($basketName, [
+                'cartId' => $this->cartId
+            ]);
+            
+            http_response_code(200);
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Basket loaded successfully',
+                'cartCount' => $this->getCartItemCount()
+            ]);
+            exit;
+        } catch (MiaException $e) {
+            error_log("Failed to load basket: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        }
+    }
+
+    private function apiDeleteBasket(): void
+    {
+        if (!$this->isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Authentication required']);
+            exit;
+        }
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        $basketName = $input['basketName'] ?? '';
+        
+        if (!$basketName) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Basket name is required']);
+            exit;
+        }
+        
+        try {
+            // Ensure auth token is set
+            if (isset($_SESSION['auth_token'])) {
+                $this->client->setAuthToken($_SESSION['auth_token']);
+            }
+            
+            $result = $this->client->cart->deleteSavedBasket($basketName);
+            
+            http_response_code(200);
+            echo json_encode(['success' => true, 'message' => 'Basket deleted successfully']);
+            exit;
+        } catch (MiaException $e) {
+            error_log("Failed to delete basket: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
         }
     }
 
@@ -585,7 +835,64 @@ class Storefront
     private function showCart(): void
     {
         try {
+            // Get fresh customer data from API if logged in
+            $customer = null;
+            if ($this->isLoggedIn()) {
+                try {
+                    $customer = $this->client->customer->getProfile();
+                    // Update session with fresh data
+                    $_SESSION['customer'] = $customer;
+                } catch (\Exception $e) {
+                    error_log("Failed to fetch customer profile: " . $e->getMessage());
+                    // Fall back to session data
+                    $customer = $this->getCustomer();
+                }
+            }
+            
             $cart = $this->client->cart->getCart($this->cartId);
+            
+            // Enrich cart items with product data (title, image)
+            if (!empty($cart['items'])) {
+                foreach ($cart['items'] as &$item) {
+                    try {
+                        // Get product details using the productId from cart item
+                        $product = $this->client->products->getProduct($item['productId']);
+                        $item['productTitle'] = $product['title'] ?? $item['sku'];
+                        $item['title'] = $product['title'] ?? $item['sku'];
+                        // Get first image from images array
+                        $item['image'] = !empty($product['images']) ? $product['images'][0] : null;
+                        
+                        // Find the specific variant by SKU to get the display name
+                        // Only show variant if product has multiple variants
+                        $item['variantName'] = null;
+                        if (!empty($product['variants']) && count($product['variants']) > 1) {
+                            foreach ($product['variants'] as $variant) {
+                                if ($variant['sku'] === $item['sku']) {
+                                    $item['variantName'] = $variant['presentableName'] ?? null;
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // If we can't fetch product details, just use SKU
+                        error_log("Failed to enrich cart item {$item['sku']}: " . $e->getMessage());
+                        $item['title'] = $item['sku'];
+                        $item['productTitle'] = $item['sku'];
+                    }
+                }
+                unset($item); // Break reference
+            }
+            
+            // Get shipping options based on customer's address or default to GB
+            $shippingOptions = null;
+            $selectedCountry = $customer['shippingAddress']['country'] ?? 'GB';
+            
+            try {
+                $shippingOptions = $this->client->shipping->getCartShippingOptions($this->cartId, $selectedCountry);
+                error_log("Shipping options fetched for country {$selectedCountry}: " . json_encode($shippingOptions));
+            } catch (\Exception $e) {
+                error_log("Failed to get shipping options for country {$selectedCountry}: " . $e->getMessage());
+            }
             
             // Set page-specific resources
             $htmlResources = HtmlResources::getInstance();
@@ -593,11 +900,17 @@ class Storefront
             $htmlResources->setDescription('Review your shopping cart and proceed to checkout.');
             $htmlResources->setKeywords('cart, shopping cart, checkout, review order');
             
-            $content = $this->view->render('cart', ['cart' => $cart]);
+            $content = $this->view->render('cart', [
+                'cart' => $cart,
+                'shippingOptions' => $shippingOptions,
+                'selectedCountry' => $selectedCountry,
+                'isLoggedIn' => $this->isLoggedIn(),
+                'customer' => $customer
+            ]);
             
             echo $this->view->renderLayout('layout', $content, [
                 'cartCount' => $this->getCartItemCount(),
-                'customer' => $this->getCustomer(),
+                'customer' => $customer,
                 'isLoggedIn' => $this->isLoggedIn()
             ]);
         } catch (MiaException $e) {
@@ -849,8 +1162,16 @@ class Storefront
                 error_log("Customer account detected, attempting to get profile");
                 // For regular customers, get the full profile
                 $profile = $this->client->customer->getProfile();
-                $savedBaskets = $this->client->cart->getSavedBaskets();
-                $savedBaskets = $savedBaskets['items'] ?? [];
+                
+                try {
+                    $savedBasketsResponse = $this->client->cart->getSavedBaskets();
+                    error_log("Saved baskets response: " . json_encode($savedBasketsResponse));
+                    $savedBaskets = $savedBasketsResponse['items'] ?? [];
+                    error_log("Saved baskets count: " . count($savedBaskets));
+                } catch (\Exception $e) {
+                    error_log("Failed to fetch saved baskets: " . $e->getMessage());
+                    $savedBaskets = [];
+                }
             }
             
             error_log("Profile data: " . json_encode($profile));

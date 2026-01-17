@@ -147,6 +147,75 @@ class ModalManager {
             window.scrollTo(0, this.scrollPosition || 0);
         }
     }
+
+    /**
+     * Show a confirmation dialog
+     * @param {Object} options - Dialog options
+     * @param {string} options.title - Dialog title
+     * @param {string} options.message - Dialog message
+     * @param {string} options.confirmText - Confirm button text (default: 'Confirm')
+     * @param {string} options.cancelText - Cancel button text (default: 'Cancel')
+     * @param {string} options.confirmClass - Confirm button class ('primary' or 'danger', default: 'primary')
+     * @param {Function} options.onConfirm - Callback when confirmed
+     * @param {Function} options.onCancel - Callback when cancelled
+     */
+    confirm(options) {
+        const {
+            title = 'Confirm',
+            message = 'Are you sure?',
+            confirmText = 'Confirm',
+            cancelText = 'Cancel',
+            confirmClass = 'primary',
+            onConfirm = () => {},
+            onCancel = () => {}
+        } = options;
+
+        // Create modal HTML
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">${title}</h3>
+                <p class="text-gray-600 mb-6">${message}</p>
+                <div class="flex justify-end space-x-3">
+                    <button class="cancel-btn px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        ${cancelText}
+                    </button>
+                    <button class="confirm-btn px-4 py-2 rounded-lg text-white transition-colors ${
+                        confirmClass === 'danger' 
+                            ? 'bg-red-600 hover:bg-red-700' 
+                            : 'bg-blue-600 hover:bg-blue-700'
+                    }">
+                        ${confirmText}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add to document
+        document.body.appendChild(modal);
+
+        // Get buttons
+        const confirmBtn = modal.querySelector('.confirm-btn');
+        const cancelBtn = modal.querySelector('.cancel-btn');
+
+        // Handle confirm
+        confirmBtn.addEventListener('click', () => {
+            this.hideModal(modal);
+            modal.remove();
+            onConfirm();
+        });
+
+        // Handle cancel
+        cancelBtn.addEventListener('click', () => {
+            this.hideModal(modal);
+            modal.remove();
+            onCancel();
+        });
+
+        // Show modal
+        this.showModal(modal);
+    }
 }
 
 // Add CSS for modal-open class if not already present

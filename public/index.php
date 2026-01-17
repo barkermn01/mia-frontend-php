@@ -9,10 +9,10 @@ error_reporting(E_ALL & ~E_WARNING);
 
 require_once '../vendor/autoload.php';
 require_once '../src/Storefront.php';
-require_once '../src/Admin.php';
+require_once '../src/AdminRouter.php';
 
 use Marti\Frontend\Storefront;
-use Marti\Frontend\Admin;
+use Marti\Frontend\AdminRouter;
 
 // Get the request path
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -37,7 +37,7 @@ $adminPath = '/' . $adminAddress;
 // Check if this is an admin request
 if (strpos($path, $adminPath) === 0) {
     // Handle admin request
-    $admin = new Admin();
+    $admin = new AdminRouter();
     $admin->handleRequest();
 } else {
     // Handle storefront request

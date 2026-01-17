@@ -1,0 +1,133 @@
+<div class="space-y-6">
+    <!-- Success Message -->
+    <?php if (isset($_GET['success'])): ?>
+        <div class="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <div class="flex">
+                <i class="fas fa-check-circle mr-2 mt-0.5"></i>
+                <span><?= htmlspecialchars($_GET['success']) ?></span>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Shipping Methods</h3>
+            <p class="text-sm text-gray-600 mt-1">Manage shipping methods and regional pricing</p>
+        </div>
+        <a href="<?= $adminPath ?>/shipping/add" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Shipping Method
+        </a>
+    </div>
+
+    <!-- Shipping Methods List -->
+    <?php if (!empty($methods)): ?>
+        <div class="grid gap-6">
+            <?php foreach ($methods as $method): ?>
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <h4 class="text-lg font-semibold text-gray-900"><?= htmlspecialchars($method['name']) ?></h4>
+                                    <?php if ($method['enabled']): ?>
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            Enabled
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                            Disabled
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                    <?php if (!empty($method['provider'])): ?>
+                                        <div>
+                                            <span class="text-sm text-gray-500">Provider</span>
+                                            <p class="text-sm font-medium text-gray-900"><?= htmlspecialchars($method['provider']) ?></p>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($method['deliveryTime'])): ?>
+                                        <div>
+                                            <span class="text-sm text-gray-500">Delivery Time</span>
+                                            <p class="text-sm font-medium text-gray-900"><?= htmlspecialchars($method['deliveryTime']) ?></p>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if (!empty($method['maxWeightKg'])): ?>
+                                        <div>
+                                            <span class="text-sm text-gray-500">Max Weight</span>
+                                            <p class="text-sm font-medium text-gray-900"><?= number_format($method['maxWeightKg'], 2) ?> kg</p>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- Regions -->
+                                <?php if (!empty($method['regions'])): ?>
+                                    <div class="mt-4">
+                                        <button type="button" 
+                                                class="toggle-regions-btn flex items-center justify-between w-full text-left text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none"
+                                                data-method-id="<?= htmlspecialchars($method['id']) ?>">
+                                            <span>Regions (<?= count($method['regions']) ?>)</span>
+                                            <i class="fas fa-chevron-down transition-transform"></i>
+                                        </button>
+                                        <div class="regions-content hidden mt-3">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                <?php foreach ($method['regions'] as $region): ?>
+                                                    <div class="border border-gray-200 rounded-lg p-3">
+                                                        <div class="flex items-center justify-between mb-2">
+                                                            <span class="font-medium text-gray-900"><?= htmlspecialchars($region['countryCode']) ?></span>
+                                                            <?php if (!empty($region['countryName'])): ?>
+                                                                <span class="text-xs text-gray-500"><?= htmlspecialchars($region['countryName']) ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <div class="space-y-1 text-xs text-gray-600">
+                                                            <div>Base: <?= $view->formatPrice($region['baseCost']) ?></div>
+                                                            <?php if (!empty($region['costPerKg'])): ?>
+                                                                <div>Per kg: <?= $view->formatPrice($region['costPerKg']) ?></div>
+                                                            <?php endif; ?>
+                                                            <?php if (!empty($region['freeShippingThreshold'])): ?>
+                                                                <div class="text-green-600">Free over: <?= $view->formatPrice($region['freeShippingThreshold']) ?></div>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="flex space-x-2 ml-4">
+                                <a href="<?= $adminPath ?>/shipping/edit?id=<?= urlencode($method['id']) ?>" 
+                                   class="text-blue-600 hover:text-blue-900 transition-colors" title="Edit">
+                                    <i class="fas fa-edit fa-lg"></i>
+                                </a>
+                                <button class="delete-shipping-btn text-red-600 hover:text-red-900 transition-colors" 
+                                        title="Delete" 
+                                        data-method-id="<?= htmlspecialchars($method['id']) ?>"
+                                        data-method-name="<?= htmlspecialchars($method['name']) ?>">
+                                    <i class="fas fa-trash fa-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    <?php else: ?>
+        <div class="bg-white rounded-lg shadow p-12 text-center">
+            <i class="fas fa-shipping-fast text-4xl text-gray-400 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No shipping methods configured</h3>
+            <p class="text-gray-500 mb-4">Get started by adding your first shipping method</p>
+            <a href="<?= $adminPath ?>/shipping/add" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors inline-block">
+                <i class="fas fa-plus mr-2"></i>Add Shipping Method
+            </a>
+        </div>
+    <?php endif; ?>
+</div>
+
+<script src="/js/ModalManager.js"></script>
+<script src="/js/admin/shipping.js"></script>

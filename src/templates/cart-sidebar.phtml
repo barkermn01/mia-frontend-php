@@ -15,22 +15,16 @@
     
     <div class="border-t border-gray-200 pt-4 mt-4">
         <div class="flex justify-between items-center mb-4">
-            <span class="text-lg font-semibold">Total:</span>
+            <span class="text-lg font-semibold">Subtotal:</span>
             <span class="text-xl font-bold text-blue-600">
                 £<?= number_format($total / 100, 2) ?>
             </span>
         </div>
         
-        <div class="space-y-2">
-            <a href="/cart" 
-               class="w-full bg-gray-100 text-gray-800 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors text-center block">
-                View Cart
-            </a>
-            <a href="/checkout" 
-               class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center block">
-                Checkout
-            </a>
-        </div>
+        <a href="/cart" 
+           class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center block">
+            View Cart
+        </a>
     </div>
 <?php else: ?>
     <div class="text-center py-8">

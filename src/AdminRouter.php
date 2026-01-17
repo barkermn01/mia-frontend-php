@@ -1,0 +1,306 @@
+<?php
+
+namespace Marti\Frontend;
+
+use Mia\SDK\MiaClient;
+use Mia\SDK\Exceptions\MiaException;
+use Mia\SDK\Exceptions\AuthenticationException;
+use Marti\Frontend\Controllers\ProductController;
+use Marti\Frontend\Controllers\ShippingController;
+use Marti\Frontend\Controllers\StockController;
+use Marti\Frontend\Controllers\OrderController;
+use Marti\Frontend\Controllers\CustomerController;
+use Marti\Frontend\Controllers\SiteAdminController;
+use Marti\Frontend\Controllers\SettingsController;
+use Marti\Frontend\Controllers\DashboardController;
+
+class AdminRouter
+{
+    private $client;
+    private $cache;
+    private $view;
+    private $config;
+    private $adminPath;
+    
+    // Controllers
+    private $productController;
+    private $shippingController;
+    private $stockController;
+    private $orderController;
+    private $customerController;
+    private $siteAdminController;
+    private $settingsController;
+    private $dashboardController;
+
+    public function __construct()
+    {
+        $this->loadConfig();
+        $this->initializeSession();
+        $this->initializeClient();
+        $this->initializeCache();
+        $this->initializeView();
+        $this->initializeControllers();
+    }
+
+    private function loadConfig(): void
+    {
+        // Load .env file if it exists
+        $envFile = __DIR__ . '/../.env';
+        if (file_exists($envFile)) {
+            $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                if (strpos($line, '#') === 0 || strpos($line, '=') === false) {
+                    continue;
+                }
+                
+                list($key, $value) = explode('=', $line, 2);
+                $key = trim($key);
+                $value = trim($value, '"\'');
+                
+                if (!isset($_ENV[$key]) && getenv($key) === false) {
+                    putenv("$key=$value");
+                    $_ENV[$key] = $value;
+                }
+            }
+        }
+
+        $this->config = [
+            'api_url' => $_ENV['MIA_API_URL'] ?? getenv('MIA_API_URL') ?: 'https://api.miaai.me',
+            'site_id' => $_ENV['MIA_SITE_ID'] ?? getenv('MIA_SITE_ID') ?: null,
+            'verify_ssl' => filter_var($_ENV['MIA_VERIFY_SSL'] ?? getenv('MIA_VERIFY_SSL') ?: 'true', FILTER_VALIDATE_BOOLEAN),
+            'debug' => filter_var($_ENV['MIA_DEBUG'] ?? getenv('MIA_DEBUG') ?: 'false', FILTER_VALIDATE_BOOLEAN),
+            'admin_address' => rtrim($_ENV['ADMIN_ADDRESS'] ?? getenv('ADMIN_ADDRESS') ?: 'admin/', '/')
+        ];
+
+        $this->adminPath = '/' . $this->config['admin_address'];
+
+        if (!$this->config['site_id']) {
+            throw new \Exception('MIA_SITE_ID environment variable is required. Please set it in your .env file.');
+        }
+    }
+
+    private function initializeSession(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+
+    private function initializeClient(): void
+    {
+        $this->client = new MiaClient([
+            'apiUrl' => $this->config['api_url'],
+            'siteId' => $this->config['site_id'],
+            'verify_ssl' => $this->config['verify_ssl'],
+            'debug' => false
+        ]);
+
+        if (isset($_SESSION['auth_token'])) {
+            $this->client->setAuthToken($_SESSION['auth_token']);
+        }
+    }
+
+    private function initializeCache(): void
+    {
+        $this->cache = null;
+    }
+
+    private function initializeView(): void
+    {
+        $this->view = new View(__DIR__ . '/templates/admin');
+        HtmlResources::getInstance()->addDefaults();
+        HtmlResources::getInstance()->setTitle('Admin Panel - OxWinches');
+    }
+
+    private function initializeControllers(): void
+    {
+        $this->productController = new ProductController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->shippingController = new ShippingController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->stockController = new StockController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->orderController = new OrderController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->customerController = new CustomerController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->siteAdminController = new SiteAdminController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->settingsController = new SettingsController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->dashboardController = new DashboardController($this->client, $this->view, $this->config, $this->adminPath);
+    }
+
+    public function handleRequest(): void
+    {
+        $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $method = $_SERVER['REQUEST_METHOD'];
+        
+        // Check if this is an admin request
+        if (strpos($path, $this->adminPath) !== 0) {
+            return;
+        }
+
+        // Handle API routes for AJAX (before auth check for some endpoints)
+        if (strpos($path, $this->adminPath . '/api/') === 0) {
+            $this->handleApiRequest($path, $method);
+            return;
+        }
+
+        // Check admin authentication
+        if (!$this->isAdminAuthenticated()) {
+            $this->redirectToLogin();
+            return;
+        }
+
+        // Remove admin path prefix to get the actual admin route
+        $adminRoute = substr($path, strlen($this->adminPath));
+        if ($adminRoute === '') {
+            $adminRoute = '/';
+        }
+
+        // Route to appropriate controller
+        $this->route($adminRoute, $method);
+    }
+
+    private function route(string $route, string $method): void
+    {
+        switch ($route) {
+            case '/':
+                $this->dashboardController->index();
+                break;
+            
+            // Product routes
+            case '/products':
+                $this->productController->index();
+                break;
+            case '/products/add':
+                $method === 'POST' ? $this->productController->handleAdd() : $this->productController->showAdd();
+                break;
+            case '/products/edit':
+                $method === 'POST' ? $this->productController->handleEdit() : $this->productController->showEdit();
+                break;
+            case '/products/delete':
+                $method === 'POST' ? $this->productController->handleDelete() : $this->show404();
+                break;
+            
+            // Orders
+            case '/orders':
+                $this->orderController->index();
+                break;
+            
+            // Stock
+            case '/stock':
+                $method === 'POST' ? $this->stockController->handleUpdate() : $this->stockController->index();
+                break;
+            
+            // Customers
+            case '/customers':
+                $this->customerController->index();
+                break;
+            
+            // Site Admins
+            case '/site-admins':
+                $this->siteAdminController->index();
+                break;
+            case '/site-admins/add':
+                $method === 'POST' ? $this->siteAdminController->handleAdd() : $this->siteAdminController->showAdd();
+                break;
+            case '/site-admins/edit':
+                $method === 'POST' ? $this->siteAdminController->handleEdit() : $this->siteAdminController->showEdit();
+                break;
+            
+            // Settings
+            case '/settings':
+                $method === 'POST' ? $this->settingsController->handleUpdate() : $this->settingsController->index();
+                break;
+            
+            // Shipping routes
+            case '/shipping':
+                $this->shippingController->index();
+                break;
+            case '/shipping/add':
+                $method === 'POST' ? $this->shippingController->handleAdd() : $this->shippingController->showAdd();
+                break;
+            case '/shipping/edit':
+                $method === 'POST' ? $this->shippingController->handleEdit() : $this->shippingController->showEdit();
+                break;
+            case '/shipping/delete':
+                $method === 'POST' ? $this->shippingController->handleDelete() : $this->show404();
+                break;
+            
+            default:
+                $this->show404();
+                break;
+        }
+    }
+
+    private function isAdminAuthenticated(): bool
+    {
+        if (!isset($_SESSION['auth_token']) || !isset($_SESSION['customer'])) {
+            return false;
+        }
+
+        try {
+            $this->client->setAuthToken($_SESSION['auth_token']);
+            $authContext = $this->client->getAuthContext();
+            
+            if (!$authContext || !isset($authContext['user'])) {
+                $this->clearUserSession();
+                return false;
+            }
+            
+            $user = $authContext['user'];
+            $allowedRoles = ['super_admin', 'site_admin'];
+            
+            if (!isset($user['role']) || !in_array($user['role'], $allowedRoles)) {
+                $this->clearUserSession();
+                return false;
+            }
+            
+            $_SESSION['customer'] = $user;
+            return true;
+            
+        } catch (\Exception $e) {
+            $this->clearUserSession();
+            return false;
+        }
+    }
+
+    private function clearUserSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        session_start();
+    }
+
+    private function redirectToLogin(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+        }
+        session_start();
+        header("Location: /?error=" . urlencode('You have been logged out due to insufficient admin privileges.'));
+        exit;
+    }
+
+    private function handleApiRequest(string $path, string $method): void
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->isAdminAuthenticated()) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Unauthorized']);
+            return;
+        }
+        
+        // TODO: Route API requests to controllers
+        http_response_code(404);
+        echo json_encode(['error' => 'API endpoint not found']);
+    }
+
+    private function show404(): void
+    {
+        http_response_code(404);
+        $content = $this->view->render('404');
+        echo $this->view->renderLayout('admin-layout', $content, [
+            'title' => 'Page Not Found - Admin Panel',
+            'user' => $_SESSION['customer'],
+            'adminPath' => $this->adminPath
+        ]);
+    }
+}

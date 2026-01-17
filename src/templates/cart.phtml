@@ -1,6 +1,21 @@
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold text-gray-800 mb-8">Shopping Cart</h1>
 
+    <?php 
+    // Calculate totals and shipping at the top so they're available everywhere
+    $subtotal = $cart['subtotal'] ?? 0;
+    $tax = 0;
+    $selectedShippingMethod = null;
+    $shippingCost = 0;
+    
+    if ($shippingOptions && !empty($shippingOptions['methods'])) {
+        $selectedShippingMethod = $shippingOptions['methods'][0];
+        $shippingCost = $selectedShippingMethod['cost'];
+    }
+    
+    $total = $subtotal + $shippingCost + $tax;
+    ?>
+
     <?php if (!empty($cart['items'])): ?>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Cart Items -->
@@ -25,9 +40,11 @@
                                     
                                     <div class="flex-1 min-w-0">
                                         <h3 class="font-medium text-gray-900 truncate">
-                                            <?= htmlspecialchars($item['title'] ?? $item['sku']) ?>
+                                            <?= htmlspecialchars($item['productTitle'] ?? $item['title'] ?? $item['sku']) ?>
                                         </h3>
-                                        <p class="text-sm text-gray-500">SKU: <?= htmlspecialchars($item['sku']) ?></p>
+                                        <?php if (!empty($item['variantName'])): ?>
+                                            <p class="text-sm text-gray-500">Variant: <?= htmlspecialchars($item['variantName']) ?></p>
+                                        <?php endif; ?>
                                         <p class="text-lg font-semibold text-blue-600">
                                             <?= $view->formatPrice($item['price']) ?>
                                         </p>
@@ -69,22 +86,135 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Shipping Method Selection -->
+                <?php if ($shippingOptions && !empty($shippingOptions['methods'])): ?>
+                    <div class="bg-white rounded-lg shadow-lg p-6 mt-6">
+                        <h2 class="text-xl font-semibold mb-4">Shipping Method</h2>
+                        
+                        <?php if (count($shippingOptions['methods']) > 1): ?>
+                            <!-- Multiple methods - show dropdown -->
+                            <select id="shipping-method-select" onchange="updateShippingCost()" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <?php foreach ($shippingOptions['methods'] as $index => $method): ?>
+                                    <option value="<?= $index ?>" data-cost="<?= $method['cost'] ?>">
+                                        <?= $method['name'] ?> - 
+                                        <?= $method['cost'] === 0 ? 'Free' : '£' . number_format($method['cost'] / 100, 2) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else: ?>
+                            <!-- Single method - just display it -->
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-medium text-gray-900"><?= $selectedShippingMethod['name'] ?></span>
+                                    <span class="font-semibold text-blue-600">
+                                        <?= $selectedShippingMethod['cost'] === 0 ? 'Free' : '£' . number_format($selectedShippingMethod['cost'] / 100, 2) ?>
+                                    </span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <?php if (isset($shippingOptions['totalWeight'])): ?>
+                            <p class="text-sm text-gray-500 mt-3">
+                                <i class="fas fa-weight-hanging mr-1"></i>
+                                Total weight: <?= number_format($shippingOptions['totalWeight'], 2) ?> kg
+                            </p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
             
             <!-- Cart Summary -->
             <div class="lg:col-span-1">
+                <!-- Shipping Address -->
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <h2 class="text-xl font-semibold mb-4">Shipping Address</h2>
+                    
+                    <?php if ($isLoggedIn && !empty($customer['shippingAddress'])): ?>
+                        <!-- Show saved address with edit option -->
+                        <div id="saved-address">
+                            <div class="text-sm text-gray-700 mb-3">
+                                <p class="font-medium"><?= $customer['firstName'] ?? '' ?> <?= $customer['lastName'] ?? '' ?></p>
+                                <p><?= $customer['shippingAddress']['line1'] ?? '' ?></p>
+                                <?php if (!empty($customer['shippingAddress']['line2'])): ?>
+                                    <p><?= $customer['shippingAddress']['line2'] ?></p>
+                                <?php endif; ?>
+                                <p><?= $customer['shippingAddress']['city'] ?? '' ?></p>
+                                <?php if (!empty($customer['shippingAddress']['state'])): ?>
+                                    <p><?= $customer['shippingAddress']['state'] ?></p>
+                                <?php endif; ?>
+                                <p><?= $customer['shippingAddress']['postalCode'] ?? '' ?></p>
+                                <p><?= $customer['shippingAddress']['country'] ?? '' ?></p>
+                            </div>
+                            <button onclick="showAddressForm()" class="text-blue-600 hover:text-blue-700 text-sm">
+                                <i class="fas fa-edit mr-1"></i>Edit Address
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <!-- Address Form (shown if no address or editing) -->
+                    <div id="address-form" class="<?= ($isLoggedIn && !empty($customer['shippingAddress'])) ? 'hidden' : '' ?>">
+                        <form id="shipping-address-form" class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                                <input type="text" name="line1" required
+                                       value="<?= $customer['shippingAddress']['line1'] ?? '' ?>"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 2 (Optional)</label>
+                                <input type="text" name="line2"
+                                       value="<?= $customer['shippingAddress']['line2'] ?? '' ?>"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <input type="text" name="city" required
+                                       value="<?= $customer['shippingAddress']['city'] ?? '' ?>"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">State/County (Optional)</label>
+                                <input type="text" name="state"
+                                       value="<?= $customer['shippingAddress']['state'] ?? '' ?>"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                                <input type="text" name="postalCode" required
+                                       value="<?= $customer['shippingAddress']['postalCode'] ?? '' ?>"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                                <select name="country" required
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="GB" <?= ($customer['shippingAddress']['country'] ?? 'GB') === 'GB' ? 'selected' : '' ?>>United Kingdom</option>
+                                    <option value="US" <?= ($customer['shippingAddress']['country'] ?? '') === 'US' ? 'selected' : '' ?>>United States</option>
+                                    <option value="CA" <?= ($customer['shippingAddress']['country'] ?? '') === 'CA' ? 'selected' : '' ?>>Canada</option>
+                                    <option value="AU" <?= ($customer['shippingAddress']['country'] ?? '') === 'AU' ? 'selected' : '' ?>>Australia</option>
+                                    <option value="DE" <?= ($customer['shippingAddress']['country'] ?? '') === 'DE' ? 'selected' : '' ?>>Germany</option>
+                                    <option value="FR" <?= ($customer['shippingAddress']['country'] ?? '') === 'FR' ? 'selected' : '' ?>>France</option>
+                                </select>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button type="submit" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                                    <?= $isLoggedIn ? 'Save Address' : 'Use This Address' ?>
+                                </button>
+                                <?php if ($isLoggedIn && !empty($customer['shippingAddress'])): ?>
+                                    <button type="button" onclick="hideAddressForm()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">
+                                        Cancel
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Order Summary -->
                 <div class="bg-white rounded-lg shadow-lg p-6 sticky top-24">
                     <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
-                    
-                    <?php 
-                    // Calculate totals from cart items since API doesn't provide them
-                    $subtotal = 0;
-                    foreach ($cart['items'] as $item) {
-                        $subtotal += ($item['price'] * $item['qty']);
-                    }
-                    $tax = 0; // No tax calculation for now
-                    $total = $subtotal + $tax;
-                    ?>
                     
                     <div class="space-y-3 mb-6">
                         <div class="flex justify-between">
@@ -94,7 +224,9 @@
                         
                         <div class="flex justify-between">
                             <span class="text-gray-600">Shipping</span>
-                            <span class="font-medium text-green-600">Free</span>
+                            <span id="shipping-cost-display" class="font-medium <?= $shippingCost === 0 ? 'text-green-600' : '' ?>">
+                                <?= $shippingCost === 0 ? 'Free' : '£' . number_format($shippingCost / 100, 2) ?>
+                            </span>
                         </div>
                         
                         <div class="flex justify-between">
@@ -106,7 +238,7 @@
                         
                         <div class="flex justify-between text-lg font-bold">
                             <span>Total</span>
-                            <span class="text-blue-600">£<?= number_format($total / 100, 2) ?></span>
+                            <span id="total-display" class="text-blue-600">£<?= number_format($total / 100, 2) ?></span>
                         </div>
                     </div>
                     
@@ -159,6 +291,29 @@
 </div>
 
 <script>
+const subtotal = <?= $subtotal ?>;
+const tax = <?= $tax ?>;
+
+function updateShippingCost() {
+    const select = document.getElementById('shipping-method-select');
+    const selectedOption = select.options[select.selectedIndex];
+    const shippingCost = parseInt(selectedOption.dataset.cost);
+    
+    // Update shipping cost display
+    const shippingDisplay = document.getElementById('shipping-cost-display');
+    if (shippingCost === 0) {
+        shippingDisplay.textContent = 'Free';
+        shippingDisplay.className = 'font-medium text-green-600';
+    } else {
+        shippingDisplay.textContent = '£' + (shippingCost / 100).toFixed(2);
+        shippingDisplay.className = 'font-medium';
+    }
+    
+    // Update total
+    const total = subtotal + shippingCost + tax;
+    document.getElementById('total-display').textContent = '£' + (total / 100).toFixed(2);
+}
+
 async function saveBasket() {
     const basketName = document.getElementById('basket-name').value.trim();
     if (!basketName) {
@@ -183,4 +338,47 @@ async function saveBasket() {
         MiaStore.showToast('Failed to save basket', 'error');
     }
 }
+
+function showAddressForm() {
+    document.getElementById('saved-address').classList.add('hidden');
+    document.getElementById('address-form').classList.remove('hidden');
+}
+
+function hideAddressForm() {
+    document.getElementById('saved-address').classList.remove('hidden');
+    document.getElementById('address-form').classList.add('hidden');
+}
+
+// Handle shipping address form submission
+document.getElementById('shipping-address-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const address = {
+        line1: formData.get('line1'),
+        line2: formData.get('line2'),
+        city: formData.get('city'),
+        state: formData.get('state'),
+        postalCode: formData.get('postalCode'),
+        country: formData.get('country')
+    };
+    
+    try {
+        const response = await MiaStore.request('/api/customer/update-shipping-address', {
+            method: 'POST',
+            body: JSON.stringify({ shippingAddress: address })
+        });
+        
+        if (response.success) {
+            MiaStore.showToast('Address saved successfully!');
+            // Reload page to show updated address and shipping options
+            window.location.reload();
+        } else {
+            MiaStore.showToast(response.message || 'Failed to save address', 'error');
+        }
+    } catch (error) {
+        console.error('Save address error:', error);
+        MiaStore.showToast('Failed to save address', 'error');
+    }
+});
 </script>

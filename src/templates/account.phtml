@@ -66,9 +66,8 @@
                     </h3>
                     
                     <?php 
-                    $shippingAddress = $profile['addresses']['shipping'] ?? null;
-                    $billingAddress = $profile['addresses']['billing'] ?? null;
-                    $deliveryAddress = $shippingAddress ?: $billingAddress; // Use shipping first, fallback to billing
+                    // API returns shippingAddress directly, not nested in addresses
+                    $deliveryAddress = $profile['shippingAddress'] ?? null;
                     ?>
                     
                     <?php if ($deliveryAddress): ?>
@@ -161,9 +160,13 @@
                 </div>
                 
                 <!-- Saved Baskets -->
-                <?php if (!empty($savedBaskets)): ?>
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h3 class="text-lg font-semibold mb-4">Saved Baskets</h3>
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">
+                        <i class="fas fa-bookmark mr-2 text-blue-600"></i>
+                        Saved Baskets
+                    </h3>
+                    
+                    <?php if (!empty($savedBaskets)): ?>
                         <div class="space-y-4">
                             <?php foreach ($savedBaskets as $basket): ?>
                                 <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
@@ -173,14 +176,22 @@
                                         </div>
                                         <div>
                                             <h4 class="font-medium text-gray-900">
-                                                <?= htmlspecialchars($basket['displayName'] ?? $basket['name']) ?>
+                                                <?= $basket['displayName'] ?? $basket['name'] ?>
                                             </h4>
                                             <p class="text-sm text-gray-600">
-                                                <?= $basket['itemCount'] ?? 0 ?> items • 
+                                                <?= count($basket['items'] ?? []) ?> items
                                                 <?php if (!empty($basket['createdAt'])): ?>
-                                                    Saved <?= date('M j, Y', strtotime($basket['createdAt'])) ?>
-                                                <?php else: ?>
-                                                    Saved basket
+                                                    • Saved 
+                                                    <?php 
+                                                    $createdAt = $basket['createdAt'];
+                                                    if (is_array($createdAt) && isset($createdAt['$date']['$numberLong'])) {
+                                                        // MongoDB date format
+                                                        $timestamp = (int)(intval($createdAt['$date']['$numberLong']) / 1000);
+                                                        echo date('M j, Y', $timestamp);
+                                                    } elseif (is_string($createdAt)) {
+                                                        echo date('M j, Y', strtotime($createdAt));
+                                                    }
+                                                    ?>
                                                 <?php endif; ?>
                                             </p>
                                         </div>
@@ -199,8 +210,14 @@
                                 </div>
                             <?php endforeach; ?>
                         </div>
-                    </div>
-                <?php endif; ?>
+                    <?php else: ?>
+                        <div class="bg-gray-50 rounded-lg p-8 text-center">
+                            <i class="fas fa-bookmark text-gray-400 text-4xl mb-3"></i>
+                            <p class="text-gray-600 mb-2">No saved baskets yet</p>
+                            <p class="text-sm text-gray-500">Save your cart from the cart page to quickly reorder your favorite items</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>
