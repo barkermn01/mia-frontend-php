@@ -129,20 +129,44 @@ class ShippingFormManager {
         
         // Validate regions
         if (this.regions.length === 0) {
-            alert('Please add at least one region');
+            if (window.modalManager) {
+                window.modalManager.alert({
+                    title: 'Validation Error',
+                    message: 'Please add at least one region',
+                    type: 'warning'
+                });
+            } else {
+                alert('Please add at least one region');
+            }
             return;
         }
         
         for (let i = 0; i < this.regions.length; i++) {
             const region = this.regions[i];
             if (!region.countryCode || !region.baseCost) {
-                alert(`Region ${i + 1}: Region code and base cost are required`);
+                if (window.modalManager) {
+                    window.modalManager.alert({
+                        title: 'Validation Error',
+                        message: `Region ${i + 1}: Region code and base cost are required`,
+                        type: 'warning'
+                    });
+                } else {
+                    alert(`Region ${i + 1}: Region code and base cost are required`);
+                }
                 return;
             }
             
             // Validate region code format (ISO or custom like GB-M)
             if (!/^[A-Z]{2}(-[A-Z0-9]+)?$/i.test(region.countryCode)) {
-                alert(`Region ${i + 1}: Region code must be ISO format (e.g., GB, US) or custom (e.g., GB-M, GB-H)`);
+                if (window.modalManager) {
+                    window.modalManager.alert({
+                        title: 'Validation Error',
+                        message: `Region ${i + 1}: Region code must be ISO format (e.g., GB, US) or custom (e.g., GB-M, GB-H)`,
+                        type: 'warning'
+                    });
+                } else {
+                    alert(`Region ${i + 1}: Region code must be ISO format (e.g., GB, US) or custom (e.g., GB-M, GB-H)`);
+                }
                 return;
             }
         }

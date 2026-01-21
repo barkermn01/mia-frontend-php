@@ -42,7 +42,7 @@ abstract class BaseController
         ]);
     }
 
-    protected function redirect(string $path, string $message = null, bool $isError = false): void
+    protected function redirect(string $path, ?string $message = null, bool $isError = false): void
     {
         $url = $this->adminPath . $path;
         if ($message) {

@@ -282,15 +282,99 @@ class AdminRouter
     {
         header('Content-Type: application/json');
         
-        if (!$this->isAdminAuthenticated()) {
+        // Extract API route
+        $apiRoute = substr($path, strlen($this->adminPath . '/api'));
+        
+        // Some API endpoints don't require auth
+        $publicEndpoints = [];
+        
+        if (!in_array($apiRoute, $publicEndpoints) && !$this->isAdminAuthenticated()) {
             http_response_code(401);
             echo json_encode(['error' => 'Unauthorized']);
             return;
         }
         
-        // TODO: Route API requests to controllers
-        http_response_code(404);
-        echo json_encode(['error' => 'API endpoint not found']);
+        // Route API requests
+        switch ($apiRoute) {
+            case '/upload-token':
+                if ($method === 'POST') {
+                    $this->handleUploadToken();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+                
+            case '/upload-image':
+                if ($method === 'POST') {
+                    $this->handleUploadImage();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+                
+            default:
+                http_response_code(404);
+                echo json_encode(['error' => 'API endpoint not found']);
+                break;
+        }
+    }
+    
+    private function handleUploadToken(): void
+    {
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            if (!isset($input['filename']) || !isset($input['contentType'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Missing required fields']);
+                return;
+            }
+            
+            $result = $this->client->s3->generateUploadToken(
+                $input['filename'],
+                $input['contentType'],
+                $input['maxSizeBytes'] ?? 5242880
+            );
+            
+            echo json_encode(['data' => $result]);
+            
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
+    }
+    
+    private function handleUploadImage(): void
+    {
+        try {
+            if (!isset($_FILES['image']) || !isset($_POST['uploadToken'])) {
+                http_response_code(400);
+                echo json_encode(['error' => 'Missing required fields']);
+                return;
+            }
+            
+            $file = $_FILES['image'];
+            $uploadToken = $_POST['uploadToken'];
+            
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                echo json_encode(['error' => 'File upload error']);
+                return;
+            }
+            
+            $result = $this->client->s3->uploadImage(
+                $uploadToken,
+                $file['tmp_name']
+            );
+            
+            echo json_encode(['data' => $result]);
+            
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
+        }
     }
 
     private function show404(): void

@@ -56,10 +56,26 @@ class ShippingManager {
                     if (data.success) {
                         window.location.href = `${adminPath}/shipping?success=` + encodeURIComponent('Shipping method deleted successfully');
                     } else {
-                        alert('Error: ' + data.message);
+                        if (window.modalManager) {
+                            window.modalManager.alert({
+                                title: 'Error',
+                                message: data.message,
+                                type: 'error'
+                            });
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
                     }
                 } catch (error) {
-                    alert('Error deleting shipping method: ' + error.message);
+                    if (window.modalManager) {
+                        window.modalManager.alert({
+                            title: 'Error',
+                            message: 'Error deleting shipping method: ' + error.message,
+                            type: 'error'
+                        });
+                    } else {
+                        alert('Error deleting shipping method: ' + error.message);
+                    }
                 }
             }
         });

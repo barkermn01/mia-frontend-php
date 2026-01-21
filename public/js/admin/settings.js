@@ -333,7 +333,15 @@ class SettingsManager {
             }, 500);
             
         } catch (error) {
-            alert('Image upload failed: ' + error.message);
+            if (window.modalManager) {
+                window.modalManager.alert({
+                    title: 'Upload Failed',
+                    message: 'Image upload failed: ' + error.message,
+                    type: 'error'
+                });
+            } else {
+                alert('Image upload failed: ' + error.message);
+            }
             progressDiv.classList.add('hidden');
             progressBar.style.width = '0%';
         }
@@ -442,7 +450,15 @@ class SettingsManager {
                 break;
             case 'image':
                 if (!this.currentImageUrl) {
-                    alert('Please upload an image');
+                    if (window.modalManager) {
+                        window.modalManager.alert({
+                            title: 'Validation Error',
+                            message: 'Please upload an image',
+                            type: 'warning'
+                        });
+                    } else {
+                        alert('Please upload an image');
+                    }
                     return;
                 }
                 value = this.currentImageUrl;
@@ -491,10 +507,26 @@ class SettingsManager {
                     if (data.success) {
                         window.location.href = `${this.adminPath}/settings?success=` + encodeURIComponent('Setting deleted successfully');
                     } else {
-                        alert('Error: ' + data.message);
+                        if (window.modalManager) {
+                            window.modalManager.alert({
+                                title: 'Error',
+                                message: data.message,
+                                type: 'error'
+                            });
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
                     }
                 } catch (error) {
-                    alert('Error deleting setting: ' + error.message);
+                    if (window.modalManager) {
+                        window.modalManager.alert({
+                            title: 'Error',
+                            message: 'Error deleting setting: ' + error.message,
+                            type: 'error'
+                        });
+                    } else {
+                        alert('Error deleting setting: ' + error.message);
+                    }
                 }
             }
         });

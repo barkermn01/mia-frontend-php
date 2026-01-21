@@ -19,6 +19,9 @@ class ProductForm {
         this.initializeToastEditor();
         this.updateFormSubmissionForEditor();
         
+        // Check existing images for square dimensions
+        this.checkExistingImages();
+        
         // Always update images input on load to include existing images
         this.updateImagesInput();
         
@@ -30,6 +33,64 @@ class ProductForm {
     }
 
     // ==================== IMAGE UPLOAD AND MANAGEMENT ====================
+
+    checkExistingImages() {
+        const gallery = document.getElementById('image-gallery');
+        if (!gallery) {
+            console.log('Gallery not found');
+            return;
+        }
+        
+        const imageItems = gallery.querySelectorAll('.image-item');
+        console.log(`Checking ${imageItems.length} existing images for square dimensions`);
+        
+        imageItems.forEach((item, index) => {
+            const img = item.querySelector('img');
+            if (!img) {
+                console.log(`Image ${index}: No img element found`);
+                return;
+            }
+            
+            // Check if warning already exists
+            if (item.querySelector('.not-square-warning')) {
+                console.log(`Image ${index}: Warning already exists`);
+                return;
+            }
+            
+            // Add warning element
+            const warning = document.createElement('div');
+            warning.className = 'not-square-warning hidden absolute top-2 right-8 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs px-2 py-1 rounded font-semibold shadow-lg z-10';
+            warning.textContent = 'Image not Square';
+            item.appendChild(warning);
+            console.log(`Image ${index}: Warning element added`);
+            
+            // Check dimensions when image loads
+            const checkDimensions = () => {
+                const width = img.naturalWidth;
+                const height = img.naturalHeight;
+                console.log(`Image ${index}: Dimensions ${width}x${height}`);
+                
+                if (width && height) {
+                    if (width !== height) {
+                        warning.classList.remove('hidden');
+                        console.log(`Image ${index}: NOT SQUARE - showing warning`);
+                    } else {
+                        console.log(`Image ${index}: Is square - no warning needed`);
+                    }
+                } else {
+                    console.log(`Image ${index}: Dimensions not available yet`);
+                }
+            };
+            
+            if (img.complete && img.naturalWidth > 0) {
+                console.log(`Image ${index}: Already loaded, checking now`);
+                checkDimensions();
+            } else {
+                console.log(`Image ${index}: Not loaded yet, waiting for onload`);
+                img.onload = checkDimensions;
+            }
+        });
+    }
 
     initializeImageUpload() {
         const uploadArea = document.getElementById('upload-area');
@@ -184,7 +245,15 @@ class ProductForm {
                 this.addImageToGallery(imageUrl);
             } catch (error) {
                 console.error('Upload failed:', error);
-                alert(`Failed to upload ${file.name}: ${error.message}`);
+                if (window.modalManager) {
+                    window.modalManager.alert({
+                        title: 'Upload Failed',
+                        message: `Failed to upload ${file.name}: ${error.message}`,
+                        type: 'error'
+                    });
+                } else {
+                    alert(`Failed to upload ${file.name}: ${error.message}`);
+                }
             }
         }
         
@@ -195,6 +264,14 @@ class ProductForm {
     }
 
     async uploadSingleFile(file) {
+        // Check if image is square before uploading
+        try {
+            await this.validateImageIsSquare(file);
+        } catch (validationError) {
+            // Re-throw validation errors with clear message
+            throw new Error(validationError.message);
+        }
+        
         // Generate upload token
         const tokenResponse = await fetch(this.config.adminPath + '/api/upload-token', {
             method: 'POST',
@@ -209,8 +286,15 @@ class ProductForm {
         });
 
         if (!tokenResponse.ok) {
-            const error = await tokenResponse.json();
-            throw new Error(error.error || 'Failed to generate upload token');
+            const errorText = await tokenResponse.text();
+            let errorMessage = 'Failed to generate upload token';
+            try {
+                const error = JSON.parse(errorText);
+                errorMessage = error.error || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+            throw new Error(errorMessage);
         }
 
         const tokenData = await tokenResponse.json();
@@ -226,12 +310,51 @@ class ProductForm {
         });
 
         if (!uploadResponse.ok) {
-            const error = await uploadResponse.json();
-            throw new Error(error.error || 'Failed to upload image');
+            const errorText = await uploadResponse.text();
+            let errorMessage = 'API endpoint not found';
+            try {
+                const error = JSON.parse(errorText);
+                errorMessage = error.error || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+            throw new Error(errorMessage);
         }
 
         const uploadData = await uploadResponse.json();
         return uploadData.data.imageUrl;
+    }
+
+    async validateImageIsSquare(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                const img = new Image();
+                
+                img.onload = () => {
+                    console.log(`Image dimensions: ${img.width}x${img.height}`);
+                    if (img.width !== img.height) {
+                        reject(new Error(`Image must be square. Current dimensions: ${img.width}x${img.height}`));
+                    } else {
+                        console.log('Image is square, proceeding with upload');
+                        resolve();
+                    }
+                };
+                
+                img.onerror = () => {
+                    reject(new Error('Failed to load image'));
+                };
+                
+                img.src = e.target.result;
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('Failed to read file'));
+            };
+            
+            reader.readAsDataURL(file);
+        });
     }
 
     addImageToGallery(imageUrl) {
@@ -381,7 +504,15 @@ class ProductForm {
         
         // Don't allow removing the last variant
         if (container.children.length <= 1) {
-            alert('A product must have at least one variant');
+            if (window.modalManager) {
+                window.modalManager.alert({
+                    title: 'Cannot Remove Variant',
+                    message: 'A product must have at least one variant',
+                    type: 'warning'
+                });
+            } else {
+                alert('A product must have at least one variant');
+            }
             return;
         }
         
@@ -556,7 +687,15 @@ class ProductForm {
             const title = document.getElementById('title').value.trim();
             if (!title) {
                 e.preventDefault();
-                alert('Product title is required');
+                if (window.modalManager) {
+                    window.modalManager.alert({
+                        title: 'Validation Error',
+                        message: 'Product title is required',
+                        type: 'error'
+                    });
+                } else {
+                    alert('Product title is required');
+                }
                 document.getElementById('title').focus();
                 return;
             }
@@ -566,7 +705,15 @@ class ProductForm {
             console.log("Form submission - variants data:", variantsData);
             if (variantsData.length === 0) {
                 e.preventDefault();
-                alert('At least one variant with SKU and price is required');
+                if (window.modalManager) {
+                    window.modalManager.alert({
+                        title: 'Validation Error',
+                        message: 'At least one variant with SKU and price is required',
+                        type: 'error'
+                    });
+                } else {
+                    alert('At least one variant with SKU and price is required');
+                }
                 return;
             }
             

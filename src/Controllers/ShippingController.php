@@ -202,6 +202,8 @@ class ShippingController extends BaseController
                 'error' => $e->getMessage(),
                 'adminPath' => $this->adminPath
             ]);
+
+            error_log($e->getMessage());
             
             echo $this->view->renderLayout('admin-layout', $content, [
                 'title' => 'Edit Shipping Method - Admin Panel',

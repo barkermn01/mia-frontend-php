@@ -17,12 +17,12 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
         <!-- Product Images -->
         <div class="space-y-4">
-            <div class="aspect-square bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="aspect-square bg-white rounded-lg shadow-lg overflow-hidden flex items-center justify-center">
                 <?php if (!empty($product['images'])): ?>
                     <img id="main-image" 
                          src="<?= is_array($product['images'][0])?$product['images'][0]['url']:$product['images'][0] ?>" 
                          alt="<?= htmlspecialchars($product['title']) ?>"
-                         class="w-full h-full object-cover">
+                         class="w-full h-full object-contain">
                 <?php else: ?>
                     <div class="w-full h-full bg-gray-200 flex items-center justify-center">
                         <i class="fas fa-image text-6xl text-gray-400"></i>
@@ -35,10 +35,10 @@
                 <div class="flex space-x-2 overflow-x-auto">
                     <?php foreach ($product['images'] as $index => $image): ?>
                         <button onclick="changeMainImage('<?= is_array($image)?$image['url']:$image; ?>')"
-                                class="flex-shrink-0 w-20 h-20 bg-white rounded-lg shadow border-2 border-transparent hover:border-blue-500 overflow-hidden">
+                                class="flex-shrink-0 w-20 h-20 bg-white rounded-lg shadow border-2 border-transparent hover:border-blue-500 overflow-hidden flex items-center justify-center">
                             <img src="<?= is_array($image)?$image['url']:$image; ?>" 
                                  alt="Product image <?= $index + 1 ?>"
-                                 class="w-full h-full object-cover">
+                                 class="w-full h-full object-contain">
                         </button>
                     <?php endforeach; ?>
                 </div>

@@ -108,4 +108,8 @@ window.ShippingFormData = {
     regions: <?= json_encode($method['regions'] ?? []) ?>
 };
 </script>
+<script src="/js/ModalManager.js"></script>
 <script src="/js/admin/shipping-form.js"></script>
+<script>
+window.modalManager = new ModalManager();
+</script>

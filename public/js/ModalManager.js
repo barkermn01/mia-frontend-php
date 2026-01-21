@@ -216,6 +216,81 @@ class ModalManager {
         // Show modal
         this.showModal(modal);
     }
+
+    /**
+     * Show an alert dialog
+     * @param {Object} options - Dialog options
+     * @param {string} options.title - Dialog title
+     * @param {string} options.message - Dialog message
+     * @param {string} options.type - Alert type ('info', 'success', 'warning', 'error', default: 'info')
+     * @param {string} options.buttonText - Button text (default: 'OK')
+     * @param {Function} options.onClose - Callback when closed
+     */
+    alert(options) {
+        const {
+            title = 'Alert',
+            message = '',
+            type = 'info',
+            buttonText = 'OK',
+            onClose = () => {}
+        } = options;
+
+        // Determine icon and color based on type
+        let icon = '';
+        let buttonClass = 'bg-blue-600 hover:bg-blue-700';
+        
+        switch (type) {
+            case 'success':
+                icon = '<i class="fas fa-check-circle text-green-500 text-3xl mb-3"></i>';
+                buttonClass = 'bg-green-600 hover:bg-green-700';
+                break;
+            case 'warning':
+                icon = '<i class="fas fa-exclamation-triangle text-yellow-500 text-3xl mb-3"></i>';
+                buttonClass = 'bg-yellow-600 hover:bg-yellow-700';
+                break;
+            case 'error':
+                icon = '<i class="fas fa-times-circle text-red-500 text-3xl mb-3"></i>';
+                buttonClass = 'bg-red-600 hover:bg-red-700';
+                break;
+            case 'info':
+            default:
+                icon = '<i class="fas fa-info-circle text-blue-500 text-3xl mb-3"></i>';
+                buttonClass = 'bg-blue-600 hover:bg-blue-700';
+                break;
+        }
+
+        // Create modal HTML
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <div class="text-center">
+                    ${icon}
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">${title}</h3>
+                    <p class="text-gray-600 mb-6">${message}</p>
+                    <button class="ok-btn px-6 py-2 rounded-lg text-white transition-colors ${buttonClass}">
+                        ${buttonText}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add to document
+        document.body.appendChild(modal);
+
+        // Get button
+        const okBtn = modal.querySelector('.ok-btn');
+
+        // Handle close
+        okBtn.addEventListener('click', () => {
+            this.hideModal(modal);
+            modal.remove();
+            onClose();
+        });
+
+        // Show modal
+        this.showModal(modal);
+    }
 }
 
 // Add CSS for modal-open class if not already present
