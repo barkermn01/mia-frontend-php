@@ -214,6 +214,10 @@ Resources:
               Value: '3000'
             - Name: LOG_LEVEL
               Value: 'info'
+            - Name: MEMCACHED_HOST
+              Value: '10.0.11.6'
+            - Name: MEMCACHED_PORT
+              Value: '11211'
           LogConfiguration:
             LogDriver: awslogs
             Options:

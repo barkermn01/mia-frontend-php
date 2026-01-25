@@ -6,7 +6,6 @@
 class ProductForm {
     constructor(config) {
         this.config = config;
-        console.log('ProductForm initialized with config:', config);
         this.draggedElement = null;
         this.variants = [];
         this.toastEditor = null;
@@ -37,23 +36,19 @@ class ProductForm {
     checkExistingImages() {
         const gallery = document.getElementById('image-gallery');
         if (!gallery) {
-            console.log('Gallery not found');
             return;
         }
         
         const imageItems = gallery.querySelectorAll('.image-item');
-        console.log(`Checking ${imageItems.length} existing images for square dimensions`);
         
         imageItems.forEach((item, index) => {
             const img = item.querySelector('img');
             if (!img) {
-                console.log(`Image ${index}: No img element found`);
                 return;
             }
             
             // Check if warning already exists
             if (item.querySelector('.not-square-warning')) {
-                console.log(`Image ${index}: Warning already exists`);
                 return;
             }
             
@@ -62,31 +57,22 @@ class ProductForm {
             warning.className = 'not-square-warning hidden absolute top-2 right-8 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs px-2 py-1 rounded font-semibold shadow-lg z-10';
             warning.textContent = 'Image not Square';
             item.appendChild(warning);
-            console.log(`Image ${index}: Warning element added`);
             
             // Check dimensions when image loads
             const checkDimensions = () => {
                 const width = img.naturalWidth;
                 const height = img.naturalHeight;
-                console.log(`Image ${index}: Dimensions ${width}x${height}`);
                 
                 if (width && height) {
                     if (width !== height) {
                         warning.classList.remove('hidden');
-                        console.log(`Image ${index}: NOT SQUARE - showing warning`);
-                    } else {
-                        console.log(`Image ${index}: Is square - no warning needed`);
                     }
-                } else {
-                    console.log(`Image ${index}: Dimensions not available yet`);
                 }
             };
             
             if (img.complete && img.naturalWidth > 0) {
-                console.log(`Image ${index}: Already loaded, checking now`);
                 checkDimensions();
             } else {
-                console.log(`Image ${index}: Not loaded yet, waiting for onload`);
                 img.onload = checkDimensions;
             }
         });
@@ -333,11 +319,9 @@ class ProductForm {
                 const img = new Image();
                 
                 img.onload = () => {
-                    console.log(`Image dimensions: ${img.width}x${img.height}`);
                     if (img.width !== img.height) {
                         reject(new Error(`Image must be square. Current dimensions: ${img.width}x${img.height}`));
                     } else {
-                        console.log('Image is square, proceeding with upload');
                         resolve();
                     }
                 };
@@ -418,12 +402,93 @@ class ProductForm {
         document.addEventListener('input', (e) => {
             if (e.target.classList.contains('variant-sku') || 
                 e.target.classList.contains('variant-price') ||
+                e.target.classList.contains('variant-cost') ||
+                e.target.classList.contains('variant-rrp') ||
                 e.target.classList.contains('variant-name') ||
                 e.target.classList.contains('attribute-key') ||
                 e.target.classList.contains('attribute-value')) {
                 this.updateVariantsInput();
             }
         });
+        
+        // Setup VAT calculation for existing variants
+        const existingVariants = document.querySelectorAll('.variant-item');
+        existingVariants.forEach(variant => this.setupVatCalculation(variant));
+    }
+
+    setupVatCalculation(variantElement) {
+        const priceExVat = variantElement.querySelector('.variant-price');
+        const priceIncVat = variantElement.querySelector('.variant-price-vat');
+        const rrpExVat = variantElement.querySelector('.variant-rrp');
+        const rrpIncVat = variantElement.querySelector('.variant-rrp-vat');
+        
+        // Get VAT rate from config (default to 20% UK VAT)
+        const vatRate = (window.MiaStoreConfig && window.MiaStoreConfig.vatRate) || 20;
+        const vatMultiplier = 1 + (vatRate / 100);
+        
+        // Helper function to validate and format decimal input
+        const validateDecimalInput = (input) => {
+            input.addEventListener('input', (e) => {
+                // Allow only numbers, decimal point, and basic editing
+                let value = e.target.value;
+                // Remove any non-numeric characters except decimal point
+                value = value.replace(/[^\d.]/g, '');
+                // Ensure only one decimal point
+                const parts = value.split('.');
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                }
+                e.target.value = value;
+            });
+        };
+        
+        // Calculate inc-VAT when ex-VAT changes
+        if (priceExVat && priceIncVat) {
+            // Add input validation for inc-VAT field
+            validateDecimalInput(priceIncVat);
+            
+            // Initialize inc-VAT value if ex-VAT has a value, otherwise set to 0.00
+            if (priceExVat.value) {
+                priceIncVat.value = (parseFloat(priceExVat.value) * vatMultiplier).toFixed(2);
+            } else {
+                priceIncVat.value = '0.00';
+            }
+            
+            priceExVat.addEventListener('input', (e) => {
+                const exVat = parseFloat(e.target.value) || 0;
+                priceIncVat.value = (exVat * vatMultiplier).toFixed(2);
+            });
+            
+            // Calculate ex-VAT when inc-VAT changes
+            priceIncVat.addEventListener('input', (e) => {
+                const incVat = parseFloat(e.target.value) || 0;
+                priceExVat.value = (incVat / vatMultiplier).toFixed(2);
+            });
+        }
+        
+        // Same for RRP
+        if (rrpExVat && rrpIncVat) {
+            // Add input validation for inc-VAT field
+            validateDecimalInput(rrpIncVat);
+            
+            // Initialize inc-VAT value if ex-VAT has a value, otherwise set to 0.00
+            if (rrpExVat.value) {
+                rrpIncVat.value = (parseFloat(rrpExVat.value) * vatMultiplier).toFixed(2);
+            } else {
+                rrpIncVat.value = '0.00';
+            }
+            
+            rrpExVat.addEventListener('input', (e) => {
+                const exVat = parseFloat(e.target.value) || 0;
+                rrpIncVat.value = (exVat * vatMultiplier).toFixed(2);
+            });
+            
+            // Calculate ex-VAT when inc-VAT changes
+            rrpIncVat.addEventListener('input', (e) => {
+                const incVat = parseFloat(e.target.value) || 0;
+                rrpExVat.value = (incVat / vatMultiplier).toFixed(2);
+            });
+        }
     }
 
     addVariant() {
@@ -442,18 +507,54 @@ class ProductForm {
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
                     <input type="text" class="variant-name w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Large Red">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Price (£) <span class="text-red-500">*</span></label>
-                    <input type="number" class="variant-price w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" step="0.01" min="0" placeholder="0.00" required>
-                </div>
-                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">SKU <span class="text-red-500">*</span></label>
                     <input type="text" class="variant-sku w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter unique SKU" required>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                <!-- Selling Price with VAT -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Selling Price <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Ex-VAT (£)</label>
+                            <input type="number" class="variant-price w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Inc-VAT (£)</label>
+                            <input type="text" class="variant-price-vat w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50" placeholder="0.00" value="0.00" inputmode="decimal">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cost Price (no VAT) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cost Price <span class="text-red-500">*</span></label>
+                    <div>
+                        <label class="block text-xs text-gray-600 mb-1">Your Cost (£)</label>
+                        <input type="number" class="variant-cost w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" step="0.01" min="0" placeholder="0.00" required>
+                    </div>
+                </div>
+                
+                <!-- RRP with VAT -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">RRP <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Ex-VAT (£)</label>
+                            <input type="number" class="variant-rrp w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-600 mb-1">Inc-VAT (£)</label>
+                            <input type="text" class="variant-rrp-vat w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50" placeholder="0.00" value="0.00" inputmode="decimal">
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -470,6 +571,10 @@ class ProductForm {
         `;
         
         container.appendChild(variantDiv);
+        
+        // Setup VAT calculation for the new variant
+        this.setupVatCalculation(variantDiv);
+        
         this.updateVariantsInput();
     }
 
@@ -532,11 +637,17 @@ class ProductForm {
         const variants = [];
         
         const variantItems = container.querySelectorAll('.variant-item');
-        variantItems.forEach(item => {
+        variantItems.forEach((item, index) => {
             const uuid = item.querySelector('.variant-uuid').value.trim();
             const sku = item.querySelector('.variant-sku').value.trim();
-            const price = parseFloat(item.querySelector('.variant-price').value) || 0;
+            const priceInput = item.querySelector('.variant-price');
+            const costInput = item.querySelector('.variant-cost');
+            const rrpInput = item.querySelector('.variant-rrp');
             const name = item.querySelector('.variant-name').value.trim();
+            
+            const price = priceInput ? parseFloat(priceInput.value) || 0 : 0;
+            const cost = costInput ? parseFloat(costInput.value) || 0 : 0;
+            const rrp = rrpInput ? parseFloat(rrpInput.value) || 0 : 0;
             
             // Collect attributes
             const attributes = {};
@@ -549,10 +660,12 @@ class ProductForm {
                 }
             });
             
-            if (sku && price > 0) {
+            if (sku && price > 0 && cost > 0 && rrp > 0) {
                 const variant = {
                     sku: sku,
                     price: price,
+                    cost: cost,
+                    rrp: rrp,
                     attributes: attributes
                 };
                 
@@ -567,6 +680,8 @@ class ProductForm {
                 }
                 
                 variants.push(variant);
+            } else {
+                console.warn(`Variant ${index + 1} (${sku}) skipped - missing required fields: sku=${!!sku}, price=${price}, cost=${cost}, rrp=${rrp}`);
             }
         });
         
@@ -575,19 +690,7 @@ class ProductForm {
 
     updateVariantsInput() {
         const variantsData = this.collectVariantsData();
-        console.log("Updating variants input with data:", variantsData);
-        
-        // Debug: Show which variants have UUIDs vs which are new
-        variantsData.forEach((variant, index) => {
-            if (variant.uuid) {
-                console.log(`Variant ${index + 1} (${variant.sku}): EXISTING with UUID ${variant.uuid}`);
-            } else {
-                console.log(`Variant ${index + 1} (${variant.sku}): NEW variant (no UUID)`);
-            }
-        });
-        
         document.getElementById('variants-data').value = JSON.stringify(variantsData);
-        console.log("Hidden input value set to:", document.getElementById('variants-data').value);
     }
 
     // ==================== TOAST UI EDITOR ====================
@@ -595,7 +698,6 @@ class ProductForm {
     initializeToastEditor() {
         // Wait for Toast UI Editor to be loaded
         if (typeof toastui === 'undefined' || !toastui.Editor) {
-            console.log('Toast UI Editor not loaded yet, retrying...');
             setTimeout(() => this.initializeToastEditor(), 500);
             return;
         }
@@ -604,7 +706,6 @@ class ProductForm {
         const hiddenInput = document.getElementById('description');
         
         if (!editorElement) {
-            console.log('Editor element not found');
             return;
         }
         
@@ -638,8 +739,6 @@ class ProductForm {
                     }
                 }
             });
-            
-            console.log('Toast UI Editor initialized successfully');
             
             // Add custom CSS for better integration
             setTimeout(() => {
@@ -702,7 +801,6 @@ class ProductForm {
             
             // Collect and validate variants
             const variantsData = this.collectVariantsData();
-            console.log("Form submission - variants data:", variantsData);
             if (variantsData.length === 0) {
                 e.preventDefault();
                 if (window.modalManager) {
@@ -719,7 +817,6 @@ class ProductForm {
             
             // Update hidden inputs
             document.getElementById('variants-data').value = JSON.stringify(variantsData);
-            console.log("Form submission - final variants input value:", document.getElementById('variants-data').value);
             this.updateImagesInput();
         });
     }

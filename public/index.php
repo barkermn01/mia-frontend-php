@@ -8,11 +8,16 @@
 error_reporting(E_ALL & ~E_WARNING);
 
 require_once '../vendor/autoload.php';
+require_once '../src/SessionConfig.php';
 require_once '../src/Storefront.php';
 require_once '../src/AdminRouter.php';
 
+use Marti\Frontend\SessionConfig;
 use Marti\Frontend\Storefront;
 use Marti\Frontend\AdminRouter;
+
+// Initialize session configuration (must be done before any session_start())
+SessionConfig::initialize();
 
 // Get the request path
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

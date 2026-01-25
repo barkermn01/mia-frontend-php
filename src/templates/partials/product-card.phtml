@@ -58,7 +58,12 @@ $productUrl = "/product/{$productId}/{$productSlug}";
         
         <a href="<?= $productUrl ?>" class="block hover:text-red-600 transition-colors">
             <p class="text-gray-600 text-sm mb-3 line-clamp-2">
-                <?= htmlspecialchars($product['shortDescription'] ?? '') ?>
+                <?php
+                // Show only first line on card (split on \n)
+                $shortDesc = $product['shortDescription'] ?? '';
+                $firstLine = explode("\n", $shortDesc)[0];
+                echo htmlspecialchars($firstLine);
+                ?>
             </p>
         </a>
         
@@ -103,10 +108,37 @@ $productUrl = "/product/{$productId}/{$productSlug}";
                 ?>
                 
                 <?php if ($priceDisplay): ?>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex flex-col">
                         <span class="text-2xl font-bold text-blue-600">
-                            <?= $priceDisplay ?>
+                            <?php
+                            // Calculate price with VAT
+                            if (!empty($product['variants'])) {
+                                if (count($product['variants']) === 1) {
+                                    $priceExVat = $view->getDisplayPrice($product['variants'][0]['price']);
+                                    $priceIncVat = $priceExVat * (1 + ($vatRate ?? 0.20));
+                                    $currency = $view->getCurrency($product['variants'][0]['price']);
+                                    $symbols = ['GBP' => '£', 'USD' => '$', 'EUR' => '€'];
+                                    $symbol = $symbols[$currency] ?? $currency;
+                                    echo $symbol . number_format($priceIncVat, 2);
+                                } else {
+                                    echo $priceDisplay; // "From: £X.XX" already formatted
+                                }
+                            } else {
+                                echo $priceDisplay;
+                            }
+                            ?>
                         </span>
+                        <?php if (!empty($product['variants']) && count($product['variants']) === 1): ?>
+                            <span class="text-xs text-gray-500">
+                                (ex-VAT <?php
+                                $priceExVat = $view->getDisplayPrice($product['variants'][0]['price']);
+                                $currency = $view->getCurrency($product['variants'][0]['price']);
+                                $symbols = ['GBP' => '£', 'USD' => '$', 'EUR' => '€'];
+                                $symbol = $symbols[$currency] ?? $currency;
+                                echo $symbol . number_format($priceExVat, 2);
+                                ?>)
+                            </span>
+                        <?php endif; ?>
                         <?php 
                         $originalPriceValue = $view->getDisplayPrice($product['originalPrice'] ?? 0);
                         $currentPriceValue = 0;

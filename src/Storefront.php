@@ -264,6 +264,21 @@ class Storefront
             case '/orders':
                 $this->showOrders();
                 break;
+            case '/privacy':
+                $this->showPrivacy();
+                break;
+            case '/terms':
+                $this->showTerms();
+                break;
+            case '/about':
+                $this->showAbout();
+                break;
+            case '/help':
+                $this->showHelp();
+                break;
+            case '/contact':
+                $this->showContact();
+                break;
             default:
                 $this->show404();
         }
@@ -768,7 +783,8 @@ class Storefront
             'search' => $search,
             'category' => $category, // Keep for backward compatibility
             'selectedFilters' => is_array($selectedFilters) ? $selectedFilters : ($selectedFilters ? [$selectedFilters] : []),
-            'page' => $page
+            'page' => $page,
+            'vatRate' => $this->getVatRate()
         ]);
         
         echo $this->view->renderLayout('layout', $content, [
@@ -802,7 +818,8 @@ class Storefront
             
             $content = $this->view->render('product', [
                 'product' => $product,
-                'variants' => $variants['items'] ?? []
+                'variants' => $variants['items'] ?? [],
+                'vatRate' => $this->getVatRate()
             ]);
             
             echo $this->view->renderLayout('layout', $content, [
@@ -1237,6 +1254,66 @@ class Storefront
         }
     }
 
+    private function showPrivacy(): void
+    {
+        $content = $this->view->render('privacy');
+        
+        echo $this->view->renderLayout('layout', $content, [
+            'title' => 'Privacy Policy - OxWinches',
+            'cartCount' => $this->getCartItemCount(),
+            'customer' => $this->getCustomer(),
+            'isLoggedIn' => $this->isLoggedIn()
+        ]);
+    }
+
+    private function showTerms(): void
+    {
+        $content = $this->view->render('terms');
+        
+        echo $this->view->renderLayout('layout', $content, [
+            'title' => 'Terms & Conditions - OxWinches',
+            'cartCount' => $this->getCartItemCount(),
+            'customer' => $this->getCustomer(),
+            'isLoggedIn' => $this->isLoggedIn()
+        ]);
+    }
+
+    private function showAbout(): void
+    {
+        $content = $this->view->render('about');
+        
+        echo $this->view->renderLayout('layout', $content, [
+            'title' => 'About Us - OxWinches',
+            'cartCount' => $this->getCartItemCount(),
+            'customer' => $this->getCustomer(),
+            'isLoggedIn' => $this->isLoggedIn()
+        ]);
+    }
+
+    private function showHelp(): void
+    {
+        $content = $this->view->render('help');
+        
+        echo $this->view->renderLayout('layout', $content, [
+            'title' => 'Help Center - OxWinches',
+            'cartCount' => $this->getCartItemCount(),
+            'customer' => $this->getCustomer(),
+            'isLoggedIn' => $this->isLoggedIn()
+        ]);
+    }
+
+    private function showContact(): void
+    {
+        $content = $this->view->render('contact');
+        
+        echo $this->view->renderLayout('layout', $content, [
+            'title' => 'Contact Us - OxWinches',
+            'cartCount' => $this->getCartItemCount(),
+            'customer' => $this->getCustomer(),
+            'isLoggedIn' => $this->isLoggedIn()
+        ]);
+    }
+
     private function getProducts(array $filters = []): array
     {
         try {
@@ -1299,6 +1376,24 @@ class Storefront
     private function getCustomer(): ?array
     {
         return $_SESSION['customer'] ?? null;
+    }
+
+    private function getVatRate(): float
+    {
+        try {
+            // Get VAT rate setting (no siteId needed, SDK handles it)
+            $setting = $this->client->siteSettings->getSetting('vat_rate');
+            
+            if (isset($setting['value']) && is_numeric($setting['value'])) {
+                // Return as decimal (e.g., 0.20 for 20%)
+                return (float)$setting['value'] / 100;
+            }
+        } catch (MiaException $e) {
+            // If setting doesn't exist or there's an error, use default
+        }
+        
+        // Default to UK VAT rate of 20%
+        return 0.20;
     }
 
     private function getCartItemCount(): int

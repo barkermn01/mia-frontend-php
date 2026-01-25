@@ -18,7 +18,10 @@ class ModalManager {
         if (!modal) return;
 
         // Remove from stack if already present
-        this.hideModal(modal);
+        const index = this.modalStack.indexOf(modal);
+        if (index > -1) {
+            this.modalStack.splice(index, 1);
+        }
 
         // Add to stack
         this.modalStack.push(modal);

@@ -16,4 +16,16 @@ services:
       - MIA_API_URL=https://api.miaai.me
       - MIA_SITE_ID=c41374a3-a02d-4922-adf0-4e26728fdfa6
       - MIA_SSL_VERIFY=true
+      - MEMCACHED_HOST=memcached
+      - MEMCACHED_PORT=11211
+    depends_on:
+      - memcached
+    restart: unless-stopped
+
+  memcached:
+    image: memcached:1.6-alpine
+    container_name: mia-memcached-dev
+    ports:
+      - "11211:11211"
+    command: memcached -m 64
     restart: unless-stopped

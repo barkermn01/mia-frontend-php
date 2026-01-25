@@ -86,22 +86,35 @@
                 ?>
                 
                 <?php if ($priceDisplay): ?>
-                    <div class="flex items-center space-x-4 mb-6">
-                        <span id="current-price" class="text-4xl font-bold text-blue-600">
-                            <?= $priceDisplay ?>
-                        </span>
-                        <?php 
-                        $originalPriceValue = $view->getDisplayPrice($product['originalPrice'] ?? 0);
-                        $currentPriceValue = $view->getDisplayPrice($defaultPrice ?? 0);
-                        if (!empty($product['originalPrice']) && $originalPriceValue > $currentPriceValue): 
-                        ?>
-                            <span class="text-xl text-gray-500 line-through">
-                                <?= $view->formatPrice($product['originalPrice']) ?>
+                    <div class="mb-6">
+                        <div class="flex items-center space-x-4">
+                            <span id="current-price" class="text-4xl font-bold text-blue-600">
+                                <?php
+                                // Calculate price with VAT
+                                $priceExVat = $view->getDisplayPrice($defaultPrice);
+                                $priceIncVat = $priceExVat * (1 + ($vatRate ?? 0.20));
+                                $currency = $view->getCurrency($defaultPrice);
+                                $symbols = ['GBP' => '£', 'USD' => '$', 'EUR' => '€'];
+                                $symbol = $symbols[$currency] ?? $currency;
+                                echo $symbol . number_format($priceIncVat, 2);
+                                ?>
                             </span>
-                            <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
-                                Save <?= round((1 - $currentPriceValue / $originalPriceValue) * 100) ?>%
-                            </span>
-                        <?php endif; ?>
+                            <?php 
+                            $originalPriceValue = $view->getDisplayPrice($product['originalPrice'] ?? 0);
+                            $currentPriceValue = $view->getDisplayPrice($defaultPrice ?? 0);
+                            if (!empty($product['originalPrice']) && $originalPriceValue > $currentPriceValue): 
+                            ?>
+                                <span class="text-xl text-gray-500 line-through">
+                                    <?= $view->formatPrice($product['originalPrice']) ?>
+                                </span>
+                                <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
+                                    Save <?= round((1 - $currentPriceValue / $originalPriceValue) * 100) ?>%
+                                </span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            (ex-VAT <?php echo $symbol . number_format($priceExVat, 2); ?>)
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>
@@ -109,7 +122,11 @@
             <!-- Short Description -->
             <div class="mb-6">
                 <p class="text-gray-700 text-lg leading-relaxed">
-                    <?= htmlspecialchars($product['shortDescription'] ?? '') ?>
+                    <?php
+                    // Convert \n to <br> tags for line breaks
+                    $shortDesc = $product['shortDescription'] ?? '';
+                    echo nl2br(htmlspecialchars($shortDesc));
+                    ?>
                 </p>
             </div>
 
@@ -203,12 +220,12 @@
                                     class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
                                 <i class="fas fa-minus"></i>
                             </button>
-                            <input type="number" id="quantity" value="1" min="1" max="10" 
-                                   class="w-20 text-center p-2 border border-gray-300 rounded-lg">
                             <button type="button" onclick="changeQuantity(1)" 
                                     class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
                                 <i class="fas fa-plus"></i>
                             </button>
+                            <input type="number" id="quantity" value="1" min="1" max="10" 
+                                   class="w-20 text-center p-2 border border-gray-300 rounded-lg">
                         </div>
                     </div>
 
@@ -254,13 +271,32 @@
                             </div>
                         <?php endif; ?>
                         
-                        <button class="bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors">
+                        <!--<button class="bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors">
                             <i class="fas fa-heart"></i>
                         </button>
                         
                         <button class="bg-gray-100 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-200 transition-colors">
                             <i class="fas fa-share"></i>
-                        </button>
+                        </button>-->
+                    </div>
+                    
+                    <!-- Payment Methods -->
+                    <div class="mt-4 text-center">
+                        <p class="text-base font-bold mb-2" style="color: var(--ox-red);">Buy now Pay Later available at checkout</p>
+                        <img src="/images/payment.png" alt="Accepted payment methods" class="max-w-full h-auto mx-auto">
+                    </div>
+                    
+                    <!-- Need Help Section -->
+                    <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="flex items-center justify-center mb-2">
+                            <i class="fas fa-phone-alt mr-2" style="color: var(--ox-red);"></i>
+                            <h3 class="text-lg font-semibold text-gray-800">Need Help?</h3>
+                        </div>
+                        <p class="text-sm text-gray-600">
+                            Call our team on <a href="tel:+441924201120" class="font-semibold hover:underline" style="color: var(--ox-red);">+44 (0)1924 201120</a>
+                            <br>
+                            We will be happy to help.
+                        </p>
                     </div>
                 </div>
             <?php else: ?>
@@ -331,6 +367,10 @@ function updateAttributesDisplay(attributesData) {
         attributesElement.innerHTML = attributesHtml;
     }
 }
+
+// Set VAT rate in config
+window.MiaStoreConfig = window.MiaStoreConfig || {};
+window.MiaStoreConfig.vatRate = <?= $vatRate ?? 0.20 ?>;
 
 // Initialize variant display on page load
 document.addEventListener('DOMContentLoaded', function() {

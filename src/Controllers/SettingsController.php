@@ -10,11 +10,25 @@ class SettingsController extends BaseController
     public function index(): void
     {
         try {
-            $siteId = $this->config['site_id'];
+            // Get all site settings (no siteId needed, SDK handles it)
+            $response = $this->client->siteSettings->getAllSettings();
             
-            // Get all site settings
-            $allSettings = $this->client->siteSettings->getAllSettings($siteId);
-            $settings = $allSettings['settings'] ?? [];
+            // Handle both old and new response formats
+            if (isset($response['items'])) {
+                // New paginated format - convert array of objects to keyed array
+                $settings = [];
+                foreach ($response['items'] as $item) {
+                    $settings[$item['name']] = [
+                        'type' => $item['type'],
+                        'value' => $item['value'],
+                        'createdAt' => $item['createdAt'],
+                        'updatedAt' => $item['updatedAt']
+                    ];
+                }
+            } else {
+                // Old format - settings is already a keyed array
+                $settings = $response['settings'] ?? [];
+            }
             
             // Add Toast UI Editor resources for markdown settings
             HtmlResources::getInstance()->addCss('https://uicdn.toast.com/editor/latest/toastui-editor.min.css');
@@ -23,7 +37,7 @@ class SettingsController extends BaseController
             
             $content = $this->view->render('settings', [
                 'settings' => $settings,
-                'siteId' => $siteId,
+                'siteId' => $this->config['site_id'],
                 'adminPath' => $this->adminPath
             ]);
             
@@ -40,7 +54,6 @@ class SettingsController extends BaseController
     public function handleUpdate(): void
     {
         try {
-            $siteId = $this->config['site_id'];
             $settingName = $_POST['setting_name'] ?? '';
             $settingType = $_POST['setting_type'] ?? 'text';
             $settingValue = $_POST['setting_value'] ?? '';
@@ -58,12 +71,40 @@ class SettingsController extends BaseController
                 $settingValue = $decoded;
             }
             
-            // Update the setting using the appropriate method
-            $this->client->siteSettings->updateSetting($siteId, $settingName, $settingType, $settingValue);
+            // Update the setting (no siteId needed, SDK handles it)
+            $this->client->siteSettings->updateSetting($settingName, $settingType, $settingValue);
             
             $this->redirect('/settings', "Setting '{$settingName}' updated successfully");
         } catch (\Exception $e) {
             $this->redirect('/settings', $e->getMessage(), true);
+        }
+    }
+
+    public function handleDelete(): void
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $settingName = $data['settingName'] ?? '';
+            
+            if (empty($settingName)) {
+                throw new \Exception('Setting name is required');
+            }
+            
+            // Delete the setting (no siteId needed, SDK handles it)
+            $this->client->siteSettings->deleteSetting($settingName);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => "Setting '{$settingName}' deleted successfully"
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
         }
     }
 }

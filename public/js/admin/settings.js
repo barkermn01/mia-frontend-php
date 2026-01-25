@@ -389,11 +389,10 @@ class SettingsManager {
         
         // Check if new key already exists (and it's not the same property being renamed)
         if (newKey && this.propertySet.hasOwnProperty(newKey) && newKey !== oldKey) {
-            this.modalManager.showModal({
+            this.modalManager.alert({
                 title: 'Duplicate Property Name',
                 message: `A property named "${newKey}" already exists. Please use a unique name.`,
-                confirmText: 'OK',
-                showCancel: false
+                type: 'warning'
             });
             this.updateValueField();
             return;
@@ -411,11 +410,10 @@ class SettingsManager {
         // Check for empty property names
         const emptyKeys = Object.keys(this.propertySet).filter(key => key.trim() === '');
         if (emptyKeys.length > 0) {
-            this.modalManager.showModal({
+            this.modalManager.alert({
                 title: 'Invalid Properties',
                 message: 'All properties must have a name. Please provide names for all properties before saving.',
-                confirmText: 'OK',
-                showCancel: false
+                type: 'warning'
             });
             return false;
         }
@@ -425,11 +423,10 @@ class SettingsManager {
         const duplicates = keys.filter((key, index) => keys.indexOf(key) !== index);
         
         if (duplicates.length > 0) {
-            this.modalManager.showModal({
+            this.modalManager.alert({
                 title: 'Duplicate Property Names',
                 message: 'All property names must be unique. Please ensure each property has a different name.',
-                confirmText: 'OK',
-                showCancel: false
+                type: 'warning'
             });
             return false;
         }
@@ -489,7 +486,7 @@ class SettingsManager {
     }
     
     deleteSetting(settingName) {
-        this.modalManager.showModal({
+        this.modalManager.confirm({
             title: 'Delete Setting',
             message: `Are you sure you want to delete the setting "${settingName}"? This action cannot be undone.`,
             confirmText: 'Delete',
@@ -507,26 +504,18 @@ class SettingsManager {
                     if (data.success) {
                         window.location.href = `${this.adminPath}/settings?success=` + encodeURIComponent('Setting deleted successfully');
                     } else {
-                        if (window.modalManager) {
-                            window.modalManager.alert({
-                                title: 'Error',
-                                message: data.message,
-                                type: 'error'
-                            });
-                        } else {
-                            alert('Error: ' + data.message);
-                        }
-                    }
-                } catch (error) {
-                    if (window.modalManager) {
-                        window.modalManager.alert({
+                        this.modalManager.alert({
                             title: 'Error',
-                            message: 'Error deleting setting: ' + error.message,
+                            message: data.message,
                             type: 'error'
                         });
-                    } else {
-                        alert('Error deleting setting: ' + error.message);
                     }
+                } catch (error) {
+                    this.modalManager.alert({
+                        title: 'Error',
+                        message: 'Error deleting setting: ' + error.message,
+                        type: 'error'
+                    });
                 }
             }
         });

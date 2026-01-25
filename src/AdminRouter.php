@@ -314,6 +314,15 @@ class AdminRouter
                 }
                 break;
                 
+            case '/settings/delete':
+                if ($method === 'POST') {
+                    $this->settingsController->handleDelete();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+                
             default:
                 http_response_code(404);
                 echo json_encode(['error' => 'API endpoint not found']);

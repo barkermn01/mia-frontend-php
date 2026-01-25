@@ -60,4 +60,20 @@ abstract class BaseController
         echo json_encode($data);
         exit;
     }
+
+    protected function getVatRate(): float
+    {
+        try {
+            // Get VAT rate setting (no siteId needed, SDK handles it)
+            $setting = $this->client->siteSettings->getSetting('vat_rate');
+            
+            if (isset($setting['value'])) {
+                return (float) $setting['value'];
+            }
+        } catch (\Exception $e) {
+            // If setting doesn't exist or there's an error, use default
+        }
+        
+        return 20.0; // Default UK VAT rate
+    }
 }

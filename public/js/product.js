@@ -147,6 +147,8 @@ window.ProductPage = {
     // Update price display
     updatePriceDisplay(priceData) {
         const priceElement = document.getElementById('current-price');
+        const exVatElement = priceElement ? priceElement.parentElement.nextElementSibling : null;
+        
         if (priceElement && priceData) {
             let displayPrice = 0;
             let currency = 'GBP';
@@ -183,12 +185,22 @@ window.ProductPage = {
                 currency = priceData.currency || 'GBP';
             }
             
+            // Get VAT rate from window config or default to 20%
+            const vatRate = window.MiaStoreConfig?.vatRate || 0.20;
+            const priceIncVat = displayPrice * (1 + vatRate);
+            
             // Format with currency symbol
             const symbols = { 'GBP': '£', 'USD': '$', 'EUR': '€' };
             const symbol = symbols[currency] || currency;
-            const formattedPrice = symbol + displayPrice.toFixed(2);
+            const formattedPriceIncVat = symbol + priceIncVat.toFixed(2);
+            const formattedPriceExVat = symbol + displayPrice.toFixed(2);
             
-            priceElement.textContent = formattedPrice;
+            priceElement.textContent = formattedPriceIncVat;
+            
+            // Update ex-VAT display if element exists
+            if (exVatElement && exVatElement.classList.contains('text-sm')) {
+                exVatElement.innerHTML = `(ex-VAT ${formattedPriceExVat})`;
+            }
         }
     },
     

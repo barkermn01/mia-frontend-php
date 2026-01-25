@@ -65,7 +65,8 @@ class ProductController extends BaseController
             $content = $this->view->render('product-form', [
                 'product' => null,
                 'isEdit' => false,
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'vatRate' => $this->getVatRate()
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [
@@ -99,7 +100,8 @@ class ProductController extends BaseController
                 'product' => $product,
                 'variants' => $variants['items'] ?? [],
                 'isEdit' => true,
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'vatRate' => $this->getVatRate()
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [
@@ -166,11 +168,19 @@ class ProductController extends BaseController
                 $variantData = json_decode($_POST['variants'], true);
                 if (is_array($variantData)) {
                     foreach ($variantData as $variant) {
-                        if (!empty($variant['sku']) && !empty($variant['price'])) {
+                        if (!empty($variant['sku']) && !empty($variant['price']) && !empty($variant['cost']) && !empty($variant['rrp'])) {
                             $processedVariant = [
                                 'sku' => $variant['sku'],
-                                'price' => round($variant['price'] * 100),
-                                'attributes' => $variant['attributes'] ?? []
+                                'price' => [
+                                    [
+                                        'currency' => 'GBP',
+                                        'unit' => round($variant['price'] * 100),
+                                        'cost' => round($variant['cost'] * 100),
+                                        'rrp' => round($variant['rrp'] * 100)
+                                    ]
+                                ],
+                                'attributes' => $variant['attributes'] ?? [],
+                                'inventoryType' => 'physical'
                             ];
                             
                             if (!empty($variant['presentableName'])) {
@@ -224,7 +234,8 @@ class ProductController extends BaseController
                 'variants' => $variants,
                 'isEdit' => false,
                 'error' => $e->getMessage(),
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'vatRate' => $this->getVatRate()
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [
@@ -276,17 +287,26 @@ class ProductController extends BaseController
                 $data['images'] = $images;
             }
 
-            // Handle variants (similar logic as add)
+            // Handle variants
             $variants = [];
             if (!empty($_POST['variants'])) {
                 $variantData = json_decode($_POST['variants'], true);
+                
                 if (is_array($variantData)) {
                     foreach ($variantData as $variant) {
-                        if (!empty($variant['sku']) && !empty($variant['price'])) {
+                        if (!empty($variant['sku']) && !empty($variant['price']) && !empty($variant['cost']) && !empty($variant['rrp'])) {
                             $processedVariant = [
                                 'sku' => $variant['sku'],
-                                'price' => round($variant['price'] * 100),
-                                'attributes' => $variant['attributes'] ?? []
+                                'price' => [
+                                    [
+                                        'currency' => 'GBP',
+                                        'unit' => round($variant['price'] * 100),
+                                        'cost' => round($variant['cost'] * 100),
+                                        'rrp' => round($variant['rrp'] * 100)
+                                    ]
+                                ],
+                                'attributes' => $variant['attributes'] ?? [],
+                                'inventoryType' => 'physical'
                             ];
                             
                             if (!empty($variant['uuid'])) {
@@ -352,17 +372,28 @@ class ProductController extends BaseController
                                 $this->client->products->deleteVariant($productId, $existingUuid);
                             } catch (\Exception $e) {
                                 // Log but continue
+                                error_log("Failed to delete variant: " . $e->getMessage());
                             }
                         }
                     }
                 } catch (\Exception $e) {
-                    // Log but continue
+                    // Try to get full error details from Guzzle exception
+                    if (method_exists($e, 'getResponse')) {
+                        $response = $e->getResponse();
+                        if ($response) {
+                            $fullBody = (string)$response->getBody();
+                            error_log("API error response: " . $fullBody);
+                        }
+                    }
+                    
+                    throw new \Exception("Failed to update product variants: " . $e->getMessage());
                 }
             }
             
             $this->redirect('/products', 'Product updated successfully');
         } catch (\Exception $e) {
-            // Render form with error (similar to add)
+            error_log("Product edit failed: " . $e->getMessage());
+            // Render form with error
             HtmlResources::getInstance()->addCss('https://uicdn.toast.com/editor/latest/toastui-editor.min.css');
             HtmlResources::getInstance()->addJsBody('https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js');
             
@@ -388,7 +419,8 @@ class ProductController extends BaseController
                 'error' => $e->getMessage(),
                 'variants' => $variants,
                 'isEdit' => true,
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'vatRate' => $this->getVatRate()
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [
