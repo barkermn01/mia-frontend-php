@@ -17,9 +17,30 @@ class SessionConfig
         $memcachedHost = getenv('MEMCACHED_HOST') ?: 'localhost';
         $memcachedPort = getenv('MEMCACHED_PORT') ?: '11211';
 
-        // Configure PHP to use Memcached for sessions
-        ini_set('session.save_handler', 'memcached');
-        ini_set('session.save_path', $memcachedHost . ':' . $memcachedPort);
+        error_log("SessionConfig: Attempting to use Memcached at {$memcachedHost}:{$memcachedPort}");
+
+        // Try to connect to Memcached to verify it's available
+        $memcached = new \Memcached();
+        $memcached->addServer($memcachedHost, (int)$memcachedPort);
+        
+        // Test the connection
+        $memcached->set('test_connection', 'test', 10);
+        $testResult = $memcached->get('test_connection');
+        
+        if ($testResult === 'test') {
+            error_log("SessionConfig: Memcached connection successful");
+            
+            // Configure PHP to use Memcached for sessions
+            ini_set('session.save_handler', 'memcached');
+            ini_set('session.save_path', $memcachedHost . ':' . $memcachedPort);
+        } else {
+            error_log("SessionConfig: Memcached connection failed, falling back to file-based sessions");
+            error_log("SessionConfig: Memcached error: " . $memcached->getResultMessage());
+            
+            // Fall back to file-based sessions
+            ini_set('session.save_handler', 'files');
+            ini_set('session.save_path', '/tmp');
+        }
         
         // Optional: Set session cookie parameters
         ini_set('session.cookie_httponly', '1');
