@@ -51,6 +51,12 @@ class SessionConfig
         ini_set('session.gc_maxlifetime', '86400');
         ini_set('session.cookie_lifetime', '86400');
 
+        // Start the session
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+            error_log("SessionConfig: Session started with ID: " . session_id());
+        }
+
         self::$initialized = true;
     }
 }
