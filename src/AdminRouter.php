@@ -13,6 +13,7 @@ use Marti\Frontend\Controllers\CustomerController;
 use Marti\Frontend\Controllers\SiteAdminController;
 use Marti\Frontend\Controllers\SettingsController;
 use Marti\Frontend\Controllers\DashboardController;
+use Marti\Frontend\Controllers\AlertsController;
 
 class AdminRouter
 {
@@ -31,6 +32,7 @@ class AdminRouter
     private $siteAdminController;
     private $settingsController;
     private $dashboardController;
+    private $alertsController;
 
     public function __construct()
     {
@@ -122,6 +124,7 @@ class AdminRouter
         $this->siteAdminController = new SiteAdminController($this->client, $this->view, $this->config, $this->adminPath);
         $this->settingsController = new SettingsController($this->client, $this->view, $this->config, $this->adminPath);
         $this->dashboardController = new DashboardController($this->client, $this->view, $this->config, $this->adminPath);
+        $this->alertsController = new AlertsController($this->client, $this->view, $this->config, $this->adminPath);
     }
 
     public function handleRequest(): void
@@ -150,6 +153,12 @@ class AdminRouter
         $adminRoute = substr($path, strlen($this->adminPath));
         if ($adminRoute === '') {
             $adminRoute = '/';
+        }
+
+        // Handle order details URLs: /admin/orders/{UUID}
+        if (preg_match('/^\/orders\/([a-f0-9\-]{36})$/', $adminRoute, $matches)) {
+            $this->orderController->showDetails($matches[1]);
+            return;
         }
 
         // Route to appropriate controller
@@ -206,6 +215,14 @@ class AdminRouter
             // Settings
             case '/settings':
                 $method === 'POST' ? $this->settingsController->handleUpdate() : $this->settingsController->index();
+                break;
+            case '/settings/stripe':
+                $this->settingsController->showStripe();
+                break;
+            
+            // Alerts
+            case '/alerts':
+                $this->alertsController->index();
                 break;
             
             // Shipping routes
@@ -317,6 +334,34 @@ class AdminRouter
             case '/settings/delete':
                 if ($method === 'POST') {
                     $this->settingsController->handleDelete();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            // Alert API routes
+            case (preg_match('/^\/alerts\/([a-f0-9\-]{36})\/([a-f0-9\-]{36})\/read$/', $apiRoute, $matches) ? true : false):
+                if ($method === 'PATCH') {
+                    $this->alertsController->markAsRead($matches[1], $matches[2]);
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case '/alerts/read-all':
+                if ($method === 'PATCH') {
+                    $this->alertsController->markAllAsRead();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case (preg_match('/^\/alerts\/([a-f0-9\-]{36})\/([a-f0-9\-]{36})$/', $apiRoute, $matches) ? true : false):
+                if ($method === 'DELETE') {
+                    $this->alertsController->delete($matches[1], $matches[2]);
                 } else {
                     http_response_code(405);
                     echo json_encode(['error' => 'Method not allowed']);

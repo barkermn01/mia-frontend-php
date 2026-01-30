@@ -3,152 +3,58 @@
         <h1 class="text-3xl font-bold text-gray-800 mb-8">Checkout</h1>
 
         <?php if (!empty($cart['items'])): ?>
+            <?php if (isset($error)): ?>
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                    <div class="flex">
+                        <i class="fas fa-exclamation-circle mr-2 mt-0.5"></i>
+                        <span><?= htmlspecialchars($error) ?></span>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <!-- Checkout Form -->
+                <!-- Checkout Information -->
                 <div class="space-y-6">
-                    <!-- Customer Information -->
                     <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h2 class="text-xl font-semibold mb-4">Customer Information</h2>
-                        <form id="checkout-form" class="space-y-4">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="first-name" class="block text-sm font-medium text-gray-700 mb-1">
-                                        First Name
-                                    </label>
-                                    <input type="text" id="first-name" name="firstName" required
-                                           value="<?= htmlspecialchars($customer['firstName'] ?? '') ?>"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label for="last-name" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Last Name
-                                    </label>
-                                    <input type="text" id="last-name" name="lastName" required
-                                           value="<?= htmlspecialchars($customer['lastName'] ?? '') ?>"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Email Address
-                                </label>
-                                <input type="email" id="email" name="email" required
-                                       value="<?= htmlspecialchars($customer['email'] ?? '') ?>"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            
-                            <div>
-                                <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Phone Number
-                                </label>
-                                <input type="tel" id="phone" name="phone"
-                                       value="<?= htmlspecialchars($customer['phone'] ?? '') ?>"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Shipping Address -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h2 class="text-xl font-semibold mb-4">Shipping Address</h2>
-                        <div class="space-y-4">
-                            <div>
-                                <label for="address-line-1" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Address Line 1
-                                </label>
-                                <input type="text" id="address-line-1" name="addressLine1" required
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            
-                            <div>
-                                <label for="address-line-2" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Address Line 2 (Optional)
-                                </label>
-                                <input type="text" id="address-line-2" name="addressLine2"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label for="city" class="block text-sm font-medium text-gray-700 mb-1">
-                                        City
-                                    </label>
-                                    <input type="text" id="city" name="city" required
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label for="state" class="block text-sm font-medium text-gray-700 mb-1">
-                                        State/County
-                                    </label>
-                                    <input type="text" id="state" name="state" required
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                                <div>
-                                    <label for="postal-code" class="block text-sm font-medium text-gray-700 mb-1">
-                                        Postal Code
-                                    </label>
-                                    <input type="text" id="postal-code" name="postalCode" required
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label for="country" class="block text-sm font-medium text-gray-700 mb-1">
-                                    Country
-                                </label>
-                                <select id="country" name="country" required
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                    <option value="">Select Country</option>
-                                    <option value="GB" selected>United Kingdom</option>
-                                    <option value="US">United States</option>
-                                    <option value="CA">Canada</option>
-                                    <option value="AU">Australia</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Payment Method -->
-                    <div class="bg-white rounded-lg shadow-lg p-6">
-                        <h2 class="text-xl font-semibold mb-4">Payment Method</h2>
+                        <h2 class="text-xl font-semibold mb-4">Secure Checkout</h2>
                         
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <div class="flex items-center">
-                                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
-                                <p class="text-blue-800 text-sm">
-                                    This is a demo storefront. In production, you would integrate with payment processors like Stripe, PayPal, or others.
-                                </p>
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <i class="fas fa-shield-alt text-blue-600 text-xl mr-3 mt-1"></i>
+                                <div>
+                                    <h3 class="font-medium text-gray-900 mb-1">Secure Payment Processing</h3>
+                                    <p class="text-sm text-gray-600">
+                                        Your payment will be processed securely through Stripe. All payment information is encrypted and handled by Stripe's PCI-compliant infrastructure.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <i class="fas fa-credit-card text-blue-600 text-xl mr-3 mt-1"></i>
+                                <div>
+                                    <h3 class="font-medium text-gray-900 mb-1">Multiple Payment Methods</h3>
+                                    <p class="text-sm text-gray-600">
+                                        Stripe supports credit cards, debit cards, and other payment methods. Choose your preferred option on the next page.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-start">
+                                <i class="fas fa-truck text-blue-600 text-xl mr-3 mt-1"></i>
+                                <div>
+                                    <h3 class="font-medium text-gray-900 mb-1">Shipping & Contact Information</h3>
+                                    <p class="text-sm text-gray-600">
+                                        You'll provide your shipping address and contact details on the secure Stripe checkout page.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="space-y-4">
-                            <div class="flex items-center">
-                                <input id="payment-card" name="payment-method" type="radio" value="card" checked
-                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                                <label for="payment-card" class="ml-3 flex items-center">
-                                    <i class="fas fa-credit-card text-gray-600 mr-2"></i>
-                                    Credit/Debit Card
-                                </label>
-                            </div>
-                            
-                            <div class="flex items-center">
-                                <input id="payment-paypal" name="payment-method" type="radio" value="paypal"
-                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                                <label for="payment-paypal" class="ml-3 flex items-center">
-                                    <i class="fab fa-paypal text-blue-600 mr-2"></i>
-                                    PayPal
-                                </label>
-                            </div>
-                            
-                            <div class="flex items-center">
-                                <input id="payment-bank" name="payment-method" type="radio" value="bank"
-                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                                <label for="payment-bank" class="ml-3 flex items-center">
-                                    <i class="fas fa-university text-gray-600 mr-2"></i>
-                                    Bank Transfer
-                                </label>
-                            </div>
+                        <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <p class="text-sm text-gray-700">
+                                <i class="fas fa-info-circle text-gray-500 mr-2"></i>
+                                Clicking "Proceed to Payment" will redirect you to Stripe's secure checkout page where you can complete your purchase.
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -229,16 +135,18 @@
                         </div>
                         
                         <!-- Place Order Button -->
-                        <button onclick="placeOrder()" 
-                                class="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-6">
-                            <i class="fas fa-lock mr-2"></i>
-                            Place Order (Demo)
-                        </button>
+                        <form method="POST" action="/checkout">
+                            <button type="submit" 
+                                    class="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-6">
+                                <i class="fas fa-lock mr-2"></i>
+                                Proceed to Payment
+                            </button>
+                        </form>
                         
                         <!-- Security Notice -->
                         <div class="mt-4 flex items-center justify-center text-xs text-gray-500">
                             <i class="fas fa-shield-alt mr-1"></i>
-                            Your payment information is secure and encrypted
+                            Secure payment powered by Stripe
                         </div>
                     </div>
                 </div>
@@ -261,57 +169,3 @@
         <?php endif; ?>
     </div>
 </div>
-
-<script>
-async function placeOrder() {
-    const form = document.getElementById('checkout-form');
-    const formData = new FormData(form);
-    
-    // Get payment method
-    const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
-    
-    // Collect all form data
-    const orderData = {
-        customer: {
-            firstName: formData.get('firstName'),
-            lastName: formData.get('lastName'),
-            email: formData.get('email'),
-            phone: formData.get('phone')
-        },
-        shippingAddress: {
-            line1: formData.get('addressLine1'),
-            line2: formData.get('addressLine2'),
-            city: formData.get('city'),
-            state: formData.get('state'),
-            postalCode: formData.get('postalCode'),
-            country: formData.get('country')
-        },
-        paymentMethod: paymentMethod
-    };
-    
-    try {
-        const button = event.target;
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
-        button.disabled = true;
-        
-        // Simulate order processing
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        MiaStore.showToast('Order placed successfully! (Demo mode)');
-        
-        // In a real implementation, redirect to success page
-        setTimeout(() => {
-            window.location.href = '/order-success';
-        }, 1500);
-        
-    } catch (error) {
-        console.error('Checkout error:', error);
-        MiaStore.showToast('Failed to place order', 'error');
-        
-        const button = event.target;
-        button.innerHTML = originalText;
-        button.disabled = false;
-    }
-}
-</script>

@@ -51,6 +51,42 @@ class SettingsController extends BaseController
         }
     }
 
+    public function showStripe(): void
+    {
+        try {
+            // Get all site settings
+            $response = $this->client->siteSettings->getAllSettings();
+            
+            // Handle both old and new response formats
+            if (isset($response['items'])) {
+                $settings = [];
+                foreach ($response['items'] as $item) {
+                    $settings[$item['name']] = [
+                        'type' => $item['type'],
+                        'value' => $item['value'],
+                        'createdAt' => $item['createdAt'],
+                        'updatedAt' => $item['updatedAt']
+                    ];
+                }
+            } else {
+                $settings = $response['settings'] ?? [];
+            }
+            
+            $content = $this->view->render('stripe-settings', [
+                'settings' => $settings,
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Stripe Configuration - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        } catch (MiaException $e) {
+            $this->showError("Failed to load Stripe settings: " . $e->getMessage());
+        }
+    }
+
     public function handleUpdate(): void
     {
         try {

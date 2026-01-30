@@ -16,7 +16,8 @@ class OrderController extends BaseController
                 'limit' => 20
             ];
 
-            $orders = $this->client->orders->getOrders($filters);
+            // Use the new getAdminOrders method for admin panel
+            $orders = $this->client->orders->getAdminOrders($filters);
             
             $content = $this->view->render('orders', [
                 'orders' => $orders['items'] ?? [],
@@ -32,6 +33,27 @@ class OrderController extends BaseController
             ]);
         } catch (MiaException $e) {
             $this->showError("Failed to load orders: " . $e->getMessage());
+        }
+    }
+
+    public function showDetails(string $orderId): void
+    {
+        try {
+            // Use the new getAdminOrder method for admin panel (no customer restriction)
+            $order = $this->client->orders->getAdminOrder($orderId);
+            
+            $content = $this->view->render('order-details', [
+                'order' => $order,
+                'adminPath' => $this->adminPath
+            ]);
+            
+            echo $this->view->renderLayout('admin-layout', $content, [
+                'title' => 'Order #' . ($order['orderNumber'] ?? $orderId) . ' - Admin Panel',
+                'user' => $_SESSION['customer'],
+                'adminPath' => $this->adminPath
+            ]);
+        } catch (MiaException $e) {
+            $this->showError("Failed to load order details: " . $e->getMessage());
         }
     }
 }

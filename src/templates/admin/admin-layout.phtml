@@ -45,6 +45,15 @@
                     <i class="fas fa-shopping-cart mr-3"></i>
                     Orders
                 </a>
+                <a href="<?= $adminPath ?>/alerts" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors focus:outline-none relative">
+                    <i class="fas fa-bell mr-3"></i>
+                    Alerts
+                    <?php if (isset($alertCount) && $alertCount > 0): ?>
+                        <span class="ml-auto bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                            <?= $alertCount ?>
+                        </span>
+                    <?php endif; ?>
+                </a>
                 <a href="<?= $adminPath ?>/customers" class="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors focus:outline-none">
                     <i class="fas fa-users mr-3"></i>
                     Customers

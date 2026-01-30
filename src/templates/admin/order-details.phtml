@@ -1,0 +1,265 @@
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-900">Order Details</h3>
+            <p class="text-sm text-gray-600 mt-1">Order #<?= htmlspecialchars($order['orderNumber'] ?? $order['uuid']) ?></p>
+        </div>
+        <a href="<?= $adminPath ?>/orders" 
+           class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Orders
+        </a>
+    </div>
+
+    <!-- Order Status Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Order Status</p>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                    <?php 
+                    switch($order['status']) {
+                        case 'completed': echo 'bg-green-100 text-green-800'; break;
+                        case 'shipped': echo 'bg-blue-100 text-blue-800'; break;
+                        case 'processing': echo 'bg-yellow-100 text-yellow-800'; break;
+                        case 'cancelled': echo 'bg-red-100 text-red-800'; break;
+                        default: echo 'bg-gray-100 text-gray-800';
+                    }
+                    ?>">
+                    <?= ucfirst(htmlspecialchars($order['status'])) ?>
+                </span>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Payment Status</p>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                    <?php 
+                    switch($order['paymentStatus']) {
+                        case 'paid': echo 'bg-green-100 text-green-800'; break;
+                        case 'pending': echo 'bg-yellow-100 text-yellow-800'; break;
+                        case 'failed': echo 'bg-red-100 text-red-800'; break;
+                        case 'refunded': echo 'bg-purple-100 text-purple-800'; break;
+                        default: echo 'bg-gray-100 text-gray-800';
+                    }
+                    ?>">
+                    <?= ucfirst(htmlspecialchars($order['paymentStatus'])) ?>
+                </span>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Order Date</p>
+                <p class="font-semibold text-gray-900">
+                    <?php 
+                    $createdAt = $order['createdAt'];
+                    if (is_array($createdAt) && isset($createdAt['$date'])) {
+                        // MongoDB date format
+                        $timestamp = is_array($createdAt['$date']) && isset($createdAt['$date']['$numberLong']) 
+                            ? (int)(intval($createdAt['$date']['$numberLong']) / 1000)
+                            : (int)(intval($createdAt['$date']) / 1000);
+                        echo date('M j, Y', $timestamp);
+                    } else {
+                        echo date('M j, Y', strtotime($createdAt));
+                    }
+                    ?>
+                </p>
+            </div>
+            
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Total Amount</p>
+                <p class="font-semibold text-gray-900">
+                    <?php 
+                    $currency = $order['currency'] ?? 'GBP';
+                    $symbols = ['GBP' => '£', 'USD' => '$', 'EUR' => '€'];
+                    $symbol = $symbols[$currency] ?? $currency;
+                    echo $symbol . number_format($order['total'] / 100, 2);
+                    ?>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Information -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h4 class="font-semibold text-gray-900 mb-4">Customer Information</h4>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-600">Email</p>
+                <p class="text-gray-900"><?= htmlspecialchars($order['customerEmail'] ?? 'N/A') ?></p>
+            </div>
+            <?php if (!empty($order['customerName'])): ?>
+                <div>
+                    <p class="text-sm text-gray-600">Name</p>
+                    <p class="text-gray-900"><?= htmlspecialchars($order['customerName']) ?></p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h4 class="font-semibold text-gray-900 mb-4">Order Items</h4>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Qty</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php foreach ($order['items'] as $item): ?>
+                        <tr>
+                            <td class="px-4 py-4 text-sm text-gray-900">
+                                <?= htmlspecialchars($item['name'] ?? $item['sku']) ?>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-gray-600">
+                                <?= htmlspecialchars($item['sku']) ?>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-gray-900 text-right">
+                                <?= $symbol . number_format($item['price'] / 100, 2) ?>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-gray-900 text-right">
+                                <?= $item['qty'] ?>
+                            </td>
+                            <td class="px-4 py-4 text-sm font-medium text-gray-900 text-right">
+                                <?= $symbol . number_format(($item['price'] * $item['qty']) / 100, 2) ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                <tfoot class="bg-gray-50">
+                    <tr>
+                        <td colspan="4" class="px-4 py-3 text-sm font-semibold text-gray-900 text-right">
+                            Order Total
+                        </td>
+                        <td class="px-4 py-3 text-sm font-bold text-blue-600 text-right">
+                            <?= $symbol . number_format($order['total'] / 100, 2) ?>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Shipping Information -->
+    <?php if (!empty($order['shippingAddress'])): ?>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="font-semibold text-gray-900 mb-4">Shipping Information</h4>
+            <div class="text-gray-700">
+                <?php if (!empty($order['shippingAddress']['line1'])): ?>
+                    <p><?= htmlspecialchars($order['shippingAddress']['line1']) ?></p>
+                <?php endif; ?>
+                <?php if (!empty($order['shippingAddress']['line2'])): ?>
+                    <p><?= htmlspecialchars($order['shippingAddress']['line2']) ?></p>
+                <?php endif; ?>
+                <p>
+                    <?= htmlspecialchars($order['shippingAddress']['city'] ?? '') ?>
+                    <?php if (!empty($order['shippingAddress']['state'])): ?>
+                        , <?= htmlspecialchars($order['shippingAddress']['state']) ?>
+                    <?php endif; ?>
+                    <?= htmlspecialchars($order['shippingAddress']['postalCode'] ?? '') ?>
+                </p>
+                <p><?= htmlspecialchars($order['shippingAddress']['country'] ?? '') ?></p>
+            </div>
+            
+            <?php if (!empty($order['trackingNumber'])): ?>
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <p class="text-sm text-gray-600 mb-1">Tracking Number</p>
+                    <p class="font-mono text-gray-900"><?= htmlspecialchars($order['trackingNumber']) ?></p>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+
+    <!-- Payment Events -->
+    <?php if (!empty($order['paymentEvents'])): ?>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="font-semibold text-gray-900 mb-4">Payment History</h4>
+            <div class="space-y-3">
+                <?php foreach ($order['paymentEvents'] as $event): ?>
+                    <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <div>
+                            <p class="font-medium text-gray-900"><?= htmlspecialchars($event['type']) ?></p>
+                            <p class="text-sm text-gray-600">
+                                <?php 
+                                $processedAt = $event['processedAt'];
+                                if (is_array($processedAt) && isset($processedAt['$date'])) {
+                                    $timestamp = is_array($processedAt['$date']) && isset($processedAt['$date']['$numberLong']) 
+                                        ? (int)(intval($processedAt['$date']['$numberLong']) / 1000)
+                                        : (int)(intval($processedAt['$date']) / 1000);
+                                    echo date('F j, Y g:i A', $timestamp);
+                                } else {
+                                    echo date('F j, Y g:i A', strtotime($processedAt));
+                                }
+                                ?>
+                            </p>
+                            <?php if (!empty($event['stripePaymentIntentId'])): ?>
+                                <p class="text-xs text-gray-500 font-mono mt-1">
+                                    <?= htmlspecialchars($event['stripePaymentIntentId']) ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                        <span class="text-green-600">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Refunds -->
+    <?php if (!empty($order['refunds'])): ?>
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="font-semibold text-gray-900 mb-4">Refunds</h4>
+            <div class="space-y-3">
+                <?php foreach ($order['refunds'] as $refund): ?>
+                    <div class="flex items-center justify-between py-3 bg-purple-50 rounded-lg px-4">
+                        <div>
+                            <p class="font-medium text-gray-900">
+                                <?= $symbol . number_format($refund['amount'] / 100, 2) ?>
+                            </p>
+                            <p class="text-sm text-gray-600">
+                                <?= htmlspecialchars($refund['reason']) ?>
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                <?php 
+                                $refundCreatedAt = $refund['createdAt'];
+                                if (is_array($refundCreatedAt) && isset($refundCreatedAt['$date'])) {
+                                    $timestamp = is_array($refundCreatedAt['$date']) && isset($refundCreatedAt['$date']['$numberLong']) 
+                                        ? (int)(intval($refundCreatedAt['$date']['$numberLong']) / 1000)
+                                        : (int)(intval($refundCreatedAt['$date']) / 1000);
+                                    echo date('F j, Y g:i A', $timestamp);
+                                } else {
+                                    echo date('F j, Y g:i A', strtotime($refundCreatedAt));
+                                }
+                                ?>
+                            </p>
+                            <?php if (!empty($refund['stripeRefundId'])): ?>
+                                <p class="text-xs text-gray-500 font-mono mt-1">
+                                    <?= htmlspecialchars($refund['stripeRefundId']) ?>
+                                </p>
+                            <?php endif; ?>
+                        </div>
+                        <span class="text-purple-600">
+                            <i class="fas fa-undo"></i>
+                        </span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <!-- Admin Notes -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p class="text-sm text-yellow-800">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Note:</strong> Refunds must be processed manually through the Stripe Dashboard. 
+            This interface displays refund information for tracking purposes only.
+        </p>
+    </div>
+</div>

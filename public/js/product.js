@@ -231,18 +231,17 @@ window.ProductPage = {
         }
         
         if (!sku) {
-            if (window.MiaStore) {
-                if (window.MiaStore && window.MiaStore.showToast) {
-                    MiaStore.showToast('Please select a variant first', 'error');
-                } else if (window.modalManager) {
-                    window.modalManager.alert({
-                        title: 'Selection Required',
-                        message: 'Please select a variant first',
-                        type: 'warning'
-                    });
-                } else {
-                    alert('Please select a variant first');
-                }
+            if (window.MiaStore && window.MiaStore.showToast) {
+                MiaStore.showToast('Please select a variant first', 'error');
+            } else if (window.modalManager) {
+                window.modalManager.alert({
+                    title: 'Selection Required',
+                    message: 'Please select a variant first',
+                    type: 'warning'
+                });
+            } else {
+                alert('Please select a variant first');
+            }
             return;
         }
         
@@ -255,18 +254,17 @@ window.ProductPage = {
             addToCart(sku, quantity, addToCartBtn);
         } else if (!addToCartBtn) {
             // Button doesn't exist, probably out of stock
-            if (window.MiaStore) {
-                if (window.MiaStore && window.MiaStore.showToast) {
-                    MiaStore.showToast('This product is currently out of stock', 'error');
-                } else if (window.modalManager) {
-                    window.modalManager.alert({
-                        title: 'Out of Stock',
-                        message: 'This product is currently out of stock',
-                        type: 'warning'
-                    });
-                } else {
-                    alert('This product is currently out of stock');
-                }
+            if (window.MiaStore && window.MiaStore.showToast) {
+                MiaStore.showToast('This product is currently out of stock', 'error');
+            } else if (window.modalManager) {
+                window.modalManager.alert({
+                    title: 'Out of Stock',
+                    message: 'This product is currently out of stock',
+                    type: 'warning'
+                });
+            } else {
+                alert('This product is currently out of stock');
+            }
         }
     }
 };
