@@ -8,8 +8,8 @@
         "ParameterValue":  "production"
     },
     {
-        "ParameterKey":  "FrontendDomain",
-        "ParameterValue":  "oxwinches.miaai.me"
+        "ParameterKey":  "FrontendDomains",
+        "ParameterValue":  "oxwinches.com,oxwinch.com,oxwinches.miaai.me"
     },
     {
         "ParameterKey":  "SSLCertificateArn",

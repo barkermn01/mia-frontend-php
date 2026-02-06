@@ -36,9 +36,51 @@ abstract class BaseController
         }
 
         try {
-            return $this->client->customer->getProfile();
+            // First, try to decode JWT to get user info (works for all user types)
+            $token = $_SESSION['auth_token'];
+            $tokenParts = explode('.', $token);
+            
+            if (count($tokenParts) === 3) {
+                $payload = json_decode(base64_decode($tokenParts[1]), true);
+                
+                // If user is an admin (site_admin or super_admin), return JWT data
+                if (isset($payload['role']) && in_array($payload['role'], ['site_admin', 'super_admin'])) {
+                    return [
+                        'id' => $payload['sub'] ?? $payload['userId'] ?? null,
+                        'email' => $payload['email'] ?? null,
+                        'firstName' => $payload['firstName'] ?? $payload['name'] ?? 'Admin',
+                        'lastName' => $payload['lastName'] ?? '',
+                        'role' => $payload['role']
+                    ];
+                }
+            }
+            
+            // For regular customers, fetch full profile from API
+            $customer = $this->client->customer->getProfile();
+            error_log("Customer profile data: " . json_encode($customer));
+            return $customer;
         } catch (\Exception $e) {
             error_log("Failed to get customer: " . $e->getMessage());
+            
+            // Fallback: try to get basic info from JWT even if API call fails
+            try {
+                $token = $_SESSION['auth_token'];
+                $tokenParts = explode('.', $token);
+                
+                if (count($tokenParts) === 3) {
+                    $payload = json_decode(base64_decode($tokenParts[1]), true);
+                    return [
+                        'id' => $payload['sub'] ?? $payload['userId'] ?? null,
+                        'email' => $payload['email'] ?? null,
+                        'firstName' => $payload['firstName'] ?? $payload['name'] ?? 'User',
+                        'lastName' => $payload['lastName'] ?? '',
+                        'role' => $payload['role'] ?? 'customer'
+                    ];
+                }
+            } catch (\Exception $jwtError) {
+                error_log("Failed to decode JWT: " . $jwtError->getMessage());
+            }
+            
             return null;
         }
     }

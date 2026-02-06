@@ -13,14 +13,14 @@ Parameters:
     AllowedValues: [development, staging, production]
     Description: Environment name
   
-  FrontendDomain:
-    Type: String
-    Description: Domain for frontend (e.g., store.yourdomain.com)
+  FrontendDomains:
+    Type: CommaDelimitedList
+    Description: Comma-separated list of domains (e.g., oxwinches.com,oxwinch.com,oxwinches.miaai.me)
   
   SSLCertificateArn:
     Type: String
     Default: ''
-    Description: ACM certificate ARN for HTTPS (leave empty for HTTP)
+    Description: ACM certificate ARN for HTTPS (must cover all domains - leave empty for HTTP)
   
   ImageTag:
     Type: String
@@ -138,6 +138,9 @@ Resources:
       Subnets:
         - subnet-075e96bd2e334434a
         - subnet-0e3c5567d9670c7ea
+      LoadBalancerAttributes:
+        - Key: routing.http.drop_invalid_header_fields.enabled
+          Value: 'true'
 
   ALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -235,6 +238,9 @@ Resources:
     Properties:
       LogGroupName: !Sub '/ecs/${ProjectName}-web'
       RetentionInDays: 7
+      KmsKeyId: !Ref AWS::NoValue
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
 
   WebService:
     Type: AWS::ECS::Service
@@ -259,12 +265,12 @@ Resources:
 
 Outputs:
   ALBDNSName:
-    Description: Frontend Application Load Balancer DNS name
+    Description: Frontend Application Load Balancer DNS name - Point your Cloudflare DNS to this
     Value: !GetAtt ApplicationLoadBalancer.DNSName
 
-  FrontendDomain:
-    Description: Frontend storefront domain
-    Value: !Ref FrontendDomain
+  FrontendDomains:
+    Description: All supported domains for this deployment
+    Value: !Join [', ', !Ref FrontendDomains]
 
   ECSClusterName:
     Description: ECS Cluster name
@@ -277,3 +283,10 @@ Outputs:
   ECRLoginCommand:
     Description: Command to login to ECR
     Value: !Sub 'aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com'
+
+  CloudflareSetup:
+    Description: Cloudflare DNS setup instructions
+    Value: !Sub 
+      - 'Create A/CNAME records in Cloudflare pointing ${Domains} to ${ALB}'
+      - Domains: !Join [', ', !Ref FrontendDomains]
+        ALB: !GetAtt ApplicationLoadBalancer.DNSName

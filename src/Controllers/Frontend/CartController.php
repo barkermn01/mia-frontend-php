@@ -31,13 +31,23 @@ class CartController extends BaseController
             // Get shipping options
             $shippingOptions = null;
             $customer = $this->getCustomer();
+            
+            // Determine shipping address source (customer profile or guest session)
+            $shippingAddress = null;
             if ($customer && !empty($customer['shippingAddress']['country'])) {
+                $shippingAddress = $customer['shippingAddress'];
+            } elseif (!empty($_SESSION['guest_shipping_address']['country'])) {
+                $shippingAddress = $_SESSION['guest_shipping_address'];
+            }
+            
+            // Get shipping options if we have an address with country
+            if ($shippingAddress) {
                 try {
                     $shippingOptions = $this->client->shipping->getCartShippingOptions(
                         $this->cartId,
-                        $customer['shippingAddress']['country']
+                        $shippingAddress['country']
                     );
-                    error_log("Shipping options fetched for country {$customer['shippingAddress']['country']}: " . json_encode($shippingOptions));
+                    error_log("Shipping options fetched for country {$shippingAddress['country']}: " . json_encode($shippingOptions));
                 } catch (\Exception $e) {
                     error_log("Failed to get shipping options: " . $e->getMessage());
                 }
@@ -225,6 +235,63 @@ class CartController extends BaseController
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
+
+    public function apiSaveGuestAddress(): void
+    {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            // Validate shipping address
+            if (!isset($data['shippingAddress'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Shipping address is required'
+                ]);
+                return;
+            }
+
+            $address = $data['shippingAddress'];
+
+            // Validate required fields
+            $requiredFields = ['line1', 'city', 'postalCode', 'country'];
+            foreach ($requiredFields as $field) {
+                if (empty($address[$field])) {
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'message' => "Shipping address {$field} is required"
+                    ]);
+                    return;
+                }
+            }
+
+            // Trim all string values
+            $guestAddress = [
+                'line1' => trim($address['line1']),
+                'city' => trim($address['city']),
+                'postalCode' => trim($address['postalCode']),
+                'country' => trim($address['country'])
+            ];
+
+            // Add optional fields if present
+            if (!empty($address['line2'])) {
+                $guestAddress['line2'] = trim($address['line2']);
+            }
+            if (!empty($address['state'])) {
+                $guestAddress['state'] = trim($address['state']);
+            }
+
+            // Save to session for guest checkout
+            $_SESSION['guest_shipping_address'] = $guestAddress;
+
+            echo json_encode(['success' => true, 'message' => 'Address saved for checkout']);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     
     private function getVatRate(): float
     {

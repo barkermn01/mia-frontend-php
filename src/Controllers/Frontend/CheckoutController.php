@@ -42,10 +42,17 @@ class CheckoutController extends BaseController
                     $requestData['customerEmail'] = $customer['email'];
                 }
                 
-                // Add shipping address if customer has one with all required fields
+                // Add shipping address - check customer profile first, then guest session
+                $shippingAddress = null;
+                
                 if ($customer && !empty($customer['shippingAddress'])) {
                     $shippingAddress = $customer['shippingAddress'];
-                    
+                } elseif (!empty($_SESSION['guest_shipping_address'])) {
+                    $shippingAddress = $_SESSION['guest_shipping_address'];
+                }
+                
+                // If we have a shipping address, validate and add it
+                if ($shippingAddress) {
                     // Validate required fields are present and not empty
                     $hasRequiredFields = !empty($shippingAddress['line1']) && 
                                         !empty($shippingAddress['city']) && 

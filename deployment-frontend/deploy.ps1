@@ -99,7 +99,18 @@ $ecrLoginCommand = "aws ecr get-login-password --region $Region | docker login -
 # Convert parameters to CLI format
 $parametersList = @()
 foreach ($param in $parameters) {
-    $parametersList += "ParameterKey=$($param.ParameterKey),ParameterValue=$($param.ParameterValue)"
+    # Ensure ParameterValue is treated as a string, even if it contains commas
+    $value = $param.ParameterValue
+    if ($value -is [array]) {
+        # If PowerShell converted it to an array, join it back
+        $value = $value -join ','
+    }
+    # Escape the value by wrapping in quotes if it contains commas
+    if ($value -match ',') {
+        $parametersList += "ParameterKey=$($param.ParameterKey),ParameterValue=`"$value`""
+    } else {
+        $parametersList += "ParameterKey=$($param.ParameterKey),ParameterValue=$value"
+    }
 }
 
 Write-Host "Web Repository: $webRepo"
@@ -152,7 +163,7 @@ if ($stackExists) {
         $updateOutput = aws cloudformation update-stack `
             --stack-name $StackName `
             --template-body file://mia-frontend.yaml `
-            --parameters $parametersList `
+            --parameters file://parameters.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --profile $AWSProfile `
@@ -215,7 +226,7 @@ if ($stackExists) {
         $updateOutput = aws cloudformation update-stack `
             --stack-name $StackName `
             --template-body file://mia-frontend.yaml `
-            --parameters $parametersList `
+            --parameters file://parameters.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --no-cli-pager 2>&1
@@ -279,7 +290,7 @@ if ($stackExists) {
         aws cloudformation create-stack `
             --stack-name $StackName `
             --template-body file://mia-frontend.yaml `
-            --parameters $parametersList `
+            --parameters file://parameters.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --profile $AWSProfile `
@@ -293,7 +304,7 @@ if ($stackExists) {
         aws cloudformation create-stack `
             --stack-name $StackName `
             --template-body file://mia-frontend.yaml `
-            --parameters $parametersList `
+            --parameters file://parameters.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --no-cli-pager

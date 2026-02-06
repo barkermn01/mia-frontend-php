@@ -242,6 +242,12 @@ class FrontendRouter
                 return;
             }
 
+            if ($path === '/api/cart/save-guest-address' && $method === 'POST') {
+                $controller = new CartController($this->client, $this->view);
+                $controller->apiSaveGuestAddress();
+                return;
+            }
+
             // Customer API
             if ($path === '/api/customer/update-shipping-address' && $method === 'POST') {
                 $controller = new AccountController($this->client, $this->view);

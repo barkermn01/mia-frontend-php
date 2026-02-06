@@ -15,8 +15,8 @@ This directory contains the deployment configuration for the Mia Frontend PHP ap
 1. **Edit parameters.json** with your configuration:
    ```json
    {
-     "ParameterKey": "FrontendDomain",
-     "ParameterValue": "store.yourdomain.com"
+     "ParameterKey": "FrontendDomains",
+     "ParameterValue": "oxwinches.com,oxwinch.com,oxwinches.miaai.me"
    }
    ```
 
@@ -26,14 +26,19 @@ This directory contains the deployment configuration for the Mia Frontend PHP ap
    .\deploy.ps1 -StackName 'mia-frontend' -ImageTag 'latest' -Region 'eu-west-2' -AWSProfile 'mia'
    ```
 
+3. **Configure Cloudflare DNS**:
+   - Point all domains to the ALB DNS name
+   - Set SSL/TLS mode to "Full" or "Full (strict)" in Cloudflare
+   - Enable "Always Use HTTPS" in Cloudflare
+
 ## Configuration
 
 ### Parameters
 
 - **ProjectName**: Resource naming prefix (default: mia-frontend)
 - **Environment**: Deployment environment (production/staging/development)
-- **FrontendDomain**: Your frontend domain (e.g., store.yourdomain.com)
-- **SSLCertificateArn**: ACM certificate ARN for HTTPS
+- **FrontendDomains**: Comma-separated list of all domains (e.g., oxwinches.com,oxwinch.com,oxwinches.miaai.me)
+- **SSLCertificateArn**: ACM certificate ARN for HTTPS (must cover all domains)
 - **ImageTag**: Docker image tag to deploy
 - **WebCpu/WebMemory**: ECS task resources
 
@@ -78,12 +83,59 @@ The container is configured with:
 - **ECS Console**: Monitor service health and tasks
 - **ALB Target Groups**: Check health check status
 
-## DNS Configuration
+## DNS Configuration (Cloudflare)
 
-After deployment, configure your DNS:
-```
-CNAME: store.yourdomain.com -> [ALB DNS Name from output]
-```
+After deployment, configure your Cloudflare DNS for all domains:
+
+1. **Get ALB DNS Name** from CloudFormation outputs
+
+2. **Create DNS Records** in Cloudflare:
+   ```
+   Type: CNAME
+   Name: oxwinches.com (or @)
+   Target: [ALB DNS Name]
+   Proxy status: Proxied (orange cloud) ← IMPORTANT
+   
+   Type: CNAME
+   Name: oxwinch.com (or @)
+   Target: [ALB DNS Name]
+   Proxy status: Proxied (orange cloud) ← IMPORTANT
+   
+   Type: CNAME
+   Name: oxwinches.miaai.me
+   Target: [ALB DNS Name]
+   Proxy status: Proxied (orange cloud) ← IMPORTANT
+   ```
+
+3. **SSL/TLS Settings** in Cloudflare:
+   - SSL/TLS encryption mode: **Full** (not Full strict)
+   - Always Use HTTPS: On
+   - Automatic HTTPS Rewrites: On
+
+### Certificate Options
+
+Since Cloudflare proxies all traffic, you have flexible certificate options:
+
+**Option 1: Cloudflare Origin Certificate (Recommended)**
+- Generate a free 15-year certificate in Cloudflare (SSL/TLS → Origin Server → Create Certificate)
+- Upload to ACM or use directly
+- Covers all your domains but only trusted by Cloudflare (perfect for this use case)
+- You don't need to manage certificates for customer domains
+
+**Option 2: ACM Certificate for Subdomain Only**
+- Keep your existing ACM certificate that only covers `oxwinches.miaai.me`
+- Cloudflare handles SSL for customer domains (`oxwinches.com`, `oxwinch.com`)
+- Set Cloudflare SSL mode to "Full" (not "Full strict")
+
+**Option 3: Wildcard ACM Certificate**
+- Use `*.miaai.me` to cover all your subdomains
+- Still doesn't require managing customer domain certificates
+
+**Why This Works:**
+- Cloudflare terminates SSL for end users (using Cloudflare's certificate)
+- Cloudflare re-encrypts to your ALB (using your certificate)
+- In "Full" mode, Cloudflare doesn't validate your certificate's domain names
+- Customer domains get Cloudflare's SSL certificate automatically
 
 ## Troubleshooting
 
