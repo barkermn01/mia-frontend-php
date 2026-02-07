@@ -73,6 +73,7 @@ class SettingsManager {
         document.getElementById('modal-title').textContent = 'Add Setting';
         document.getElementById('setting-form').reset();
         document.getElementById('setting_name').readOnly = false;
+        document.getElementById('setting_type').disabled = false; // Enable type selection for new settings
         document.getElementById('setting-modal').classList.remove('hidden');
         this.currentImageUrl = '';
         this.listItems = [];
@@ -97,7 +98,9 @@ class SettingsManager {
             }
         }
         
-        document.getElementById('setting_type').value = uiType;
+        const typeSelect = document.getElementById('setting_type');
+        typeSelect.value = uiType;
+        typeSelect.disabled = true; // Disable type changes when editing
         
         // Set value based on type
         if (setting.type === 'image') {
@@ -114,7 +117,10 @@ class SettingsManager {
                 }
             }, 100);
         } else if (setting.type === 'text') {
-            document.getElementById('text_value').value = setting.value;
+            const textInput = document.getElementById('text_value');
+            if (textInput) {
+                textInput.value = setting.value;
+            }
         }
         // Note: For secret type, we intentionally don't set the value (write-only)
         
@@ -320,7 +326,11 @@ class SettingsManager {
             });
             
             const tokenData = await tokenResponse.json();
-            if (!tokenData.success) throw new Error(tokenData.error);
+            
+            // Check if response has data field (new format) or success field (old format)
+            if (!tokenData.data && !tokenData.success) {
+                throw new Error(tokenData.error || 'Failed to get upload token');
+            }
             
             progressBar.style.width = '60%';
             
@@ -335,10 +345,17 @@ class SettingsManager {
             });
             
             const uploadData = await uploadResponse.json();
-            if (!uploadData.success) throw new Error(uploadData.error);
+            
+            // Check response format - could be {success: true, data: {...}} or {data: {success: true, ...}}
+            const success = uploadData.success || (uploadData.data && uploadData.data.success);
+            if (!success) {
+                throw new Error(uploadData.error || (uploadData.data && uploadData.data.error) || 'Upload failed');
+            }
             
             progressBar.style.width = '100%';
-            this.currentImageUrl = uploadData.data.imageUrl;
+            
+            // Get imageUrl from either format
+            this.currentImageUrl = uploadData.data.imageUrl || (uploadData.data && uploadData.data.imageUrl);
             
             setTimeout(() => {
                 progressDiv.classList.add('hidden');
@@ -508,9 +525,18 @@ class SettingsManager {
                 break;
         }
         
+        // Set the hidden value field
         document.getElementById('setting_value_hidden').value = value;
-        document.getElementById('setting_type').value = actualType;
         
+        // Set the actual type in hidden field (in case the select is disabled)
+        document.getElementById('setting_type_actual').value = actualType;
+        
+        // Update the type select to the actual type before submission
+        const typeSelect = document.getElementById('setting_type');
+        typeSelect.disabled = false; // Enable it so it gets submitted
+        typeSelect.value = actualType;
+        
+        // Submit the form
         e.target.submit();
     }
     

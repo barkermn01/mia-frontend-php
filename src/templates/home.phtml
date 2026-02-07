@@ -1,50 +1,6 @@
-<!-- Hero Section -->
-<section class="hero-gradient text-white relative overflow-hidden">
-    <div class="container mx-auto px-4 py-16 relative z-10">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div class="text-center lg:text-left">
-                <h1 class="text-4xl md:text-6xl font-bold mb-6">Welcome to OxWinches</h1>
-                <p class="text-xl md:text-2xl mb-8 opacity-90">
-                    Premium winches and marine equipment powered by Mia AI Store
-                </p>
-                <a href="/products" class="btn-primary px-8 py-3 rounded-lg font-semibold inline-flex items-center">
-                    <i class="fas fa-shopping-bag mr-2"></i>
-                    Shop Now
-                </a>
-            </div>
-            <div class="text-center lg:text-right">
-                <!-- Image Carousel -->
-                <div class="relative bg-black rounded-lg shadow-2xl overflow-hidden" id="hero-carousel">
-                    <div class="carousel-container relative h-80 lg:h-96">
-                        <!-- Slide 1: Full Logo -->
-                        <div class="carousel-slide active absolute inset-0 flex items-center justify-center p-1 transition-opacity duration-1000">
-                            <img src="/images/logo.png" alt="OxWinches Full Logo" class="w-full h-full">
-                        </div>
-                        <!-- Slide 2: Ox Image -->
-                        <div class="carousel-slide absolute inset-0 flex items-center justify-center p-1 transition-opacity duration-1000 opacity-0">
-                            <img src="/images/ox.jpg" alt="OxWinches Marine Equipment" class="w-full h-full">
-                        </div>
-                    </div>
-                    
-                    <!-- Carousel Indicators -->
-                    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                        <button class="carousel-indicator active w-3 h-3 rounded-full bg-white opacity-50 hover:opacity-75 transition-opacity" data-slide="0"></button>
-                        <button class="carousel-indicator w-3 h-3 rounded-full bg-white opacity-30 hover:opacity-75 transition-opacity" data-slide="1"></button>
-                    </div>
-                    
-                    <!-- Carousel Navigation -->
-                    <button class="carousel-prev absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button class="carousel-next absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Background overlay for better text readability -->
-    <div class="absolute inset-0 bg-black bg-opacity-20"></div>
+<!-- Hero Banner -->
+<section class="relative">
+    <img src="/images/hero-banner.png" alt="OxWinches" class="w-full h-auto">
 </section>
 
 <!-- Error Message -->
@@ -57,6 +13,65 @@
             </div>
         </div>
     </div>
+<?php endif; ?>
+
+<!-- Categories Section -->
+<?php 
+if (!empty($homepageCategories) && is_array($homepageCategories)): 
+?>
+<section class="container mx-auto px-4 py-16">
+    <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">Shop by Category</h2>
+        <p class="text-gray-600">Browse our range of specialized equipment</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-<?= min(count($homepageCategories), 3) ?> gap-8">
+        <?php foreach ($homepageCategories as $category): ?>
+            <?php
+            // Skip empty categories
+            if (empty(trim($category))) {
+                continue;
+            }
+            
+            // Generate category URL - replace spaces with hyphens for clean URLs
+            $categorySlug = str_replace(' ', '-', $category);
+            $categoryUrl = '/category/' . rawurlencode($categorySlug);
+            
+            // Get metadata for this category (passed from controller)
+            $metadata = $categoryMetadata[$category] ?? [
+                'image' => '/images/logo-small.png',
+                'tagline' => 'View our selection',
+                'display_text' => $category
+            ];
+            ?>
+            <a href="<?= $categoryUrl ?>" class="group block">
+                <div class="bg-white rounded-lg shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-red-500 transform hover:-translate-y-1">
+                    <!-- Category Image -->
+                    <div class="relative h-48 bg-gray-200 overflow-hidden">
+                        <img src="<?= htmlspecialchars($metadata['image']) ?>" 
+                             alt="<?= htmlspecialchars($category) ?>" 
+                             class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                             onerror="this.src='/images/logo-small.png'">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                            <h3 class="text-2xl font-bold text-white mb-1">
+                                <?= htmlspecialchars($metadata['display_text']) ?>
+                            </h3>
+                        </div>
+                    </div>
+                    
+                    <!-- Category Info -->
+                    <div class="p-6 bg-white">
+                        <p class="text-gray-600 group-hover:text-red-600 transition-colors flex items-center justify-between">
+                            <span><?= htmlspecialchars($metadata['tagline']) ?></span>
+                            <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
+                        </p>
+                    </div>
+                </div>
+            </a>
+        <?php endforeach; ?>
+    </div>
+</section>
 <?php endif; ?>
 
 <!-- Featured Products -->

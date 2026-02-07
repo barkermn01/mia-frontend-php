@@ -87,12 +87,20 @@
                                         echo '<span class="font-mono">••••••••</span>';
                                         echo '</span>';
                                     } elseif ($setting['type'] === 'image') {
-                                        echo '<img src="' . htmlspecialchars($value) . '" alt="Setting image" class="h-10 w-10 object-cover rounded">';
+                                        echo '<img src="' . htmlspecialchars($value) . '" alt="Setting image" class="h-10 w-10 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity" onclick="viewImage(\'' . htmlspecialchars($value, ENT_QUOTES) . '\')" title="Click to view full size">';
                                     } elseif ($setting['type'] === 'json') {
                                         if (is_array($value)) {
                                             if (array_keys($value) === range(0, count($value) - 1)) {
-                                                echo '<span class="text-gray-600">' . count($value) . ' items</span>';
+                                                // It's a list (indexed array)
+                                                $itemCount = count($value);
+                                                $preview = array_slice($value, 0, 4);
+                                                $previewText = implode(', ', array_map('htmlspecialchars', $preview));
+                                                if ($itemCount > 4) {
+                                                    $previewText .= ', ...';
+                                                }
+                                                echo '<span class="text-gray-600">' . $itemCount . ' items (' . $previewText . ')</span>';
                                             } else {
+                                                // It's a property set (associative array)
                                                 echo '<span class="text-gray-600">' . count($value) . ' properties</span>';
                                             }
                                         } else {
@@ -191,6 +199,7 @@
                     </div>
                     
                     <input type="hidden" name="setting_value" id="setting_value_hidden">
+                    <input type="hidden" name="setting_type_actual" id="setting_type_actual">
                 </div>
                 <div class="px-6 py-4 bg-gray-50 rounded-b-lg flex justify-end space-x-3">
                     <button type="button" id="close-modal-btn"
@@ -214,3 +223,38 @@
     window.MiaStoreConfig.adminPath = '<?= $adminPath ?>';
 </script>
 <script src="/js/admin/settings.js"></script>
+
+
+<!-- Image Viewer Modal -->
+<div id="image-viewer-modal" class="fixed inset-0 bg-black bg-opacity-90 hidden z-50 flex items-center justify-center p-4" onclick="closeImageViewer()">
+    <div class="relative max-w-7xl max-h-full" onclick="event.stopPropagation()">
+        <button onclick="closeImageViewer()" class="absolute -top-12 right-0 text-white hover:text-gray-300 text-2xl">
+            <i class="fas fa-times"></i>
+        </button>
+        <img id="image-viewer-img" src="" alt="Full size image" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl">
+    </div>
+</div>
+
+<script>
+    // Image viewer functions
+    function viewImage(imageUrl) {
+        const modal = document.getElementById('image-viewer-modal');
+        const img = document.getElementById('image-viewer-img');
+        img.src = imageUrl;
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeImageViewer() {
+        const modal = document.getElementById('image-viewer-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+    
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeImageViewer();
+        }
+    });
+</script>

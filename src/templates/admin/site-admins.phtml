@@ -117,21 +117,21 @@
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex space-x-2">
+                                    <div class="flex space-x-3">
                                         <a href="<?= $adminPath ?>/site-admins/edit?id=<?= urlencode($admin['id'] ?? $admin['uuid'] ?? '') ?>" 
                                            class="text-blue-600 hover:text-blue-900 transition-colors" title="Edit Admin">
-                                            <i class="fas fa-edit"></i>
+                                            <i class="fas fa-edit fa-lg"></i>
                                         </a>
                                         <?php if (($admin['id'] ?? $admin['uuid'] ?? '') !== ($_SESSION['customer']['id'] ?? $_SESSION['customer']['uuid'] ?? '')): ?>
                                             <button class="delete-admin-btn text-red-600 hover:text-red-900 transition-colors" 
                                                     title="Delete Admin" 
                                                     data-admin-id="<?= htmlspecialchars($admin['id'] ?? $admin['uuid'] ?? '') ?>"
                                                     data-admin-name="<?= htmlspecialchars($admin['name'] ?? $admin['email']) ?>">
-                                                <i class="fas fa-trash"></i>
+                                                <i class="fas fa-trash fa-lg"></i>
                                             </button>
                                         <?php else: ?>
                                             <span class="text-gray-400" title="Cannot delete yourself">
-                                                <i class="fas fa-trash"></i>
+                                                <i class="fas fa-trash fa-lg"></i>
                                             </span>
                                         <?php endif; ?>
                                     </div>

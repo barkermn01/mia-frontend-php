@@ -18,9 +18,21 @@ class SettingsController extends BaseController
                 // New paginated format - convert array of objects to keyed array
                 $settings = [];
                 foreach ($response['items'] as $item) {
+                    $value = $item['value'];
+                    
+                    // Decode JSON values for display
+                    if ($item['type'] === 'json' && is_string($value)) {
+                        $decoded = json_decode($value, true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $value = $decoded;
+                        }
+                    }
+                    
+                    error_log("Setting {$item['name']}: type={$item['type']}, value_type=" . gettype($value) . ", is_array=" . (is_array($value) ? 'yes' : 'no'));
+                    
                     $settings[$item['name']] = [
                         'type' => $item['type'],
-                        'value' => $item['value'],
+                        'value' => $value,
                         'createdAt' => $item['createdAt'],
                         'updatedAt' => $item['updatedAt']
                     ];
@@ -28,6 +40,18 @@ class SettingsController extends BaseController
             } else {
                 // Old format - settings is already a keyed array
                 $settings = $response['settings'] ?? [];
+                
+                // Decode JSON values for display
+                foreach ($settings as $name => &$setting) {
+                    if ($setting['type'] === 'json' && is_string($setting['value'])) {
+                        $decoded = json_decode($setting['value'], true);
+                        if (json_last_error() === JSON_ERROR_NONE) {
+                            $setting['value'] = $decoded;
+                        }
+                    }
+                    error_log("Setting {$name}: type={$setting['type']}, value_type=" . gettype($setting['value']) . ", is_array=" . (is_array($setting['value']) ? 'yes' : 'no'));
+                }
+                unset($setting);
             }
             
             // Add Toast UI Editor resources for markdown settings
@@ -91,12 +115,14 @@ class SettingsController extends BaseController
     {
         try {
             $settingName = $_POST['setting_name'] ?? '';
-            $settingType = $_POST['setting_type'] ?? 'text';
+            $settingType = $_POST['setting_type_actual'] ?? $_POST['setting_type'] ?? 'text';
             $settingValue = $_POST['setting_value'] ?? '';
             
             if (empty($settingName)) {
                 throw new \Exception('Setting name is required');
             }
+            
+            error_log("Saving setting: name=$settingName, type=$settingType, value=" . substr($settingValue, 0, 100));
             
             // Handle JSON type - decode if it's a string
             if ($settingType === 'json' && is_string($settingValue)) {

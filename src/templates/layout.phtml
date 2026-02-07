@@ -71,8 +71,34 @@
                 </a>
 
                 <!-- Navigation -->
-                <nav class="hidden md:flex space-x-8">
+                <nav class="hidden md:flex space-x-8 items-center">
                     <a href="/" class="text-gray-700 hover:text-blue-600 transition-colors">Home</a>
+                    
+                    <?php if (!empty($menuCategories)): ?>
+                        <!-- Categories Dropdown -->
+                        <div class="relative" onmouseenter="showCategoriesDropdown()" onmouseleave="hideCategoriesDropdown()">
+                            <a href="/categories" id="categories-trigger" class="text-gray-700 hover:text-blue-600 transition-colors flex items-center py-2">
+                                Categories
+                                <i class="fas fa-chevron-down text-xs ml-1"></i>
+                            </a>
+                            <!-- Dropdown Menu - shifted left to cover the menu item -->
+                            <div id="categories-dropdown" class="absolute -left-12 top-full w-56 bg-white rounded-md shadow-xl py-2 z-50 hidden border border-gray-200" style="margin-top: -1px;">
+                                <a href="/categories" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-semibold border-b border-gray-200">
+                                    All Categories
+                                </a>
+                                <?php foreach ($menuCategories as $category): ?>
+                                    <?php
+                                    $categorySlug = str_replace(' ', '-', $category);
+                                    $categoryUrl = '/category/' . rawurlencode($categorySlug);
+                                    ?>
+                                    <a href="<?= $categoryUrl ?>" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <?= htmlspecialchars($category) ?>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
                     <a href="/products" class="text-gray-700 hover:text-blue-600 transition-colors">Products</a>
                     <a href="/about" class="text-gray-700 hover:text-blue-600 transition-colors">About</a>
                 </nav>
@@ -130,6 +156,31 @@
             <div id="mobile-menu" class="md:hidden hidden border-t border-gray-200 py-4">
                 <div class="flex flex-col space-y-2">
                     <a href="/" class="text-gray-700 hover:text-blue-600 py-2">Home</a>
+                    
+                    <?php if (!empty($menuCategories)): ?>
+                        <!-- Categories with collapsible submenu -->
+                        <div>
+                            <button onclick="toggleMobileCategories()" class="w-full text-left text-gray-700 hover:text-blue-600 py-2 font-semibold flex items-center justify-between">
+                                <span>Categories</span>
+                                <i id="mobile-categories-icon" class="fas fa-chevron-down text-sm transition-transform"></i>
+                            </button>
+                            <div id="mobile-categories-list" class="hidden pl-4 space-y-2 mt-2">
+                                <a href="/categories" class="text-gray-600 hover:text-blue-600 py-1 block text-sm">
+                                    All Categories
+                                </a>
+                                <?php foreach ($menuCategories as $category): ?>
+                                    <?php
+                                    $categorySlug = str_replace(' ', '-', $category);
+                                    $categoryUrl = '/category/' . rawurlencode($categorySlug);
+                                    ?>
+                                    <a href="<?= $categoryUrl ?>" class="text-gray-600 hover:text-blue-600 py-1 block text-sm">
+                                        <?= htmlspecialchars($category) ?>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
                     <a href="/products" class="text-gray-700 hover:text-blue-600 py-2">Products</a>
                     <a href="/about" class="text-gray-700 hover:text-blue-600 py-2">About</a>
                     <?php if ($isLoggedIn): ?>
@@ -227,6 +278,37 @@
             cartCount: <?= $cartCount ?>,
             isLoggedIn: <?= $isLoggedIn ? 'true' : 'false' ?>
         };
+        
+        // Categories dropdown functions (desktop)
+        function showCategoriesDropdown() {
+            const dropdown = document.getElementById('categories-dropdown');
+            if (dropdown) {
+                dropdown.classList.remove('hidden');
+            }
+        }
+        
+        function hideCategoriesDropdown() {
+            const dropdown = document.getElementById('categories-dropdown');
+            if (dropdown) {
+                dropdown.classList.add('hidden');
+            }
+        }
+        
+        // Mobile categories toggle
+        function toggleMobileCategories() {
+            const list = document.getElementById('mobile-categories-list');
+            const icon = document.getElementById('mobile-categories-icon');
+            
+            if (list && icon) {
+                if (list.classList.contains('hidden')) {
+                    list.classList.remove('hidden');
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    list.classList.add('hidden');
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            }
+        }
     </script>
     <?= \Marti\Frontend\HtmlResources::getInstance()->renderJsBody() ?>
 </body>

@@ -69,6 +69,13 @@ class FrontendRouter
 
     private function route(string $path, string $method): void
     {
+        // Remove trailing slash for consistent routing (except for root)
+        if ($path !== '/' && str_ends_with($path, '/')) {
+            $path = rtrim($path, '/');
+        }
+        
+        error_log("Routing path: {$path}, method: {$method}");
+        
         // Handle legacy product URLs and redirect to SEO-friendly format
         if ($path === '/product' && !empty($_GET['id'])) {
             $this->redirectToSeoUrl($_GET['id']);
@@ -85,6 +92,23 @@ class FrontendRouter
         if ($path === '/product') {
             $controller = new ProductController($this->client, $this->view);
             $controller->show();
+            return;
+        }
+
+        // Category routes
+        if ($path === '/categories') {
+            error_log("Matched /categories route");
+            $controller = new PageController($this->client, $this->view);
+            $controller->categories();
+            return;
+        }
+
+        // Category route - /category/{slug}
+        if (preg_match('#^/category/(.+)$#', $path, $matches)) {
+            $categorySlug = $matches[1];
+            error_log("Matched /category/{slug} route with slug: {$categorySlug}");
+            $controller = new PageController($this->client, $this->view);
+            $controller->category($categorySlug);
             return;
         }
 

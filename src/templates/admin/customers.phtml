@@ -114,24 +114,24 @@
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex space-x-2">
+                                    <div class="flex space-x-3">
                                         <button onclick="viewCustomer('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>')" 
-                                                class="text-blue-600 hover:text-blue-900" title="View Customer Details">
-                                            <i class="fas fa-eye"></i>
+                                                class="text-blue-600 hover:text-blue-900 transition-colors" title="View Customer Details">
+                                            <i class="fas fa-eye fa-lg"></i>
                                         </button>
                                         <button onclick="editCustomer('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>')" 
-                                                class="text-green-600 hover:text-green-900" title="Edit Customer">
-                                            <i class="fas fa-edit"></i>
+                                                class="text-green-600 hover:text-green-900 transition-colors" title="Edit Customer">
+                                            <i class="fas fa-edit fa-lg"></i>
                                         </button>
                                         <?php if (($customer['status'] ?? 'active') === 'active'): ?>
                                             <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>', 'inactive')" 
-                                                    class="text-orange-600 hover:text-orange-900" title="Deactivate Customer">
-                                                <i class="fas fa-user-slash"></i>
+                                                    class="text-orange-600 hover:text-orange-900 transition-colors" title="Deactivate Customer">
+                                                <i class="fas fa-user-slash fa-lg"></i>
                                             </button>
                                         <?php else: ?>
                                             <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>', 'active')" 
-                                                    class="text-green-600 hover:text-green-900" title="Activate Customer">
-                                                <i class="fas fa-user-check"></i>
+                                                    class="text-green-600 hover:text-green-900 transition-colors" title="Activate Customer">
+                                                <i class="fas fa-user-check fa-lg"></i>
                                             </button>
                                         <?php endif; ?>
                                     </div>

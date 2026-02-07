@@ -99,6 +99,39 @@ abstract class BaseController
         }
     }
 
+    protected function getMenuCategories(): array
+    {
+        try {
+            $setting = $this->client->siteSettings->getSetting('menu_categories');
+            if (isset($setting['value'])) {
+                // Decode if it's a JSON string
+                if (is_string($setting['value'])) {
+                    $decoded = json_decode($setting['value'], true);
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $categories = $decoded;
+                    } else {
+                        $categories = [];
+                    }
+                } elseif (is_array($setting['value'])) {
+                    $categories = $setting['value'];
+                } else {
+                    $categories = [];
+                }
+                
+                // Filter out empty category names
+                $categories = array_filter($categories, function($cat) {
+                    return !empty(trim($cat));
+                });
+                
+                return array_values($categories);
+            }
+        } catch (\Exception $e) {
+            error_log("Failed to load menu_categories setting: " . $e->getMessage());
+        }
+        
+        return [];
+    }
+
     protected function redirect(string $url): void
     {
         header("Location: {$url}");
@@ -113,7 +146,8 @@ abstract class BaseController
             'title' => $title,
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
-            'isLoggedIn' => $this->isLoggedIn()
+            'isLoggedIn' => $this->isLoggedIn(),
+            'menuCategories' => $this->getMenuCategories()
         ]);
     }
 
@@ -126,7 +160,8 @@ abstract class BaseController
             'title' => 'Error - OxWinches',
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
-            'isLoggedIn' => $this->isLoggedIn()
+            'isLoggedIn' => $this->isLoggedIn(),
+            'menuCategories' => $this->getMenuCategories()
         ]);
     }
 
@@ -139,7 +174,8 @@ abstract class BaseController
             'title' => '404 Not Found - OxWinches',
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
-            'isLoggedIn' => $this->isLoggedIn()
+            'isLoggedIn' => $this->isLoggedIn(),
+            'menuCategories' => $this->getMenuCategories()
         ]);
     }
 }
