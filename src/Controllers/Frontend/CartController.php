@@ -56,11 +56,20 @@ class CartController extends BaseController
             // Get VAT rate from settings
             $vatRate = $this->getVatRate();
             
+            // Check if checkout is enabled
+            $checkoutEnabled = $this->isCheckoutEnabled();
+            
+            // Add cart.js for cart page functionality
+            \Marti\Frontend\HtmlResources::getInstance()->addJsBody('/js/cart.js');
+            
             $this->renderLayout('cart', [
                 'cart' => $cart,
                 'shippingOptions' => $shippingOptions,
                 'customer' => $customer,
-                'vatRate' => $vatRate
+                'vatRate' => $vatRate,
+                'checkoutEnabled' => $checkoutEnabled,
+                'subtotalExVat' => $subtotalExVat,
+                'totalVat' => $totalVat
             ], 'Shopping Cart - OxWinches');
             
         } catch (MiaException $e) {
@@ -309,5 +318,24 @@ class CartController extends BaseController
         
         // Default to UK VAT rate of 20%
         return 0.20;
+    }
+    
+    private function isCheckoutEnabled(): bool
+    {
+        try {
+            $setting = $this->client->siteSettings->getSetting('checkout_enabled');
+            
+            if (isset($setting['value'])) {
+                $value = strtolower(trim($setting['value']));
+                // Check for disabled values
+                if (in_array($value, ['no', 'false', 'disabled', '0'])) {
+                    return false;
+                }
+            }
+        } catch (\Exception $e) {
+            // If setting doesn't exist, checkout is enabled by default
+        }
+        
+        return true;
     }
 }

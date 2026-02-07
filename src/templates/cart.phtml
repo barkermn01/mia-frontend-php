@@ -57,6 +57,23 @@
     ?>
 
     <?php if (!empty($cart['items'])): ?>
+        <?php if (!$checkoutEnabled): ?>
+            <!-- Checkout Disabled Message -->
+            <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-lg mb-6">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-2xl mr-3 mt-1"></i>
+                    <div>
+                        <h3 class="font-semibold text-lg mb-1">Checkout Temporarily Unavailable</h3>
+                        <?php if ($isLoggedIn): ?>
+                            <p>Sorry, we're currently upgrading our system. Checkout is disabled. Please save your basket and check back later.</p>
+                        <?php else: ?>
+                            <p>Sorry, we're currently upgrading our system. Checkout is disabled. Please <a href="/register" class="underline font-semibold hover:text-yellow-900">register for an account</a> to save your basket and check back later.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+        
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Cart Items -->
             <div class="lg:col-span-2">
@@ -298,11 +315,19 @@
                     </div>
                     
                     <div class="space-y-3">
-                        <a href="/checkout" 
-                           class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center block">
-                            <i class="fas fa-lock mr-2"></i>
-                            Proceed to Checkout
-                        </a>
+                        <?php if ($checkoutEnabled): ?>
+                            <a href="/checkout" 
+                               class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors text-center block">
+                                <i class="fas fa-lock mr-2"></i>
+                                Proceed to Checkout
+                            </a>
+                        <?php else: ?>
+                            <button disabled
+                                    class="w-full bg-gray-400 text-gray-200 py-3 px-4 rounded-lg font-medium cursor-not-allowed text-center block">
+                                <i class="fas fa-lock mr-2"></i>
+                                Checkout Disabled
+                            </button>
+                        <?php endif; ?>
                         
                         <a href="/products" 
                            class="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors text-center block">
@@ -346,155 +371,11 @@
 </div>
 
 <script>
-const subtotalExVat = <?= $subtotalExVat ?>;
-const totalVat = <?= $totalVat ?>;
-
-function updateShippingCost() {
-    const select = document.getElementById('shipping-method-select');
-    const selectedOption = select.options[select.selectedIndex];
-    const shippingCost = parseInt(selectedOption.dataset.cost);
-    
-    // Update shipping cost display
-    const shippingDisplay = document.getElementById('shipping-cost-display');
-    if (shippingCost === 0) {
-        shippingDisplay.textContent = 'Free';
-        shippingDisplay.className = 'font-medium text-green-600';
-    } else {
-        shippingDisplay.textContent = '£' + (shippingCost / 100).toFixed(2);
-        shippingDisplay.className = 'font-medium';
-    }
-    
-    // Update total
-    const total = subtotalExVat + totalVat + shippingCost;
-    document.getElementById('total-display').textContent = '£' + (total / 100).toFixed(2);
+// Initialize cart page with data
+if (window.CartPage) {
+    CartPage.init({
+        subtotalExVat: <?= $subtotalExVat ?>,
+        totalVat: <?= $totalVat ?>
+    });
 }
-
-async function saveBasket() {
-    const basketName = document.getElementById('basket-name').value.trim();
-    if (!basketName) {
-        MiaStore.showToast('Please enter a basket name', 'error');
-        return;
-    }
-    
-    try {
-        const response = await MiaStore.request('/api/cart/save-basket', {
-            method: 'POST',
-            body: JSON.stringify({ name: basketName })
-        });
-        
-        if (response.success) {
-            MiaStore.showToast('Basket saved successfully!');
-            document.getElementById('basket-name').value = '';
-        } else {
-            MiaStore.showToast(response.message || 'Failed to save basket', 'error');
-        }
-    } catch (error) {
-        console.error('Save basket error:', error);
-        MiaStore.showToast('Failed to save basket', 'error');
-    }
-}
-
-function showAddressForm() {
-    document.getElementById('saved-address').classList.add('hidden');
-    document.getElementById('address-form').classList.remove('hidden');
-}
-
-function hideAddressForm() {
-    document.getElementById('saved-address').classList.remove('hidden');
-    document.getElementById('address-form').classList.add('hidden');
-}
-
-// Override global cart functions for the cart page to reload the page
-// These must be defined immediately to override app.js functions
-(function() {
-    window.updateCartItem = async function(itemId, qty) {
-        try {
-            const response = await MiaStore.request('/api/cart/update', {
-                method: 'POST',
-                body: JSON.stringify({ itemId, qty })
-            });
-
-            if (response.success) {
-                // Reload page immediately to show updated cart
-                location.reload();
-            } else {
-                MiaStore.showToast(response.message || 'Failed to update cart', 'error');
-            }
-        } catch (error) {
-            console.error('Update cart error:', error);
-            MiaStore.showToast('Failed to update cart', 'error');
-        }
-    };
-
-    window.removeCartItem = async function(itemId) {
-        if (!confirm('Remove this item from cart?')) return;
-        
-        try {
-            const response = await MiaStore.request('/api/cart/remove', {
-                method: 'POST',
-                body: JSON.stringify({ itemId })
-            });
-
-            if (response.success) {
-                // Reload page immediately to show updated cart
-                location.reload();
-            } else {
-                MiaStore.showToast(response.message || 'Failed to remove item', 'error');
-            }
-        } catch (error) {
-            console.error('Remove cart error:', error);
-            MiaStore.showToast('Failed to remove item', 'error');
-        }
-    };
-})();
-
-// Handle shipping address form submission
-document.getElementById('shipping-address-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const address = {
-        line1: formData.get('line1'),
-        line2: formData.get('line2'),
-        city: formData.get('city'),
-        state: formData.get('state'),
-        postalCode: formData.get('postalCode'),
-        country: formData.get('country')
-    };
-    
-    try {
-        <?php if ($isLoggedIn): ?>
-        // Logged in: Save to customer profile
-        const response = await MiaStore.request('/api/customer/update-shipping-address', {
-            method: 'POST',
-            body: JSON.stringify({ shippingAddress: address })
-        });
-        
-        if (response.success) {
-            MiaStore.showToast('Address saved successfully!');
-            // Reload page to show updated address and shipping options
-            window.location.reload();
-        } else {
-            MiaStore.showToast(response.message || 'Failed to save address', 'error');
-        }
-        <?php else: ?>
-        // Guest: Save to session
-        const response = await MiaStore.request('/api/cart/save-guest-address', {
-            method: 'POST',
-            body: JSON.stringify({ shippingAddress: address })
-        });
-        
-        if (response.success) {
-            MiaStore.showToast('Address saved for checkout!');
-            // Reload page to show shipping options
-            window.location.reload();
-        } else {
-            MiaStore.showToast(response.message || 'Failed to save address', 'error');
-        }
-        <?php endif; ?>
-    } catch (error) {
-        console.error('Save address error:', error);
-        MiaStore.showToast('Failed to save address', 'error');
-    }
-});
 </script>

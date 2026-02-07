@@ -152,6 +152,7 @@ window.ProductPage = {
         if (priceElement && priceData) {
             let displayPrice = 0;
             let currency = 'GBP';
+            let rrp = 0;
             
             // Handle both old and new price formats
             if (typeof priceData === 'string') {
@@ -161,9 +162,11 @@ window.ProductPage = {
                     if (Array.isArray(parsed) && parsed[0]) {
                         displayPrice = parsed[0].unit / 100;
                         currency = parsed[0].currency;
+                        rrp = parsed[0].rrp ? parsed[0].rrp / 100 : 0;
                     } else if (parsed.unit) {
                         displayPrice = parsed.unit / 100;
                         currency = parsed.currency || 'GBP';
+                        rrp = parsed.rrp ? parsed.rrp / 100 : 0;
                     } else if (typeof parsed === 'number') {
                         // Simple number as string
                         displayPrice = parsed / 100;
@@ -179,10 +182,12 @@ window.ProductPage = {
                 // New format (array of currency objects)
                 displayPrice = priceData[0].unit / 100;
                 currency = priceData[0].currency;
+                rrp = priceData[0].rrp ? priceData[0].rrp / 100 : 0;
             } else if (priceData && priceData.unit) {
                 // New format (single currency object)
                 displayPrice = priceData.unit / 100;
                 currency = priceData.currency || 'GBP';
+                rrp = priceData.rrp ? priceData.rrp / 100 : 0;
             }
             
             // Get VAT rate from window config or default to 20%
@@ -200,6 +205,62 @@ window.ProductPage = {
             // Update ex-VAT display if element exists
             if (exVatElement && exVatElement.classList.contains('text-sm')) {
                 exVatElement.innerHTML = `(ex-VAT ${formattedPriceExVat})`;
+                
+                // Update or add RRP savings display
+                let rrpElement = document.getElementById('rrp-savings');
+                let savingsBadge = document.getElementById('savings-badge');
+                
+                if (rrp > 0 && displayPrice > 0 && rrp > displayPrice) {
+                    const savingsPercent = ((rrp - displayPrice) / rrp) * 100;
+                    const rrpIncVat = rrp * (1 + vatRate);
+                    const formattedRrpIncVat = symbol + rrpIncVat.toFixed(2);
+                    const formattedRrpExVat = symbol + rrp.toFixed(2);
+                    
+                    if (rrpElement) {
+                        rrpElement.innerHTML = `RRP ${formattedRrpIncVat} (ex-VAT ${formattedRrpExVat})`;
+                    } else {
+                        // Create the RRP element if it doesn't exist
+                        rrpElement = document.createElement('div');
+                        rrpElement.id = 'rrp-savings';
+                        rrpElement.className = 'text-sm text-gray-600 mt-1';
+                        rrpElement.innerHTML = `RRP ${formattedRrpIncVat} (ex-VAT ${formattedRrpExVat})`;
+                        exVatElement.parentElement.appendChild(rrpElement);
+                    }
+                    
+                    // Update or create savings badge only if savings >= 0.5%
+                    if (savingsPercent >= 0.5) {
+                        const roundedPercent = Math.round(savingsPercent);
+                        if (savingsBadge) {
+                            savingsBadge.querySelector('.text-lg').textContent = roundedPercent + '%';
+                        } else {
+                            // Create the badge if it doesn't exist - insert at beginning of flex container
+                            savingsBadge = document.createElement('div');
+                            savingsBadge.id = 'savings-badge';
+                            savingsBadge.className = 'bg-red-600 text-white rounded-full w-20 h-20 flex flex-col items-center justify-center shadow-lg transform rotate-12 flex-shrink-0';
+                            savingsBadge.innerHTML = `
+                                <i class="fas fa-star text-yellow-300 text-xs mb-1"></i>
+                                <span class="text-xs font-bold">SAVE</span>
+                                <span class="text-lg font-bold">${roundedPercent}%</span>
+                            `;
+                            // Add to the flex container before the price div
+                            const priceContainer = priceElement.closest('.flex.items-center');
+                            if (priceContainer) {
+                                priceContainer.insertBefore(savingsBadge, priceContainer.firstChild);
+                            }
+                        }
+                    } else if (savingsBadge) {
+                        // Remove badge if savings < 0.5%
+                        savingsBadge.remove();
+                    }
+                } else {
+                    // Remove RRP element and badge if no savings
+                    if (rrpElement) {
+                        rrpElement.remove();
+                    }
+                    if (savingsBadge) {
+                        savingsBadge.remove();
+                    }
+                }
             }
         }
     },

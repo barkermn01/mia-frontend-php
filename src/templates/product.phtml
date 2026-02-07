@@ -88,32 +88,68 @@
                 <?php if ($priceDisplay): ?>
                     <div class="mb-6">
                         <div class="flex items-center space-x-4">
-                            <span id="current-price" class="text-4xl font-bold text-blue-600">
-                                <?php
-                                // Calculate price with VAT
-                                $priceExVat = $view->getDisplayPrice($defaultPrice);
-                                $priceIncVat = $priceExVat * (1 + ($vatRate ?? 0.20));
-                                $currency = $view->getCurrency($defaultPrice);
-                                $symbols = ['GBP' => '£', 'USD' => '$', 'EUR' => '€'];
-                                $symbol = $symbols[$currency] ?? $currency;
-                                echo $symbol . number_format($priceIncVat, 2);
-                                ?>
-                            </span>
-                            <?php 
-                            $originalPriceValue = $view->getDisplayPrice($product['originalPrice'] ?? 0);
-                            $currentPriceValue = $view->getDisplayPrice($defaultPrice ?? 0);
-                            if (!empty($product['originalPrice']) && $originalPriceValue > $currentPriceValue): 
+                            <?php
+                            // Show star badge if savings are 0.5% or more
+                            if (!empty($variants) && count($variants) > 0) {
+                                $firstVariant = $variants[0];
+                                if (isset($firstVariant['price']) && is_array($firstVariant['price'])) {
+                                    $priceData = is_array($firstVariant['price'][0]) ? $firstVariant['price'][0] : $firstVariant['price'];
+                                    $rrp = isset($priceData['rrp']) ? $priceData['rrp'] / 100 : 0;
+                                    $currentPrice = isset($priceData['unit']) ? $priceData['unit'] / 100 : 0;
+                                    
+                                    if ($rrp > 0 && $currentPrice > 0 && $rrp > $currentPrice) {
+                                        $savingsPercent = (($rrp - $currentPrice) / $rrp) * 100;
+                                        if ($savingsPercent >= 0.5) {
+                                            ?>
+                                            <!-- Star badge for savings -->
+                                            <div id="savings-badge" class="bg-red-600 text-white rounded-full w-20 h-20 flex flex-col items-center justify-center shadow-lg transform rotate-12 flex-shrink-0">
+                                                <i class="fas fa-star text-yellow-300 text-xs mb-1"></i>
+                                                <span class="text-xs font-bold">SAVE</span>
+                                                <span class="text-lg font-bold"><?php echo round($savingsPercent); ?>%</span>
+                                            </div>
+                                            <?php
+                                        }
+                                    }
+                                }
+                            }
                             ?>
-                                <span class="text-xl text-gray-500 line-through">
-                                    <?= $view->formatPrice($product['originalPrice']) ?>
+                            <div class="flex-1">
+                                <span id="current-price" class="text-4xl font-bold text-blue-600">
+                                    <?php
+                                    // Calculate price with VAT
+                                    $priceExVat = $view->getDisplayPrice($defaultPrice);
+                                    $priceIncVat = $priceExVat * (1 + ($vatRate ?? 0.20));
+                                    $currency = $view->getCurrency($defaultPrice);
+                                    $symbols = ['GBP' => '£', 'USD' => '$', 'EUR' => '€'];
+                                    $symbol = $symbols[$currency] ?? $currency;
+                                    echo $symbol . number_format($priceIncVat, 2);
+                                    ?>
                                 </span>
-                                <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-sm font-medium">
-                                    Save <?= round((1 - $currentPriceValue / $originalPriceValue) * 100) ?>%
-                                </span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="text-sm text-gray-500 mt-1">
-                            (ex-VAT <?php echo $symbol . number_format($priceExVat, 2); ?>)
+                                <div class="text-sm text-gray-500 mt-1">
+                                    (ex-VAT <?php echo $symbol . number_format($priceExVat, 2); ?>)
+                                </div>
+                                <?php
+                                // Show RRP savings if RRP is higher than current price
+                                if (!empty($variants) && count($variants) > 0) {
+                                    $firstVariant = $variants[0];
+                                    if (isset($firstVariant['price']) && is_array($firstVariant['price'])) {
+                                        $priceData = is_array($firstVariant['price'][0]) ? $firstVariant['price'][0] : $firstVariant['price'];
+                                        $rrp = isset($priceData['rrp']) ? $priceData['rrp'] / 100 : 0;
+                                        $currentPrice = isset($priceData['unit']) ? $priceData['unit'] / 100 : 0;
+                                        
+                                        if ($rrp > 0 && $currentPrice > 0 && $rrp > $currentPrice) {
+                                            $savingsPercent = (($rrp - $currentPrice) / $rrp) * 100;
+                                            $rrpIncVat = $rrp * (1 + ($vatRate ?? 0.20));
+                                            ?>
+                                            <div id="rrp-savings" class="text-sm text-gray-600 mt-1">
+                                                RRP <?php echo $symbol . number_format($rrpIncVat, 2); ?> (ex-VAT <?php echo $symbol . number_format($rrp, 2); ?>)
+                                            </div>
+                                            <?php
+                                        }
+                                    }
+                                }
+                                ?>
+                            </div>
                         </div>
                     </div>
                 <?php endif; ?>

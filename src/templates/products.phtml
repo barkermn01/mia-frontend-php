@@ -1,4 +1,17 @@
-<div class="container mx-auto px-4 py-8">
+<?php 
+if (!empty($categoryImage)) {
+    error_log("Category image URL: " . $categoryImage);
+}
+?>
+
+<div class="container mx-auto px-4 py-8" style="position: relative; z-index: 10;">
+<?php if (!empty($categoryImage)): ?>
+<!-- Category Background - Full width, 72vh height -->
+<div style="position: absolute; left: 50%; right: 50%; margin-left: -50vw; margin-right: -50vw; top: 0; width: 100vw; height: 72vh; z-index: -1; pointer-events: none; overflow: hidden;">
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-image: url('<?= htmlspecialchars($categoryImage) ?>'); background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
+    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent 0%, transparent 40%, #f9fafb 100%);"></div>
+</div>
+<?php endif; ?>
     <div class="flex flex-col lg:flex-row gap-8">
         <!-- Categories Sidebar -->
         <div class="lg:w-1/4">
@@ -132,8 +145,8 @@
 
         <!-- Main Content -->
         <div class="lg:w-3/4">
-            <!-- Header -->
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+            <!-- Header with Title and Search -->
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <?php if (isset($categoryFilter)): ?>
                         <h1 class="text-3xl font-bold text-gray-800 mb-2"><?= htmlspecialchars($categoryFilter) ?></h1>
@@ -146,7 +159,7 @@
                 
                 <!-- Search -->
                 <div class="mt-4 md:mt-0">
-                    <form method="GET" class="flex space-x-2">
+                    <form method="GET" action="<?= isset($baseUrl) ? $baseUrl : '/products' ?>" class="flex space-x-2">
                         <div class="relative">
                             <input type="text" name="search" placeholder="Search products..." 
                                    value="<?= htmlspecialchars($search) ?>"
@@ -156,8 +169,8 @@
                         <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                             Search
                         </button>
-                        <?php if ($search || $category): ?>
-                            <a href="/products" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                        <?php if ($search): ?>
+                            <a href="<?= isset($baseUrl) ? $baseUrl : '/products' ?>" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
                                 Clear
                             </a>
                         <?php endif; ?>

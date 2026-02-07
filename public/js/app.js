@@ -219,9 +219,15 @@ window.removeCartItem = async function(itemId) {
         });
 
         if (response.success) {
-            MiaStore.updateCartCount(response.cartCount);
-            MiaStore.loadCartContent(); // Refresh cart display
-            MiaStore.showToast('Item removed from cart!');
+            // Check if cart is now empty (count is 0)
+            if (response.cartCount === 0) {
+                // Reload the page to show empty cart state
+                window.location.reload();
+            } else {
+                MiaStore.updateCartCount(response.cartCount);
+                MiaStore.loadCartContent(); // Refresh cart display
+                MiaStore.showToast('Item removed from cart!');
+            }
         } else {
             MiaStore.showToast(response.message || 'Failed to remove item', 'error');
         }

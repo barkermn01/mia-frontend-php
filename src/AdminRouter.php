@@ -367,6 +367,43 @@ class AdminRouter
                     echo json_encode(['error' => 'Method not allowed']);
                 }
                 break;
+            
+            // Order progression API routes
+            case '/orders/process':
+                if ($method === 'POST') {
+                    $this->orderController->handleProcess();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case '/orders/cancel':
+                if ($method === 'POST') {
+                    $this->orderController->handleCancel();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case '/orders/ship':
+                if ($method === 'POST') {
+                    $this->orderController->handleShip();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case '/orders/complete':
+                if ($method === 'POST') {
+                    $this->orderController->handleComplete();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
                 
             default:
                 http_response_code(404);

@@ -10,8 +10,17 @@ class SettingsController extends BaseController
     public function index(): void
     {
         try {
-            // Get all site settings (no siteId needed, SDK handles it)
-            $response = $this->client->siteSettings->getAllSettings();
+            // Get search query from URL
+            $search = $_GET['search'] ?? '';
+            
+            // Build filters for API call
+            $filters = [];
+            if ($search) {
+                $filters['search'] = $search;
+            }
+            
+            // Get all site settings with optional search
+            $response = $this->client->siteSettings->getAllSettings($filters);
             
             // Handle both old and new response formats
             if (isset($response['items'])) {
@@ -62,7 +71,8 @@ class SettingsController extends BaseController
             $content = $this->view->render('settings', [
                 'settings' => $settings,
                 'siteId' => $this->config['site_id'],
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'search' => $search
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [

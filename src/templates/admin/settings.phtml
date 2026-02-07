@@ -25,9 +25,24 @@
             <h3 class="text-lg font-semibold text-gray-900">Site Settings</h3>
             <p class="text-sm text-gray-600 mt-1">Manage your site configuration and content</p>
         </div>
-        <button id="add-setting-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-            <i class="fas fa-plus mr-2"></i>Add Setting
-        </button>
+        <div class="flex space-x-3">
+            <form method="GET" action="<?= $adminPath ?>/settings" class="flex">
+                <input type="text" name="search" placeholder="Search settings..." 
+                       value="<?= htmlspecialchars($search ?? '') ?>"
+                       class="px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <button type="submit" class="bg-gray-600 text-white px-4 py-2 rounded-r-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-search"></i>
+                </button>
+                <?php if (!empty($search)): ?>
+                    <a href="<?= $adminPath ?>/settings" class="ml-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                        Clear
+                    </a>
+                <?php endif; ?>
+            </form>
+            <button id="add-setting-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-plus mr-2"></i>Add Setting
+            </button>
+        </div>
     </div>
 
     <!-- Settings List -->
@@ -216,7 +231,6 @@
     </div>
 </div>
 
-<script src="/js/ModalManager.js"></script>
 <script>
     // Pass admin path to the settings manager
     window.MiaStoreConfig = window.MiaStoreConfig || {};

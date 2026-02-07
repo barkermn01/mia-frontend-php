@@ -97,7 +97,8 @@ class ProductController extends BaseController
                 'title' => $title,
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => $this->getCustomer(),
-                'isLoggedIn' => $this->isLoggedIn()
+                'isLoggedIn' => $this->isLoggedIn(),
+                'menuCategories' => $this->getMenuCategories()
             ]);
             
         } catch (MiaException $e) {
@@ -209,7 +210,8 @@ class ProductController extends BaseController
                 'title' => htmlspecialchars($product['title']) . ' - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => $this->getCustomer(),
-                'isLoggedIn' => $this->isLoggedIn()
+                'isLoggedIn' => $this->isLoggedIn(),
+                'menuCategories' => $this->getMenuCategories()
             ]);
         } catch (NotFoundException $e) {
             error_log("Product not found: " . $e->getMessage());

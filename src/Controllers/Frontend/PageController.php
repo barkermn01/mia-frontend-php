@@ -54,10 +54,14 @@ class PageController extends BaseController
                 }
             }
             
+            // Fetch hero image setting
+            $heroImage = $this->getCategorySetting('hero_image', '/images/hero-banner.png');
+            
             $this->renderLayout('home', [
                 'products' => $products,
                 'homepageCategories' => $homepageCategories,
-                'categoryMetadata' => $categoryMetadata
+                'categoryMetadata' => $categoryMetadata,
+                'heroImage' => $heroImage
             ], 'OxWinches - Premium Winches & Recovery Equipment');
         } catch (\Exception $e) {
             error_log("Failed to load products for homepage: " . $e->getMessage());
@@ -65,7 +69,8 @@ class PageController extends BaseController
             $this->renderLayout('home', [
                 'products' => ['items' => [], 'total' => 0],
                 'homepageCategories' => null,
-                'categoryMetadata' => []
+                'categoryMetadata' => [],
+                'heroImage' => '/images/hero-banner.png'
             ], 'OxWinches - Premium Winches & Recovery Equipment');
         }
     }
@@ -83,15 +88,27 @@ class PageController extends BaseController
                 return;
             }
             
-            // Get page from query string
+            // Get page and search from query string
             $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $search = $_GET['search'] ?? '';
             
-            // Fetch products filtered by tag
-            $products = $this->client->products->getProducts([
+            // Build API filters
+            $filters = [
                 'limit' => 12,
                 'page' => $page,
                 'tag' => $categoryName
-            ]);
+            ];
+            
+            if ($search) {
+                $filters['search'] = $search;
+            }
+            
+            // Fetch products filtered by tag and search
+            $products = $this->client->products->getProducts($filters);
+            
+            // Get category image setting
+            $categoryKey = str_replace(' ', '_', $categoryName);
+            $categoryImage = $this->getCategorySetting("cat_{$categoryKey}_image", '');
             
             // Get categories and filters for the sidebar (pass tag to get filtered counts)
             $categories = $this->getProductCategories(['tag' => $categoryName]);
@@ -102,10 +119,11 @@ class PageController extends BaseController
                 'page' => $page,
                 'categories' => $categories,
                 'selectedFilters' => [],
-                'search' => '',
+                'search' => $search,
                 'categoryFilter' => $categoryName,
                 'categorySlug' => $categorySlug,
-                'baseUrl' => '/category/' . $categorySlug
+                'baseUrl' => '/category/' . $categorySlug,
+                'categoryImage' => $categoryImage
             ], htmlspecialchars($categoryName) . ' - OxWinches');
         } catch (\Exception $e) {
             error_log("Failed to load category products: " . $e->getMessage());
