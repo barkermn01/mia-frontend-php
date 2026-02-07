@@ -38,6 +38,31 @@ Parameters:
     Default: 512
     AllowedValues: [512, 1024, 2048, 4096, 8192]
     Description: Web service memory (MB)
+  
+  MinTasks:
+    Type: Number
+    Default: 1
+    MinValue: 1
+    Description: Minimum number of tasks for auto-scaling
+  
+  MaxTasks:
+    Type: Number
+    Default: 10
+    MinValue: 1
+    Description: Maximum number of tasks for auto-scaling
+  
+  TargetCPUUtilization:
+    Type: Number
+    Default: 70
+    MinValue: 1
+    MaxValue: 100
+    Description: Target CPU utilization percentage for auto-scaling
+  
+  TargetRequestCountPerTarget:
+    Type: Number
+    Default: 1000
+    MinValue: 1
+    Description: Target number of requests per task for auto-scaling
 
 Conditions:
   HasSSLCertificate: !Not [!Equals [!Ref SSLCertificateArn, '']]
@@ -249,7 +274,7 @@ Resources:
       ServiceName: !Sub '${ProjectName}-web'
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref WebTaskDefinition
-      DesiredCount: 1
+      DesiredCount: !Ref MinTasks
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
@@ -262,6 +287,48 @@ Resources:
         - ContainerName: web
           ContainerPort: 3000
           TargetGroupArn: !Ref WebTargetGroup
+
+  # ==================== AUTO SCALING ====================
+
+  WebServiceScalableTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      ServiceNamespace: ecs
+      ResourceId: !Sub 'service/${ECSCluster}/${WebService.Name}'
+      ScalableDimension: ecs:service:DesiredCount
+      MinCapacity: !Ref MinTasks
+      MaxCapacity: !Ref MaxTasks
+      RoleARN: !Sub 'arn:aws:iam::${AWS::AccountId}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService'
+
+  WebServiceCPUScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-web-cpu-scaling'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref WebServiceScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: !Ref TargetCPUUtilization
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ECSServiceAverageCPUUtilization
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
+
+  WebServiceRequestCountScalingPolicy:
+    Type: AWS::ApplicationAutoScaling::ScalingPolicy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-web-request-count-scaling'
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref WebServiceScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: !Ref TargetRequestCountPerTarget
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ALBRequestCountPerTarget
+          ResourceLabel: !Sub 
+            - '${ALBFullName}/${TargetGroupFullName}'
+            - ALBFullName: !GetAtt ApplicationLoadBalancer.LoadBalancerFullName
+              TargetGroupFullName: !GetAtt WebTargetGroup.TargetGroupFullName
+        ScaleInCooldown: 300
+        ScaleOutCooldown: 60
 
 Outputs:
   ALBDNSName:

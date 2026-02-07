@@ -26,5 +26,21 @@
     {
         "ParameterKey":  "WebMemory",
         "ParameterValue":  "2048"
+    },
+    {
+        "ParameterKey":  "MinTasks",
+        "ParameterValue":  "1"
+    },
+    {
+        "ParameterKey":  "MaxTasks",
+        "ParameterValue":  "10"
+    },
+    {
+        "ParameterKey":  "TargetCPUUtilization",
+        "ParameterValue":  "70"
+    },
+    {
+        "ParameterKey":  "TargetRequestCountPerTarget",
+        "ParameterValue":  "1000"
     }
 ]
