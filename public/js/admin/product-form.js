@@ -447,9 +447,10 @@ class ProductForm {
             // Add input validation for inc-VAT field
             validateDecimalInput(priceIncVat);
             
-            // Initialize inc-VAT value if ex-VAT has a value, otherwise set to 0.00
-            if (priceExVat.value) {
-                priceIncVat.value = (parseFloat(priceExVat.value) * vatMultiplier).toFixed(2);
+            // Initialize inc-VAT value if ex-VAT has a value
+            const currentExVat = parseFloat(priceExVat.value);
+            if (!isNaN(currentExVat) && currentExVat > 0) {
+                priceIncVat.value = (currentExVat * vatMultiplier).toFixed(2);
             } else {
                 priceIncVat.value = '0.00';
             }
@@ -471,9 +472,10 @@ class ProductForm {
             // Add input validation for inc-VAT field
             validateDecimalInput(rrpIncVat);
             
-            // Initialize inc-VAT value if ex-VAT has a value, otherwise set to 0.00
-            if (rrpExVat.value) {
-                rrpIncVat.value = (parseFloat(rrpExVat.value) * vatMultiplier).toFixed(2);
+            // Initialize inc-VAT value if ex-VAT has a value
+            const currentRrpExVat = parseFloat(rrpExVat.value);
+            if (!isNaN(currentRrpExVat) && currentRrpExVat > 0) {
+                rrpIncVat.value = (currentRrpExVat * vatMultiplier).toFixed(2);
             } else {
                 rrpIncVat.value = '0.00';
             }
@@ -833,3 +835,22 @@ function initializeProductForm(config) {
     productForm = new ProductForm(config);
 }
 
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize modal manager
+    if (typeof ModalManager !== 'undefined') {
+        window.modalManager = new ModalManager();
+    }
+    
+    // Initialize product form if configuration is available
+    if (window.MiaStoreConfig && window.MiaStoreConfig.productFormData) {
+        const config = {
+            adminPath: window.MiaStoreConfig.adminPath,
+            isEdit: window.MiaStoreConfig.productFormData.isEdit,
+            vatRate: window.MiaStoreConfig.vatRate,
+            variants: window.MiaStoreConfig.productFormData.variants || []
+        };
+        
+        initializeProductForm(config);
+    }
+});

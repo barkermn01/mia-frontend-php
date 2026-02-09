@@ -72,7 +72,12 @@ class ProductController extends BaseController
             echo $this->view->renderLayout('admin-layout', $content, [
                 'title' => 'Add Product - Admin Panel',
                 'user' => $_SESSION['customer'],
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'vatRate' => $this->getVatRate(),
+                'productFormData' => [
+                    'isEdit' => false,
+                    'variants' => []
+                ]
             ]);
         } catch (\Exception $e) {
             $this->showError("Failed to load add product form: " . $e->getMessage());
@@ -96,6 +101,30 @@ class ProductController extends BaseController
             $product = $this->client->products->getProduct($productId);
             $variants = $this->client->products->getProductVariants($productId);
             
+            // Prepare variants data for JavaScript
+            $variantsData = [];
+            foreach ($variants['items'] ?? [] as $variant) {
+                $jsPrice = 0;
+                if (isset($variant['price'])) {
+                    $price = $variant['price'];
+                    if (is_array($price) && isset($price[0]['unit'])) {
+                        $jsPrice = $price[0]['unit'] / 100;
+                    } elseif (is_array($price) && isset($price['unit'])) {
+                        $jsPrice = $price['unit'] / 100;
+                    } elseif (is_numeric($price)) {
+                        $jsPrice = $price / 100;
+                    }
+                }
+                
+                $variantsData[] = [
+                    'uuid' => $variant['uuid'] ?? $variant['id'] ?? '',
+                    'sku' => $variant['sku'],
+                    'price' => $jsPrice,
+                    'presentableName' => $variant['presentableName'] ?? '',
+                    'attributes' => $variant['attributes'] ?? []
+                ];
+            }
+            
             $content = $this->view->render('product-form', [
                 'product' => $product,
                 'variants' => $variants['items'] ?? [],
@@ -107,7 +136,12 @@ class ProductController extends BaseController
             echo $this->view->renderLayout('admin-layout', $content, [
                 'title' => 'Edit Product - Admin Panel',
                 'user' => $_SESSION['customer'],
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'vatRate' => $this->getVatRate(),
+                'productFormData' => [
+                    'isEdit' => true,
+                    'variants' => $variantsData
+                ]
             ]);
             
         } catch (MiaException $e) {

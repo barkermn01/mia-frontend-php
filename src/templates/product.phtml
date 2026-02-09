@@ -125,9 +125,9 @@
                                     echo $symbol . number_format($priceIncVat, 2);
                                     ?>
                                 </span>
-                                <div class="text-sm text-gray-500 mt-1">
+                                <span class="text-sm text-gray-500 mt-1">
                                     (ex-VAT <?php echo $symbol . number_format($priceExVat, 2); ?>)
-                                </div>
+                                </span>
                                 <?php
                                 // Show RRP savings if RRP is higher than current price
                                 if (!empty($variants) && count($variants) > 0) {
@@ -210,12 +210,32 @@
                         <!-- Stock Display -->
                         <div id="stock-display" class="text-sm">
                             <?php 
-                            $stockDisplay = $view->getStockDisplay($variants[0]);
-                            $isInStock = $view->isInStock($variants[0]);
+                            $stock = $variants[0]['stock'] ?? [];
+                            $available = $stock['available'] ?? 0;
+                            $isUnlimited = $stock['unlimited'] ?? false;
+                            $inventoryType = $stock['inventoryType'] ?? 'physical';
+                            
+                            if ($isUnlimited || $inventoryType === 'digital') {
+                                $stockText = 'In Stock';
+                                $stockColor = 'text-green-600';
+                                $stockIcon = 'check-circle';
+                            } elseif ($available > 10) {
+                                $stockText = 'In Stock';
+                                $stockColor = 'text-green-600';
+                                $stockIcon = 'check-circle';
+                            } elseif ($available > 0) {
+                                $stockText = 'Low Stock';
+                                $stockColor = 'text-orange-600';
+                                $stockIcon = 'exclamation-circle';
+                            } else {
+                                $stockText = 'Out of Stock - Please call for ETA.';
+                                $stockColor = 'text-red-600';
+                                $stockIcon = 'times-circle';
+                            }
                             ?>
-                            <span class="<?= $isInStock ? 'text-green-600' : 'text-red-600' ?>">
-                                <i class="fas fa-<?= $isInStock ? 'check-circle' : 'times-circle' ?> mr-1"></i>
-                                <?= htmlspecialchars($stockDisplay) ?>
+                            <span class="<?= $stockColor ?>">
+                                <i class="fas fa-<?= $stockIcon ?> mr-1"></i>
+                                <?= $stockText ?>
                             </span>
                         </div>
                     <?php else: ?>
@@ -237,12 +257,32 @@
                         <!-- Stock Display -->
                         <div class="text-sm">
                             <?php 
-                            $stockDisplay = $view->getStockDisplay($variants[0]);
-                            $isInStock = $view->isInStock($variants[0]);
+                            $stock = $variants[0]['stock'] ?? [];
+                            $available = $stock['available'] ?? 0;
+                            $isUnlimited = $stock['unlimited'] ?? false;
+                            $inventoryType = $stock['inventoryType'] ?? 'physical';
+                            
+                            if ($isUnlimited || $inventoryType === 'digital') {
+                                $stockText = 'In Stock - Order by 1PM for same day dispatch';
+                                $stockColor = 'text-green-600';
+                                $stockIcon = 'check-circle';
+                            } elseif ($available > 10) {
+                                $stockText = 'In Stock - Order by 1PM for same day dispatch';
+                                $stockColor = 'text-green-600';
+                                $stockIcon = 'check-circle';
+                            } elseif ($available > 0) {
+                                $stockText = 'Low Stock - Order by 1PM for same day dispatch';
+                                $stockColor = 'text-yellow-600';
+                                $stockIcon = 'exclamation-circle';
+                            } else {
+                                $stockText = 'Out of Stock - Call for ETA.';
+                                $stockColor = 'text-red-600';
+                                $stockIcon = 'times-circle';
+                            }
                             ?>
-                            <span class="<?= $isInStock ? 'text-green-600' : 'text-red-600' ?>">
-                                <i class="fas fa-<?= $isInStock ? 'check-circle' : 'times-circle' ?> mr-1"></i>
-                                <?= htmlspecialchars($stockDisplay) ?>
+                            <span class="<?= $stockColor ?>">
+                                <i class="fas fa-<?= $stockIcon ?> mr-1"></i>
+                                <?= $stockText ?>
                             </span>
                         </div>
                     <?php endif; ?>
@@ -256,12 +296,12 @@
                                     class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
                                 <i class="fas fa-minus"></i>
                             </button>
+                            <input type="number" id="quantity" value="1" min="1" max="10" 
+                                   class="w-20 text-center p-2 border border-gray-300 rounded-lg">
                             <button type="button" onclick="changeQuantity(1)" 
                                     class="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
                                 <i class="fas fa-plus"></i>
                             </button>
-                            <input type="number" id="quantity" value="1" min="1" max="10" 
-                                   class="w-20 text-center p-2 border border-gray-300 rounded-lg">
                         </div>
                     </div>
 

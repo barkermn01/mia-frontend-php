@@ -357,21 +357,54 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-                                <input type="text" class="variant-name w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                       placeholder="e.g., Large Red">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Price (£) <span class="text-red-500">*</span></label>
-                                <input type="number" class="variant-price w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                       step="0.01" min="0" placeholder="0.00" required>
+                                <input type="text" class="variant-name w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., Large Red">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">SKU <span class="text-red-500">*</span></label>
-                                <input type="text" class="variant-sku w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                                       placeholder="Enter unique SKU" required>
+                                <input type="text" class="variant-sku w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter unique SKU" required>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                            <!-- Selling Price with VAT -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Selling Price <span class="text-red-500">*</span></label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Ex-VAT (£)</label>
+                                        <input type="number" class="variant-price w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" step="0.01" min="0" placeholder="0.00" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Inc-VAT (£)</label>
+                                        <input type="text" class="variant-price-vat w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50" placeholder="0.00" value="0.00" inputmode="decimal">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Cost Price (no VAT) -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Cost Price <span class="text-red-500">*</span></label>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Your Cost (£)</label>
+                                    <input type="number" class="variant-cost w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" step="0.01" min="0" placeholder="0.00" required>
+                                </div>
+                            </div>
+                            
+                            <!-- RRP with VAT -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">RRP <span class="text-red-500">*</span></label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Ex-VAT (£)</label>
+                                        <input type="number" class="variant-rrp w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" step="0.01" min="0" placeholder="0.00" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs text-gray-600 mb-1">Inc-VAT (£)</label>
+                                        <input type="text" class="variant-rrp-vat w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50" placeholder="0.00" value="0.00" inputmode="decimal">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -407,57 +440,3 @@
 </div>
 
 <script src="/js/admin/product-form.js"></script>
-<script>
-// Initialize modal manager
-window.modalManager = new ModalManager();
-
-// Set VAT rate for calculations
-window.MiaStoreConfig = window.MiaStoreConfig || {};
-window.MiaStoreConfig.vatRate = <?= $vatRate ?? 20 ?>;
-
-// Initialize the product form with configuration data
-document.addEventListener('DOMContentLoaded', function() {
-    const formConfig = {
-        adminPath: '<?= $adminPath ?>',
-        isEdit: <?= $isEdit ? 'true' : 'false' ?>,
-        vatRate: <?= $vatRate ?? 20 ?>,
-        variants: [
-            <?php if (($isEdit && !empty($variants)) || (!$isEdit && !empty($variants))): ?>
-                <?php foreach ($variants as $variant): ?>
-                    {
-                        uuid: '<?= addslashes($variant['uuid'] ?? $variant['id'] ?? '') ?>',
-                        sku: '<?= addslashes($variant['sku']) ?>',
-                        price: <?php
-                        $jsPrice = 0;
-                        if (isset($variant['price'])) {
-                            $price = $variant['price'];
-                            if (is_array($price) && isset($price[0]['unit'])) {
-                                // Price is array with currency objects: [{"currency": "GBP", "unit": 1999}]
-                                $jsPrice = $price[0]['unit'] / 100;
-                            } elseif (is_array($price) && isset($price['unit'])) {
-                                // Price is object: {"unit": 1999}
-                                $jsPrice = $price['unit'] / 100;
-                            } elseif (is_numeric($price)) {
-                                // Price is simple number
-                                if ($isEdit && !isset($error)) {
-                                    // In edit mode without error - price is from API in cents/pence
-                                    $jsPrice = $price / 100;
-                                } else {
-                                    // In create mode or error state - price is from form data in pounds/dollars
-                                    $jsPrice = $price;
-                                }
-                            }
-                        }
-                        echo $jsPrice;
-                        ?>,
-                        presentableName: '<?= addslashes($variant['presentableName'] ?? '') ?>',
-                        attributes: <?= json_encode($variant['attributes'] ?? []) ?>
-                    },
-                <?php endforeach; ?>
-            <?php endif; ?>
-        ]
-    };
-    
-    initializeProductForm(formConfig);
-});
-</script>

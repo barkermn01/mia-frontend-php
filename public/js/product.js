@@ -103,14 +103,14 @@ window.ProductPage = {
             stockText = 'In Stock';
             stockClass = 'text-green-600';
             icon = 'check-circle';
-        } else if (available > 0) {
-            if (available <= 5) {
-                stockText = `Only ${available} left`;
-            } else {
-                stockText = `${available} available`;
-            }
+        } else if (available > 10) {
+            stockText = 'In Stock';
             stockClass = 'text-green-600';
             icon = 'check-circle';
+        } else if (available > 0) {
+            stockText = 'Low Stock';
+            stockClass = 'text-orange-600';
+            icon = 'exclamation-circle';
         } else {
             stockText = 'Out of Stock';
             stockClass = 'text-red-600';

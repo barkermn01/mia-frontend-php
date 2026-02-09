@@ -27,7 +27,7 @@ class ProductController extends BaseController
             
             $filters = [
                 'page' => $page,
-                'limit' => 12
+                'limit' => 24
             ];
             
             if ($search) {
@@ -90,6 +90,7 @@ class ProductController extends BaseController
                 'category' => $category, // Keep for backward compatibility
                 'selectedFilters' => is_array($selectedFilters) ? $selectedFilters : ($selectedFilters ? [$selectedFilters] : []),
                 'page' => $page,
+                'baseUrl' => '/products',
                 'vatRate' => $this->getVatRate()
             ]);
             

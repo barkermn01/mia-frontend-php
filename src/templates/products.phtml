@@ -249,14 +249,13 @@ if (!empty($categoryImage)) {
                         $totalPages = ceil($products['total'] / $limit);
                         $currentPage = $page;
                         
+                        // Use baseUrl if provided (for category pages), otherwise default to /products
+                        $paginationBaseUrl = $baseUrl ?? '/products';
+                        
                         // Build base URL with existing parameters including filters
                         $params = array_filter(['search' => $search]);
                         if (!empty($selectedFilters)) {
                             $params['filters'] = $selectedFilters;
-                        }
-                        $baseUrl = '/products';
-                        if (!empty($params)) {
-                            $baseUrl .= '?' . http_build_query($params);
                         }
                         ?>
                         
@@ -266,7 +265,7 @@ if (!empty($categoryImage)) {
                                 $prevParams = $params;
                                 $prevParams['page'] = $currentPage - 1;
                                 ?>
-                                <a href="/products?<?= http_build_query($prevParams) ?>" 
+                                <a href="<?= $paginationBaseUrl ?>?<?= http_build_query($prevParams) ?>" 
                                    class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                                     <i class="fas fa-chevron-left"></i>
                                 </a>
@@ -282,7 +281,7 @@ if (!empty($categoryImage)) {
                                     $pageParams = $params;
                                     $pageParams['page'] = $i;
                                     ?>
-                                    <a href="/products?<?= http_build_query($pageParams) ?>" 
+                                    <a href="<?= $paginationBaseUrl ?>?<?= http_build_query($pageParams) ?>" 
                                        class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                                         <?= $i ?>
                                     </a>
@@ -294,7 +293,7 @@ if (!empty($categoryImage)) {
                                 $nextParams = $params;
                                 $nextParams['page'] = $currentPage + 1;
                                 ?>
-                                <a href="/products?<?= http_build_query($nextParams) ?>" 
+                                <a href="<?= $paginationBaseUrl ?>?<?= http_build_query($nextParams) ?>" 
                                    class="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                                     <i class="fas fa-chevron-right"></i>
                                 </a>

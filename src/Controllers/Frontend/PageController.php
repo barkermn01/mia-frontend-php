@@ -9,6 +9,7 @@ class PageController extends BaseController
         try {
             // Fetch featured products for homepage
             $products = $this->client->products->getProducts([
+                'tag' => 'Featured',
                 'limit' => 8,
                 'page' => 1
             ]);
@@ -94,7 +95,7 @@ class PageController extends BaseController
             
             // Build API filters
             $filters = [
-                'limit' => 12,
+                'limit' => 24,
                 'page' => $page,
                 'tag' => $categoryName
             ];

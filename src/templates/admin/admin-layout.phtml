@@ -115,7 +115,9 @@
         // Configuration for the JavaScript app
         window.MiaStoreConfig = {
             isAdmin: true,
-            adminPath: '<?= $adminPath ?>'
+            adminPath: '<?= $adminPath ?>',
+            vatRate: <?= $vatRate ?? 20 ?>,
+            productFormData: <?= isset($productFormData) ? json_encode($productFormData) : 'null' ?>
         };
     </script>
     <script src="/js/ModalManager.js"></script>
