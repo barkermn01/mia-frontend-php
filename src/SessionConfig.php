@@ -17,8 +17,6 @@ class SessionConfig
         $memcachedHost = getenv('MEMCACHED_HOST') ?: 'localhost';
         $memcachedPort = getenv('MEMCACHED_PORT') ?: '11211';
 
-        error_log("SessionConfig: Attempting to use Memcached at {$memcachedHost}:{$memcachedPort}");
-
         // Try to connect to Memcached to verify it's available
         $memcached = new \Memcached();
         $memcached->addServer($memcachedHost, (int)$memcachedPort);
@@ -28,8 +26,6 @@ class SessionConfig
         $testResult = $memcached->get('test_connection');
         
         if ($testResult === 'test') {
-            error_log("SessionConfig: Memcached connection successful");
-            
             // Configure PHP to use Memcached for sessions
             ini_set('session.save_handler', 'memcached');
             ini_set('session.save_path', $memcachedHost . ':' . $memcachedPort);
@@ -54,7 +50,6 @@ class SessionConfig
         // Start the session
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
-            error_log("SessionConfig: Session started with ID: " . session_id());
         }
 
         self::$initialized = true;

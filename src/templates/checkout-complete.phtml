@@ -29,14 +29,12 @@ $cartId = $_GET['cartId'] ?? null;
                             <p class="font-semibold text-gray-900">
                                 <?php 
                                 $createdAt = $order['createdAt'];
-                                if (is_array($createdAt) && isset($createdAt['$date'])) {
-                                    // MongoDB date format
-                                    $timestamp = is_array($createdAt['$date']) && isset($createdAt['$date']['$numberLong']) 
-                                        ? (int)(intval($createdAt['$date']['$numberLong']) / 1000)
-                                        : (int)(intval($createdAt['$date']) / 1000);
-                                    echo date('F j, Y', $timestamp);
-                                } else {
+                                if (is_numeric($createdAt)) {
+                                    echo date('F j, Y', (int)$createdAt);
+                                } elseif (is_string($createdAt)) {
                                     echo date('F j, Y', strtotime($createdAt));
+                                } else {
+                                    echo 'N/A';
                                 }
                                 ?>
                             </p>
@@ -109,6 +107,38 @@ $cartId = $_GET['cartId'] ?? null;
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Shipping Information -->
+                <?php if (!empty($order['shippingAddress'])): ?>
+                    <div class="mb-6">
+                        <h2 class="text-lg font-semibold text-gray-900 mb-4">Shipping Address</h2>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <?php if (!empty($order['shippingAddress']['name'])): ?>
+                                <p class="font-medium text-gray-900"><?= htmlspecialchars($order['shippingAddress']['name']) ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($order['shippingAddress']['line1'])): ?>
+                                <p class="text-gray-700"><?= htmlspecialchars($order['shippingAddress']['line1']) ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($order['shippingAddress']['line2'])): ?>
+                                <p class="text-gray-700"><?= htmlspecialchars($order['shippingAddress']['line2']) ?></p>
+                            <?php endif; ?>
+                            <p class="text-gray-700">
+                                <?= htmlspecialchars($order['shippingAddress']['city'] ?? '') ?>
+                                <?php if (!empty($order['shippingAddress']['state'])): ?>
+                                    , <?= htmlspecialchars($order['shippingAddress']['state']) ?>
+                                <?php endif; ?>
+                                <?= htmlspecialchars($order['shippingAddress']['postalCode'] ?? '') ?>
+                            </p>
+                            <p class="text-gray-700"><?= htmlspecialchars($order['shippingAddress']['country'] ?? '') ?></p>
+                            <?php if (!empty($order['shippingAddress']['phone'])): ?>
+                                <p class="text-gray-700 mt-2">
+                                    <i class="fas fa-phone text-gray-500 mr-1"></i>
+                                    <?= htmlspecialchars($order['shippingAddress']['phone']) ?>
+                                </p>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endif; ?>

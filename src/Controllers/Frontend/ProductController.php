@@ -17,14 +17,10 @@ class ProductController extends BaseController
             $selectedFilters = $_GET['filters'] ?? [];
             $sort = $_GET['sort'] ?? '';
             
-            error_log("URL Parameters - page: $page, search: '$search', category: '$category', filters: " . json_encode($selectedFilters) . ", sort: '$sort'");
-            
             // Convert single category to filters array for backward compatibility
             if ($category && !$selectedFilters) {
                 $selectedFilters = [$category];
             }
-            
-            error_log("Selected Filters after processing: " . json_encode($selectedFilters));
             
             $filters = [
                 'page' => $page,
@@ -54,8 +50,6 @@ class ProductController extends BaseController
                     $filters['category'] = $selectedFilters;
                 }
             }
-            
-            error_log("API Request Filters: " . json_encode($filters));
             
             $products = $this->getProducts($filters);
             
@@ -122,9 +116,7 @@ class ProductController extends BaseController
     private function getProducts(array $filters = []): array
     {
         try {
-            error_log("Calling API with filters: " . json_encode($filters));
             $products = $this->client->products->getProducts($filters);
-            error_log("API Response - Total products: " . ($products['total'] ?? 0));
             return $products;
         } catch (MiaException $e) {
             error_log("Failed to fetch products: " . $e->getMessage());
@@ -200,12 +192,9 @@ class ProductController extends BaseController
         }
         
         try {
-            error_log("Attempting to fetch product with ID: " . $id);
             $product = $this->client->products->getProduct($id);
-            error_log("Product fetched successfully: " . json_encode($product));
             
             $variants = $this->client->products->getProductVariants($id);
-            error_log("Variants fetched successfully: " . json_encode($variants));
             
             // Add product-specific resources
             HtmlResources::getInstance()->setTitle(htmlspecialchars($product['title']) . ' - OxWinches');

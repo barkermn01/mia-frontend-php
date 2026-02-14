@@ -129,13 +129,12 @@
                                         <span class="ml-1">
                                             <?php 
                                             $alertCreatedAt = $alert['createdAt'];
-                                            if (is_array($alertCreatedAt) && isset($alertCreatedAt['$date'])) {
-                                                $timestamp = is_array($alertCreatedAt['$date']) && isset($alertCreatedAt['$date']['$numberLong']) 
-                                                    ? (int)(intval($alertCreatedAt['$date']['$numberLong']) / 1000)
-                                                    : (int)(intval($alertCreatedAt['$date']) / 1000);
-                                                echo date('F j, Y g:i A', $timestamp);
-                                            } else {
+                                            if (is_numeric($alertCreatedAt)) {
+                                                echo date('F j, Y g:i A', (int)$alertCreatedAt);
+                                            } elseif (is_string($alertCreatedAt)) {
                                                 echo date('F j, Y g:i A', strtotime($alertCreatedAt));
+                                            } else {
+                                                echo 'N/A';
                                             }
                                             ?>
                                         </span>

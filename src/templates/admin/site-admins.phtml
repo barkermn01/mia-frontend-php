@@ -96,16 +96,8 @@
                                     <?php if (isset($admin['createdAt'])): ?>
                                         <?php 
                                         $createdAt = $admin['createdAt'];
-                                        if (is_array($createdAt) && isset($createdAt['$date'])) {
-                                            // MongoDB date format
-                                            if (isset($createdAt['$date']['$numberLong'])) {
-                                                $timestamp = (int)($createdAt['$date']['$numberLong'] / 1000);
-                                                echo date('M j, Y', $timestamp);
-                                            } elseif (is_string($createdAt['$date'])) {
-                                                echo date('M j, Y', strtotime($createdAt['$date']));
-                                            } else {
-                                                echo 'N/A';
-                                            }
+                                        if (is_numeric($createdAt)) {
+                                            echo date('M j, Y', (int)$createdAt);
                                         } elseif (is_string($createdAt)) {
                                             echo date('M j, Y', strtotime($createdAt));
                                         } else {

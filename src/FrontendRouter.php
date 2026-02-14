@@ -24,17 +24,10 @@ class FrontendRouter
         HtmlResources::getInstance()->addDefaults();
         HtmlResources::getInstance()->setTitle('OxWinches - Premium Winches & Recovery Equipment');
         
-        // Log session state
-        error_log("FrontendRouter constructor - Session ID: " . session_id());
-        error_log("FrontendRouter constructor - Session cart_id: " . ($_SESSION['cart_id'] ?? 'NOT SET'));
-        
         // Ensure cart exists and is in session
         $this->cartId = $_SESSION['cart_id'] ?? null;
         if (!$this->cartId) {
-            error_log("No cart_id in session, creating new cart");
             $this->createNewCart();
-        } else {
-            error_log("Using existing cart_id from session: {$this->cartId}");
         }
     }
 
@@ -74,8 +67,6 @@ class FrontendRouter
             $path = rtrim($path, '/');
         }
         
-        error_log("Routing path: {$path}, method: {$method}");
-        
         // Handle legacy product URLs and redirect to SEO-friendly format
         if ($path === '/product' && !empty($_GET['id'])) {
             $this->redirectToSeoUrl($_GET['id']);
@@ -97,7 +88,6 @@ class FrontendRouter
 
         // Category routes
         if ($path === '/categories') {
-            error_log("Matched /categories route");
             $controller = new PageController($this->client, $this->view);
             $controller->categories();
             return;
@@ -106,7 +96,6 @@ class FrontendRouter
         // Category route - /category/{slug}
         if (preg_match('#^/category/(.+)$#', $path, $matches)) {
             $categorySlug = $matches[1];
-            error_log("Matched /category/{slug} route with slug: {$categorySlug}");
             $controller = new PageController($this->client, $this->view);
             $controller->category($categorySlug);
             return;
@@ -278,6 +267,12 @@ class FrontendRouter
                 $controller->apiUpdateShippingAddress();
                 return;
             }
+            
+            if ($path === '/api/customer/update-profile' && $method === 'POST') {
+                $controller = new AccountController($this->client, $this->view);
+                $controller->apiUpdateProfile();
+                return;
+            }
 
             // Categories API
             if ($path === '/api/categories') {
@@ -315,16 +310,9 @@ class FrontendRouter
     private function createNewCart(): void
     {
         try {
-            error_log("Attempting to create cart for site: " . $this->client->getSiteId());
-            error_log("Auth token set: " . (!empty($_SESSION['auth_token']) ? 'YES' : 'NO'));
-            error_log("Session ID: " . session_id());
-            
             $cart = $this->client->cart->createCart();
             $_SESSION['cart_id'] = $cart['id'];
             $this->cartId = $cart['id'];
-            
-            error_log("Created new cart with ID: {$this->cartId}");
-            error_log("Session cart_id saved: " . $_SESSION['cart_id']);
         } catch (\Exception $e) {
             error_log("Failed to create cart: " . $e->getMessage());
         }

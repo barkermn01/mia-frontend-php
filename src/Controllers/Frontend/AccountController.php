@@ -28,10 +28,7 @@ class AccountController extends BaseController
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
         
-        error_log("Login attempt - Email: " . $email);
-        
         if (!$email || !$password) {
-            error_log("Login failed - Missing email or password");
             $content = $this->view->render('login', ['error' => 'Email and password are required']);
             echo $this->view->renderLayout('layout', $content, [
                 'title' => 'Login - OxWinches',
@@ -49,8 +46,6 @@ class AccountController extends BaseController
                 'siteId' => getenv('MIA_SITE_ID')
             ]);
             
-            error_log("Login successful: " . json_encode($result));
-            
             $_SESSION['auth_token'] = $result['token'];
             $_SESSION['customer'] = $result['user'];
             $this->client->setAuthToken($result['token']);
@@ -59,7 +54,6 @@ class AccountController extends BaseController
             $redirectTo = $_SESSION['redirect_after_login'] ?? '/account';
             unset($_SESSION['redirect_after_login']);
             
-            error_log("Session data set, redirecting to {$redirectTo}");
             $this->redirect($redirectTo);
         } catch (\Exception $e) {
             error_log("Login failed: " . $e->getMessage());
@@ -144,23 +138,16 @@ class AccountController extends BaseController
 
     public function showAccount(): void
     {
-        error_log("showAccount called");
-        error_log("isLoggedIn: " . ($this->isLoggedIn() ? 'YES' : 'NO'));
-        error_log("Session auth_token: " . ($_SESSION['auth_token'] ?? 'NOT SET'));
-        
         if (!$this->isLoggedIn()) {
-            error_log("Not logged in, redirecting to login");
             $this->redirect('/login');
             return;
         }
         
         try {
             $customer = $this->getCustomer();
-            error_log("Customer data: " . json_encode($customer));
             
             // Check if this is a super_admin or other admin account
             if (isset($customer['role']) && in_array($customer['role'], ['super_admin', 'site_admin'])) {
-                error_log("Admin account detected, showing admin account page");
                 
                 // For admin accounts, we'll show basic account info and admin functions
                 $profile = [
@@ -173,36 +160,37 @@ class AccountController extends BaseController
                 $savedBaskets = []; // Admin accounts don't have saved baskets
                 
             } else {
-                error_log("Customer account detected, attempting to get profile");
                 // For regular customers, get the full profile
                 $profile = $this->client->customer->getProfile();
                 
                 try {
                     $savedBasketsResponse = $this->client->cart->getSavedBaskets();
-                    error_log("Saved baskets response: " . json_encode($savedBasketsResponse));
                     $savedBaskets = $savedBasketsResponse['items'] ?? [];
-                    error_log("Saved baskets count: " . count($savedBaskets));
                 } catch (\Exception $e) {
                     error_log("Failed to fetch saved baskets: " . $e->getMessage());
                     $savedBaskets = [];
                 }
             }
             
-            error_log("Profile data: " . json_encode($profile));
+            // Add account.js for edit profile and address functionality
+            \Marti\Frontend\HtmlResources::getInstance()->addJsBody('/js/account.js');
             
             $this->renderLayout('account', [
                 'profile' => $profile,
                 'savedBaskets' => $savedBaskets,
-                'isAdmin' => isset($customer['role']) && in_array($customer['role'], ['super_admin', 'site_admin'])
+                'isAdmin' => isset($customer['role']) && in_array($customer['role'], ['super_admin', 'site_admin']),
+                'jsConfig' => [
+                    'profileData' => [
+                        'firstName' => $profile['firstName'] ?? '',
+                        'lastName' => $profile['lastName'] ?? '',
+                        'phone' => $profile['phone'] ?? ''
+                    ],
+                    'deliveryAddress' => $profile['shippingAddress'] ?? null
+                ]
             ], 'My Account - OxWinches');
             
         } catch (MiaException $e) {
             error_log("Account MiaException: " . $e->getMessage());
-            error_log("Exception details: " . json_encode([
-                'code' => $e->getCode(),
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]));
             $this->showError("Failed to load account: " . $e->getMessage());
         }
     }
@@ -221,7 +209,6 @@ class AccountController extends BaseController
             if (isset($customer['role']) && in_array($customer['role'], ['super_admin', 'site_admin'])) {
                 // Admin accounts don't have personal orders, show empty or redirect to admin panel
                 $orders = [];
-                error_log("Admin account - showing empty orders");
             } else {
                 // Regular customers can view their orders
                 $ordersResponse = $this->client->orders->getOrders();
@@ -269,8 +256,66 @@ class AccountController extends BaseController
         }
     }
 
+    public function apiUpdateProfile(): void
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Not authenticated']);
+            return;
+        }
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            
+            $updateData = [];
+            
+            // Update firstName if provided
+            if (isset($data['firstName'])) {
+                $updateData['firstName'] = trim($data['firstName']);
+            }
+            
+            // Update lastName if provided
+            if (isset($data['lastName'])) {
+                $updateData['lastName'] = trim($data['lastName']);
+            }
+            
+            // Update phone if provided
+            if (isset($data['phone'])) {
+                $updateData['phone'] = trim($data['phone']);
+            }
+            
+            if (empty($updateData)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'No data to update']);
+                return;
+            }
+            
+            $result = $this->client->customer->updateProfile($updateData);
+            
+            // Update session with new customer data
+            if (isset($_SESSION['customer'])) {
+                $_SESSION['customer'] = array_merge($_SESSION['customer'], $updateData);
+            }
+            
+            echo json_encode(['success' => true, 'profile' => $result]);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     public function apiUpdateShippingAddress(): void
     {
+        header('Content-Type: application/json');
+        
+        if (!$this->isLoggedIn()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Not authenticated']);
+            return;
+        }
+        
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             
@@ -300,22 +345,23 @@ class AccountController extends BaseController
                 ];
                 
                 // Add optional fields if present
+                if (!empty($address['name'])) {
+                    $data['shippingAddress']['name'] = trim($address['name']);
+                }
                 if (!empty($address['line2'])) {
                     $data['shippingAddress']['line2'] = trim($address['line2']);
                 }
                 if (!empty($address['state'])) {
                     $data['shippingAddress']['state'] = trim($address['state']);
                 }
+                if (!empty($address['phone'])) {
+                    $data['shippingAddress']['phone'] = trim($address['phone']);
+                }
             }
             
             $result = $this->client->customer->updateProfile($data);
             
-            // Update session with new customer data
-            if (isset($_SESSION['customer'])) {
-                $_SESSION['customer'] = $result;
-            }
-            
-            echo json_encode(['success' => true, 'customer' => $result]);
+            echo json_encode(['success' => true, 'profile' => $result]);
         } catch (\Exception $e) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);

@@ -33,7 +33,6 @@ class CartController extends BaseController
             if ($this->isLoggedIn()) {
                 try {
                     $profile = $this->client->customer->getProfile();
-                    error_log("Cart - Customer profile loaded: " . json_encode($profile));
                 } catch (\Exception $e) {
                     error_log("Cart - Failed to load customer profile: " . $e->getMessage());
                 }
@@ -43,10 +42,8 @@ class CartController extends BaseController
             $shippingAddress = null;
             if ($profile && !empty($profile['shippingAddress']['country'])) {
                 $shippingAddress = $profile['shippingAddress'];
-                error_log("Cart - Using customer shipping address: " . json_encode($shippingAddress));
             } elseif (!empty($_SESSION['guest_shipping_address']['country'])) {
                 $shippingAddress = $_SESSION['guest_shipping_address'];
-                error_log("Cart - Using guest shipping address: " . json_encode($shippingAddress));
             }
             
             // Get shipping options if we have an address with country
@@ -57,7 +54,6 @@ class CartController extends BaseController
                         $this->cartId,
                         $shippingAddress['country']
                     );
-                    error_log("Shipping options fetched for country {$shippingAddress['country']}: " . json_encode($shippingOptions));
                 } catch (\Exception $e) {
                     error_log("Failed to get shipping options: " . $e->getMessage());
                 }
@@ -89,10 +85,6 @@ class CartController extends BaseController
     // API Methods
     public function apiGet(): void
     {
-        error_log("API GET Cart - Session ID: " . session_id());
-        error_log("API GET Cart - Session cart_id: " . ($_SESSION['cart_id'] ?? 'NOT SET'));
-        error_log("API GET Cart - Controller cartId: " . ($this->cartId ?? 'NULL'));
-        
         try {
             $cart = $this->client->cart->getCart($this->cartId);
             
@@ -125,7 +117,6 @@ class CartController extends BaseController
                 unset($item);
             }
             
-            error_log("Cart data: " . json_encode($cart));
             $html = $this->view->render('cart-sidebar', [
                 'cart' => $cart,
                 'vatRate' => $this->getVatRate()
@@ -148,8 +139,6 @@ class CartController extends BaseController
         $sku = $input['sku'] ?? '';
         $qty = (int)($input['qty'] ?? 1);
         
-        error_log("Add to cart request - SKU: $sku, Qty: $qty, Cart ID: " . $this->cartId);
-        
         if (!$sku) {
             echo json_encode(['success' => false, 'message' => 'SKU is required']);
             return;
@@ -157,7 +146,6 @@ class CartController extends BaseController
 
         try {
             $result = $this->client->cart->addToCart($this->cartId, $sku, $qty);
-            error_log("Add to cart success: " . json_encode($result));
             echo json_encode([
                 'success' => true,
                 'cartCount' => $this->getCartItemCount()
@@ -238,7 +226,6 @@ class CartController extends BaseController
             $result = $this->client->cart->loadSavedBasket($data['basketName'], [
                 'cartId' => $this->cartId
             ]);
-            error_log("Load basket result: " . json_encode($result));
             
             echo json_encode([
                 'success' => true,
@@ -313,6 +300,9 @@ class CartController extends BaseController
             }
             if (!empty($address['state'])) {
                 $guestAddress['state'] = trim($address['state']);
+            }
+            if (!empty($address['phone'])) {
+                $guestAddress['phone'] = trim($address['phone']);
             }
 
             // Save to session for guest checkout

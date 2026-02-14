@@ -276,7 +276,11 @@
         // Configuration for the JavaScript app
         window.MiaStoreConfig = {
             cartCount: <?= $cartCount ?>,
-            isLoggedIn: <?= $isLoggedIn ? 'true' : 'false' ?>
+            isLoggedIn: <?= $isLoggedIn ? 'true' : 'false' ?><?php if (isset($jsConfig)): ?>,
+            <?php foreach ($jsConfig as $key => $value): ?>
+            <?= $key ?>: <?= json_encode($value) ?><?php if ($key !== array_key_last($jsConfig)): ?>,<?php endif; ?>
+            <?php endforeach; ?>
+            <?php endif; ?>
         };
         
         // Categories dropdown functions (desktop)
@@ -310,6 +314,7 @@
             }
         }
     </script>
+    <script src="/js/ModalManager.js"></script>
     <?= \Marti\Frontend\HtmlResources::getInstance()->renderJsBody() ?>
 </body>
 </html>

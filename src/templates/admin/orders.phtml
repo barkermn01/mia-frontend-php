@@ -100,7 +100,13 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-gray-900">
-                                        <?= htmlspecialchars($order['customerName'] ?? $order['customer']['name'] ?? 'Guest') ?>
+                                        <?php if (!empty($order['customerName'])): ?>
+                                            <?= htmlspecialchars($order['customerName']) ?>
+                                        <?php elseif (!empty($order['customerId'])): ?>
+                                            <span class="text-blue-600">Registered User</span>
+                                        <?php else: ?>
+                                            <span class="text-gray-500">Guest</span>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="text-sm text-gray-500">
                                         <?= htmlspecialchars($order['customerEmail'] ?? $order['customer']['email'] ?? '') ?>
@@ -112,13 +118,21 @@
                                         $createdAt = $order['createdAt'];
                                         if (is_array($createdAt) && isset($createdAt['$date'])) {
                                             // MongoDB date format
-                                            $timestamp = is_array($createdAt['$date']) && isset($createdAt['$date']['$numberLong']) 
-                                                ? (int)(intval($createdAt['$date']['$numberLong']) / 1000)
-                                                : (int)(intval($createdAt['$date']) / 1000);
-                                            echo date('M j, Y', $timestamp);
+                                            if (is_array($createdAt['$date']) && isset($createdAt['$date']['$numberLong'])) {
+                                                $timestamp = (int)(intval($createdAt['$date']['$numberLong']) / 1000);
+                                            } elseif (is_numeric($createdAt['$date'])) {
+                                                $timestamp = (int)(intval($createdAt['$date']) / 1000);
+                                            } else {
+                                                $timestamp = 0;
+                                            }
+                                        } elseif (is_numeric($createdAt)) {
+                                            // Plain Unix timestamp
+                                            $timestamp = (int)$createdAt;
                                         } else {
-                                            echo date('M j, Y', strtotime($createdAt));
+                                            // String date
+                                            $timestamp = strtotime($createdAt);
                                         }
+                                        echo date('M j, Y', $timestamp);
                                         ?>
                                     <?php else: ?>
                                         <span class="text-gray-400">Unknown</span>

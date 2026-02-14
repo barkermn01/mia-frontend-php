@@ -13,7 +13,6 @@ class CheckoutController extends BaseController
             
             // Check if cart is empty
             if (empty($cart['items'])) {
-                error_log("Checkout failed: Cart is empty (cartId: {$this->cartId})");
                 $_SESSION['checkout_error'] = 'Your cart is empty.';
                 $this->redirect('/cart');
                 return;
@@ -29,25 +28,29 @@ class CheckoutController extends BaseController
                 $host = $_SERVER['HTTP_HOST'];
                 $returnUrl = "{$protocol}://{$host}/checkout/complete";
                 
-                error_log("Creating Stripe session for cartId: {$this->cartId}, returnUrl: {$returnUrl}");
-                
                 // Build request data
                 $requestData = [
                     'cartId' => $this->cartId,
                     'returnUrl' => $returnUrl
                 ];
                 
-                // Add customer email if available
-                if ($customer && !empty($customer['email'])) {
-                    $requestData['customerEmail'] = $customer['email'];
+                // Add customer info if logged in
+                if ($customer) {
+                    if (!empty($customer['email'])) {
+                        $requestData['customerEmail'] = $customer['email'];
+                    }
+                    if (!empty($customer['id'])) {
+                        $requestData['customerId'] = $customer['id'];
+                    }
                 }
                 
                 // Add shipping address - check customer profile first, then guest session
                 $shippingAddress = null;
                 $customerName = '';
+                $customerPhone = '';
                 
                 if ($this->isLoggedIn()) {
-                    // Logged in: Get full profile for shipping address and name
+                    // Logged in: Get full profile for shipping address, name, and phone
                     try {
                         $profile = $this->client->customer->getProfile();
                         if (!empty($profile['shippingAddress'])) {
@@ -55,14 +58,17 @@ class CheckoutController extends BaseController
                         }
                         // Get customer name from profile
                         $customerName = trim(($profile['firstName'] ?? '') . ' ' . ($profile['lastName'] ?? ''));
+                        // Get customer phone from profile
+                        $customerPhone = $profile['phone'] ?? '';
                     } catch (\Exception $e) {
                         error_log("Failed to get customer profile: " . $e->getMessage());
                     }
                 } elseif (!empty($_SESSION['guest_shipping_address'])) {
                     // Guest: Get from session
                     $shippingAddress = $_SESSION['guest_shipping_address'];
-                    // For guest, name should be in the address
+                    // For guest, name and phone should be in the address
                     $customerName = $shippingAddress['name'] ?? '';
+                    $customerPhone = $shippingAddress['phone'] ?? '';
                 }
                 
                 // Validate shipping address is present and has required fields
@@ -71,7 +77,6 @@ class CheckoutController extends BaseController
                     empty($shippingAddress['city']) || 
                     empty($shippingAddress['postalCode']) || 
                     empty($shippingAddress['country'])) {
-                    error_log("Checkout blocked: Missing or incomplete shipping address");
                     $_SESSION['checkout_error'] = 'Please provide a complete shipping address before checkout.';
                     $this->redirect('/cart');
                     return;
@@ -79,7 +84,6 @@ class CheckoutController extends BaseController
                 
                 // Validate customer name is present
                 if (empty($customerName)) {
-                    error_log("Checkout blocked: Missing customer name");
                     $_SESSION['checkout_error'] = 'Please provide your name before checkout.';
                     $this->redirect('/cart');
                     return;
@@ -101,13 +105,17 @@ class CheckoutController extends BaseController
                 if (!empty($shippingAddress['state'])) {
                     $validatedAddress['state'] = trim($shippingAddress['state']);
                 }
+                // Add phone - prefer from profile for logged-in users, otherwise from address
+                if (!empty($customerPhone)) {
+                    $validatedAddress['phone'] = trim($customerPhone);
+                } elseif (!empty($shippingAddress['phone'])) {
+                    $validatedAddress['phone'] = trim($shippingAddress['phone']);
+                }
                 
                 $requestData['shippingAddress'] = $validatedAddress;
                 
                 // Create Stripe session
                 $session = $this->client->checkout->createStripeSession($requestData);
-                
-                error_log("Stripe session created successfully, redirecting to: {$session['url']}");
                 
                 // Redirect to Stripe
                 header("Location: {$session['url']}");
@@ -117,7 +125,6 @@ class CheckoutController extends BaseController
                 $errorMessage = $e->getMessage();
                 $errorClass = get_class($e);
                 error_log("Stripe checkout error [{$errorClass}]: {$errorMessage}");
-                error_log("Stack trace: " . $e->getTraceAsString());
                 
                 // Check for specific errors and redirect back to cart with user-friendly error
                 if (strpos($errorMessage, 'stripe_not_configured') !== false) {
@@ -139,12 +146,10 @@ class CheckoutController extends BaseController
             }
         } catch (MiaException $e) {
             error_log("Checkout failed [MiaException]: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
             $_SESSION['checkout_error'] = "Failed to load checkout. Please try again.";
             $this->redirect('/cart');
         } catch (\Exception $e) {
             error_log("Checkout failed [Unexpected]: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
             $_SESSION['checkout_error'] = "Unable to process checkout. Please try again.";
             $this->redirect('/cart');
         }
@@ -164,9 +169,30 @@ class CheckoutController extends BaseController
                 // Fetch the order details
                 $order = $this->client->orders->getOrder($orderId);
                 
-                // Note: Order items from the API don't include productId or full product titles
-                // They only have SKU and name (which is often just the SKU)
-                // This is a backend limitation - the order should store full product details
+                // Enrich order items with product details (images, full titles)
+                if (!empty($order['items'])) {
+                    foreach ($order['items'] as &$item) {
+                        if (!empty($item['productId'])) {
+                            try {
+                                $product = $this->client->products->getProduct($item['productId']);
+                                
+                                // Add product image
+                                if (!empty($product['images']) && is_array($product['images'])) {
+                                    $item['image'] = $product['images'][0];
+                                }
+                                
+                                // Add full product title if not already present
+                                if (empty($item['name']) || $item['name'] === $item['sku']) {
+                                    $item['name'] = $product['title'] ?? $item['name'];
+                                }
+                            } catch (\Exception $e) {
+                                error_log("Failed to fetch product {$item['productId']}: " . $e->getMessage());
+                                // Continue without product details
+                            }
+                        }
+                    }
+                    unset($item); // Break reference
+                }
                 
                 // Clear cart from session
                 unset($_SESSION['cart_id']);

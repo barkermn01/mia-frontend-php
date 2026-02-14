@@ -16,12 +16,7 @@ abstract class BaseController
         $this->client = $client;
         $this->view = $view;
         
-        error_log("BaseController __construct - Session ID: " . session_id());
-        error_log("BaseController __construct - Session cart_id: " . ($_SESSION['cart_id'] ?? 'NOT SET'));
-        
         $this->cartId = $_SESSION['cart_id'] ?? null;
-        
-        error_log("BaseController __construct - Controller cartId: " . ($this->cartId ?? 'NULL'));
     }
 
     protected function isLoggedIn(): bool
@@ -57,7 +52,6 @@ abstract class BaseController
             
             // For regular customers, fetch full profile from API
             $customer = $this->client->customer->getProfile();
-            error_log("Customer profile data: " . json_encode($customer));
             return $customer;
         } catch (\Exception $e) {
             error_log("Failed to get customer: " . $e->getMessage());
@@ -78,7 +72,7 @@ abstract class BaseController
                     ];
                 }
             } catch (\Exception $jwtError) {
-                error_log("Failed to decode JWT: " . $jwtError->getMessage());
+                // JWT decode failed
             }
             
             return null;
@@ -142,13 +136,20 @@ abstract class BaseController
     {
         $content = $this->view->render($template, $data);
         
-        echo $this->view->renderLayout('layout', $content, [
+        $layoutData = [
             'title' => $title,
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
             'isLoggedIn' => $this->isLoggedIn(),
             'menuCategories' => $this->getMenuCategories()
-        ]);
+        ];
+        
+        // Merge any additional data from the template (like jsConfig)
+        if (isset($data['jsConfig'])) {
+            $layoutData['jsConfig'] = $data['jsConfig'];
+        }
+        
+        echo $this->view->renderLayout('layout', $content, $layoutData);
     }
 
     protected function showError(string $message, int $code = 500): void

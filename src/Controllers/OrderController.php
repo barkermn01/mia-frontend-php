@@ -211,4 +211,114 @@ class OrderController extends BaseController
             ]);
         }
     }
+    
+    public function handleUpdateStatus(): void
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $orderId = $data['orderId'] ?? '';
+            $status = $data['status'] ?? '';
+            
+            if (empty($orderId)) {
+                throw new \Exception('Order ID is required');
+            }
+            
+            if (empty($status)) {
+                throw new \Exception('Status is required');
+            }
+            
+            // Validate status
+            $validStatuses = ['pending', 'paid', 'processing', 'shipped', 'completed', 'cancelled', 'refunded'];
+            if (!in_array($status, $validStatuses)) {
+                throw new \Exception('Invalid status');
+            }
+            
+            // Update order status
+            $result = $this->client->orders->updateOrderStatus($orderId, [
+                'status' => $status
+            ]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Order status updated to ' . $status
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    public function handleRefund(): void
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $orderId = $data['orderId'] ?? '';
+            $reason = $data['reason'] ?? 'Order cancelled by admin';
+            
+            if (empty($orderId)) {
+                throw new \Exception('Order ID is required');
+            }
+            
+            // Cancel the order - backend will automatically process full refund
+            $result = $this->client->orders->updateOrderStatus($orderId, [
+                'status' => 'cancelled',
+                'reason' => $reason
+            ]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Order cancelled and refunded successfully'
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+    
+    public function handlePartialRefund(): void
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $orderId = $data['orderId'] ?? '';
+            $amount = $data['amount'] ?? 0;
+            $reason = $data['reason'] ?? 'Partial refund processed by admin';
+            
+            if (empty($orderId)) {
+                throw new \Exception('Order ID is required');
+            }
+            
+            if (empty($amount) || $amount <= 0) {
+                throw new \Exception('Refund amount must be greater than zero');
+            }
+            
+            // Process partial refund using createRefund
+            $result = $this->client->orders->createRefund($orderId, [
+                'amount' => (int)$amount,
+                'reason' => $reason
+            ]);
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Partial refund processed successfully'
+            ]);
+        } catch (\Exception $e) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
 }

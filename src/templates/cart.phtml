@@ -200,6 +200,8 @@
                     } elseif (!$isLoggedIn && !empty($_SESSION['guest_shipping_address'])) {
                         $displayAddress = $_SESSION['guest_shipping_address'];
                         error_log("Cart - Displaying guest address: " . json_encode($displayAddress));
+                        error_log("Cart - Guest name field: " . ($displayAddress['name'] ?? 'NOT SET'));
+                        error_log("Cart - Guest phone field: " . ($displayAddress['phone'] ?? 'NOT SET'));
                     }
                     ?>
                     
@@ -225,6 +227,22 @@
                                 <?php endif; ?>
                                 <p><?= htmlspecialchars($displayAddress['postalCode'] ?? '') ?></p>
                                 <p><?= htmlspecialchars($displayAddress['country'] ?? '') ?></p>
+                                <?php 
+                                // Display phone - for logged in users use profile, for guests use address phone
+                                $displayPhone = '';
+                                if ($isLoggedIn && !empty($profile['phone'])) {
+                                    $displayPhone = $profile['phone'];
+                                } elseif (!$isLoggedIn && !empty($displayAddress['phone'])) {
+                                    $displayPhone = $displayAddress['phone'];
+                                }
+                                
+                                if ($displayPhone): 
+                                ?>
+                                    <p class="mt-2">
+                                        <i class="fas fa-phone text-gray-500 mr-1"></i>
+                                        <?= htmlspecialchars($displayPhone) ?>
+                                    </p>
+                                <?php endif; ?>
                             </div>
                             <button onclick="showAddressForm()" class="text-blue-600 hover:text-blue-700 text-sm">
                                 <i class="fas fa-edit mr-1"></i>Edit Address
@@ -239,38 +257,45 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                     <input type="text" name="name" required
-                                           value="<?= $displayAddress['name'] ?? '' ?>"
+                                           value="<?= htmlspecialchars($displayAddress['name'] ?? '') ?>"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 </div>
                             <?php endif; ?>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
                                 <input type="text" name="line1" required
-                                       value="<?= $displayAddress['line1'] ?? '' ?>"
+                                       value="<?= htmlspecialchars($displayAddress['line1'] ?? '') ?>"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 2 (Optional)</label>
                                 <input type="text" name="line2"
-                                       value="<?= $displayAddress['line2'] ?? '' ?>"
+                                       value="<?= htmlspecialchars($displayAddress['line2'] ?? '') ?>"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
                                 <input type="text" name="city" required
-                                       value="<?= $displayAddress['city'] ?? '' ?>"
+                                       value="<?= htmlspecialchars($displayAddress['city'] ?? '') ?>"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">State/County (Optional)</label>
                                 <input type="text" name="state"
-                                       value="<?= $displayAddress['state'] ?? '' ?>"
+                                       value="<?= htmlspecialchars($displayAddress['state'] ?? '') ?>"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
                                 <input type="text" name="postalCode" required
-                                       value="<?= $displayAddress['postalCode'] ?? '' ?>"
+                                       value="<?= htmlspecialchars($displayAddress['postalCode'] ?? '') ?>"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number (Optional)</label>
+                                <input type="tel" name="phone"
+                                       value="<?= htmlspecialchars($displayAddress['phone'] ?? '') ?>"
+                                       placeholder="+44 1234 567890"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>

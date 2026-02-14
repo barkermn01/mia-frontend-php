@@ -404,6 +404,33 @@ class AdminRouter
                     echo json_encode(['error' => 'Method not allowed']);
                 }
                 break;
+            
+            case '/orders/update-status':
+                if ($method === 'POST') {
+                    $this->orderController->handleUpdateStatus();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case '/orders/refund':
+                if ($method === 'POST') {
+                    $this->orderController->handleRefund();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case '/orders/partial-refund':
+                if ($method === 'POST') {
+                    $this->orderController->handlePartialRefund();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
                 
             default:
                 http_response_code(404);

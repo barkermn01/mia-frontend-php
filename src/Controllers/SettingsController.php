@@ -37,8 +37,6 @@ class SettingsController extends BaseController
                         }
                     }
                     
-                    error_log("Setting {$item['name']}: type={$item['type']}, value_type=" . gettype($value) . ", is_array=" . (is_array($value) ? 'yes' : 'no'));
-                    
                     $settings[$item['name']] = [
                         'type' => $item['type'],
                         'value' => $value,
@@ -58,7 +56,6 @@ class SettingsController extends BaseController
                             $setting['value'] = $decoded;
                         }
                     }
-                    error_log("Setting {$name}: type={$setting['type']}, value_type=" . gettype($setting['value']) . ", is_array=" . (is_array($setting['value']) ? 'yes' : 'no'));
                 }
                 unset($setting);
             }
@@ -131,8 +128,6 @@ class SettingsController extends BaseController
             if (empty($settingName)) {
                 throw new \Exception('Setting name is required');
             }
-            
-            error_log("Saving setting: name=$settingName, type=$settingType, value=" . substr($settingValue, 0, 100));
             
             // Handle JSON type - decode if it's a string
             if ($settingType === 'json' && is_string($settingValue)) {

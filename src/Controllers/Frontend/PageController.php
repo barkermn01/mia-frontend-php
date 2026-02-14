@@ -84,7 +84,6 @@ class PageController extends BaseController
             
             // Validate category name is not empty
             if (empty(trim($categoryName))) {
-                error_log("Empty category name provided");
                 $this->show404();
                 return;
             }

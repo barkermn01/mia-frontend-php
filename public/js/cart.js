@@ -80,7 +80,8 @@ window.CartPage = {
             city: formData.get('city'),
             state: formData.get('state'),
             postalCode: formData.get('postalCode'),
-            country: formData.get('country')
+            country: formData.get('country'),
+            phone: formData.get('phone')
         };
         
         // Add name for guest users
