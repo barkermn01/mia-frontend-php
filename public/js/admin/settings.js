@@ -245,11 +245,14 @@ class SettingsManager {
                 html = `
                     <label class="block text-sm font-medium text-gray-700 mb-2">Properties</label>
                     <div id="property-container" class="space-y-2 mb-3">
-                        ${Object.entries(this.propertySet).map(([key, value]) => `
+                        ${Object.entries(this.propertySet).map(([key, value]) => {
+                            const isNewProperty = key.startsWith('__new_property_');
+                            const displayKey = isNewProperty ? '' : key;
+                            return `
                             <div class="flex items-center space-x-2">
-                                <input type="text" value="${this.escapeHtml(key)}" onchange="settingsManager.updatePropertyKey('${this.escapeJs(key)}', this.value)"
+                                <input type="text" value="${this.escapeHtml(displayKey)}" onchange="settingsManager.updatePropertyKey('${this.escapeJs(key)}', this.value)"
                                     placeholder="Property Name (required)"
-                                    class="w-1/3 px-3 py-2 border ${key.trim() === '' ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    class="w-1/3 px-3 py-2 border ${key.trim() === '' || isNewProperty ? 'border-red-300 bg-red-50' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                 <input type="text" value="${this.escapeHtml(value)}" onchange="settingsManager.updatePropertyValue('${this.escapeJs(key)}', this.value)"
                                     placeholder="Value"
                                     class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -258,7 +261,7 @@ class SettingsManager {
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </div>
-                        `).join('')}
+                        `}).join('')}
                     </div>
                     <button type="button" onclick="settingsManager.addProperty()" 
                             class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
@@ -403,7 +406,9 @@ class SettingsManager {
     
     // Property set management functions
     addProperty() {
-        this.propertySet[''] = ''; // Empty key that must be filled
+        // Use a unique temporary key to ensure it's added at the end
+        const tempKey = `__new_property_${Date.now()}__`;
+        this.propertySet[tempKey] = '';
         this.updateValueField();
     }
     
@@ -429,8 +434,21 @@ class SettingsManager {
             return;
         }
         
-        this.propertySet[newKey] = this.propertySet[oldKey];
-        delete this.propertySet[oldKey];
+        // Store the value before deleting
+        const value = this.propertySet[oldKey];
+        
+        // Create new object with updated key to maintain order
+        const newPropertySet = {};
+        for (const [k, v] of Object.entries(this.propertySet)) {
+            if (k === oldKey) {
+                newPropertySet[newKey] = value;
+            } else {
+                newPropertySet[k] = v;
+            }
+        }
+        
+        this.propertySet = newPropertySet;
+        this.updateValueField();
     }
     
     updatePropertyValue(key, value) {
