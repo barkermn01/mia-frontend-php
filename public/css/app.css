@@ -444,3 +444,24 @@ input[type="radio"] {
         transform: translateX(0);
     }
 }
+
+/* Hero overlay mobile padding */
+@media (max-width: 639px) {
+    .hero-overlay {
+        padding-top: 6rem;
+    }
+}
+
+/* Hero banner background */
+.hero-banner {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    min-height: 500px;
+}
+
+@media (min-width: 640px) {
+    .hero-banner {
+        min-height: 600px;
+    }
+}

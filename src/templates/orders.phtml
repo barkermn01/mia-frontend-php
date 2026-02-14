@@ -19,10 +19,29 @@
                                 <div class="flex items-center space-x-4">
                                     <div>
                                         <h3 class="text-lg font-semibold text-gray-900">
-                                            Order #<?= htmlspecialchars($order['orderNumber'] ?? $order['_id']) ?>
+                                            Order #<?= htmlspecialchars($order['orderNumber'] ?? $order['uuid'] ?? 'N/A') ?>
                                         </h3>
                                         <p class="text-sm text-gray-600">
-                                            Placed on <?= date('F j, Y \a\t g:i A', strtotime($order['createdAt'])) ?>
+                                            <?php 
+                                            $createdAt = $order['createdAt'] ?? null;
+                                            $dateStr = 'N/A';
+                                            
+                                            if ($createdAt && is_array($createdAt)) {
+                                                // MongoDB date format: ['$date' => ['$numberLong' => '1770971630282']]
+                                                $timestamp = $createdAt['$date']['$numberLong'] ?? null;
+                                                if ($timestamp) {
+                                                    // Convert from milliseconds to seconds
+                                                    $dateStr = date('F j, Y \a\t g:i A', intval(intval($timestamp) / 1000));
+                                                }
+                                            } elseif (is_string($createdAt)) {
+                                                // ISO date string
+                                                $dateStr = date('F j, Y \a\t g:i A', strtotime($createdAt));
+                                            } elseif (is_numeric($createdAt)) {
+                                                // Unix timestamp
+                                                $dateStr = date('F j, Y \a\t g:i A', $createdAt);
+                                            }
+                                            ?>
+                                            Placed on <?= $dateStr ?>
                                         </p>
                                     </div>
                                 </div>
@@ -107,14 +126,14 @@
                         <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                                 <div class="flex space-x-3">
-                                    <button onclick="viewOrderDetails('<?= htmlspecialchars($order['_id']) ?>')"
+                                    <button onclick="viewOrderDetails('<?= htmlspecialchars($order['uuid']) ?>')"
                                             class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors">
                                         <i class="fas fa-eye mr-1"></i>
                                         View Details
                                     </button>
                                     
                                     <?php if ($order['status'] === 'completed'): ?>
-                                        <button onclick="reorderItems('<?= htmlspecialchars($order['_id']) ?>')"
+                                        <button onclick="reorderItems('<?= htmlspecialchars($order['uuid']) ?>')"
                                                 class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors">
                                             <i class="fas fa-redo mr-1"></i>
                                             Reorder
@@ -122,7 +141,7 @@
                                     <?php endif; ?>
                                     
                                     <?php if (in_array($order['status'], ['processing', 'shipped'])): ?>
-                                        <button onclick="trackOrder('<?= htmlspecialchars($order['_id']) ?>')"
+                                        <button onclick="trackOrder('<?= htmlspecialchars($order['uuid']) ?>')"
                                                 class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-700 transition-colors">
                                             <i class="fas fa-truck mr-1"></i>
                                             Track Order

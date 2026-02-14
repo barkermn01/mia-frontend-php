@@ -15,8 +15,9 @@ class ProductController extends BaseController
             $search = $_GET['search'] ?? '';
             $category = $_GET['category'] ?? '';
             $selectedFilters = $_GET['filters'] ?? [];
+            $sort = $_GET['sort'] ?? '';
             
-            error_log("URL Parameters - page: $page, search: '$search', category: '$category', filters: " . json_encode($selectedFilters));
+            error_log("URL Parameters - page: $page, search: '$search', category: '$category', filters: " . json_encode($selectedFilters) . ", sort: '$sort'");
             
             // Convert single category to filters array for backward compatibility
             if ($category && !$selectedFilters) {
@@ -32,6 +33,15 @@ class ProductController extends BaseController
             
             if ($search) {
                 $filters['search'] = $search;
+            }
+            
+            if ($sort) {
+                // Parse sort format: "field:order" -> separate sortBy and sortOrder
+                $sortParts = explode(':', $sort);
+                if (count($sortParts) === 2) {
+                    $filters['sortBy'] = $sortParts[0];
+                    $filters['sortOrder'] = $sortParts[1];
+                }
             }
             
             // Handle multiple filters with AND logic (comma-separated)
@@ -91,7 +101,8 @@ class ProductController extends BaseController
                 'selectedFilters' => is_array($selectedFilters) ? $selectedFilters : ($selectedFilters ? [$selectedFilters] : []),
                 'page' => $page,
                 'baseUrl' => '/products',
-                'vatRate' => $this->getVatRate()
+                'vatRate' => $this->getVatRate(),
+                'sort' => $sort
             ]);
             
             echo $this->view->renderLayout('layout', $content, [
@@ -233,6 +244,20 @@ class ProductController extends BaseController
                 'trace' => $e->getTraceAsString()
             ]));
             $this->showError("Failed to load product: " . $e->getMessage());
+        }
+    }
+    
+    public function apiGetProduct(string $productId): void
+    {
+        try {
+            $product = $this->client->products->getProduct($productId);
+            echo json_encode($product);
+        } catch (NotFoundException $e) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Product not found']);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['error' => $e->getMessage()]);
         }
     }
 }

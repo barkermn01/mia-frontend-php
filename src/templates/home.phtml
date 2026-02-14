@@ -1,13 +1,11 @@
 <!-- Hero Banner -->
-<section class="relative">
-    <img src="<?= htmlspecialchars($heroImage ?? '/images/hero-banner.png') ?>" alt="Ox Winches" class="w-full h-auto">
-    
+<section class="relative hero-banner" style="background-image: url('<?= htmlspecialchars($heroImage ?? '/images/hero-banner.png') ?>'); background-size: cover; background-position: center; background-repeat: no-repeat;">
     <!-- Hero Text Overlay -->
-    <div class="absolute inset-0 flex items-center justify-center">
+    <div class="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center hero-overlay">
         <div class="text-center text-white px-4">
             <div class="bg-black bg-opacity-70 rounded-lg px-6 py-4 mb-4 sm:mb-6 md:mb-8 inline-block">
-                <img src="/images/logo.png" alt="Ox Winches Logo" class="h-48 mx-auto" /> 
-                <h1 class="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold mb-2 sm:mb-3 md:mb-4">As Strong as an Ox. Built for Recovery.</h1>
+                <img src="/images/logo.png" alt="Ox Winches Logo" class="h-48 mx-auto hidden lg:block" /> 
+                <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 md:mb-4">As Strong as an Ox. Built for Recovery.</h1>
                 <p class="text-sm sm:text-base md:text-xl lg:text-2xl">Engineered for professionals. Trusted across Europe. Delivered fast.</p>
             </div>
             <div>

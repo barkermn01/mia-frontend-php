@@ -89,11 +89,13 @@ class PageController extends BaseController
                 return;
             }
             
-            // Get page and search from query string
+            // Get page, search, sort, and filters from query string
             $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
             $search = $_GET['search'] ?? '';
+            $sort = $_GET['sort'] ?? '';
+            $selectedFilters = $_GET['filters'] ?? [];
             
-            // Build API filters
+            // Build API filters - start with the category tag
             $filters = [
                 'limit' => 24,
                 'page' => $page,
@@ -104,6 +106,26 @@ class PageController extends BaseController
                 $filters['search'] = $search;
             }
             
+            if ($sort) {
+                // Parse sort format: "field:order" -> separate sortBy and sortOrder
+                $sortParts = explode(':', $sort);
+                if (count($sortParts) === 2) {
+                    $filters['sortBy'] = $sortParts[0];
+                    $filters['sortOrder'] = $sortParts[1];
+                }
+            }
+            
+            // Handle additional category filters with AND logic (comma-separated)
+            if ($selectedFilters) {
+                if (is_array($selectedFilters)) {
+                    // Multiple filters - combine them with commas for AND logic
+                    $filters['category'] = implode(',', $selectedFilters);
+                } else {
+                    // Single filter
+                    $filters['category'] = $selectedFilters;
+                }
+            }
+            
             // Fetch products filtered by tag and search
             $products = $this->client->products->getProducts($filters);
             
@@ -111,20 +133,32 @@ class PageController extends BaseController
             $categoryKey = str_replace(' ', '_', $categoryName);
             $categoryImage = $this->getCategorySetting("cat_{$categoryKey}_image", '');
             
-            // Get categories and filters for the sidebar (pass tag to get filtered counts)
-            $categories = $this->getProductCategories(['tag' => $categoryName]);
+            // Get categories and filters for the sidebar (pass tag and selected filters to get filtered counts)
+            $categoryFilters = ['tag' => $categoryName];
+            if ($selectedFilters) {
+                if (is_array($selectedFilters)) {
+                    $categoryFilters['category'] = implode(',', $selectedFilters);
+                } else {
+                    $categoryFilters['category'] = $selectedFilters;
+                }
+            }
+            if ($search) {
+                $categoryFilters['search'] = $search;
+            }
+            $categories = $this->getProductCategories($categoryFilters);
             
             $this->renderLayout('products', [
                 'products' => $products,
                 'currentPage' => $page,
                 'page' => $page,
                 'categories' => $categories,
-                'selectedFilters' => [],
+                'selectedFilters' => is_array($selectedFilters) ? $selectedFilters : ($selectedFilters ? [$selectedFilters] : []),
                 'search' => $search,
                 'categoryFilter' => $categoryName,
                 'categorySlug' => $categorySlug,
                 'baseUrl' => '/category/' . $categorySlug,
-                'categoryImage' => $categoryImage
+                'categoryImage' => $categoryImage,
+                'sort' => $sort
             ], htmlspecialchars($categoryName) . ' - OxWinches');
         } catch (\Exception $e) {
             error_log("Failed to load category products: " . $e->getMessage());
@@ -215,12 +249,22 @@ class PageController extends BaseController
     private function getProductCategories(array $apiFilters = []): array
     {
         try {
-            // Build filters for the API call
+            // Build filters for the API call - pass ALL filters to get accurate counts
             $filters = ['status' => 'active'];
             
-            // If we have a tag filter, pass it to get filtered counts
+            // Pass tag filter
             if (!empty($apiFilters['tag'])) {
                 $filters['tag'] = $apiFilters['tag'];
+            }
+            
+            // Pass category filter (selected filters)
+            if (!empty($apiFilters['category'])) {
+                $filters['category'] = $apiFilters['category'];
+            }
+            
+            // Pass search filter
+            if (!empty($apiFilters['search'])) {
+                $filters['search'] = $apiFilters['search'];
             }
             
             $categories = $this->client->products->getCategories($filters);

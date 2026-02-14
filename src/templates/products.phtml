@@ -27,7 +27,7 @@ if (!empty($categoryImage)) {
                             <!-- All Categories -->
                             <?php 
                             $allCategoriesClass = empty($selectedFilters) ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50';
-                            $allCategoriesUrl = $search ? '/products?search=' . urlencode($search) : '/products';
+                            $allCategoriesUrl = $search ? ($baseUrl . '?search=' . urlencode($search)) : $baseUrl;
                             ?>
                             <a href="<?= $allCategoriesUrl ?>" class="<?= $allCategoriesClass ?> block py-2 px-3 rounded transition-colors">
                                 All Categories
@@ -38,6 +38,12 @@ if (!empty($categoryImage)) {
                                 <?php foreach ($categories['primary'] as $cat): ?>
                                     <?php 
                                     $isActive = in_array($cat['name'], $selectedFilters);
+                                    
+                                    // Skip categories with 0 count unless they're currently active
+                                    if ($cat['count'] == 0 && !$isActive) {
+                                        continue;
+                                    }
+                                    
                                     $linkClass = $isActive ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-700 hover:text-red-600 hover:bg-gray-50';
                                     
                                     if ($isActive) {
@@ -48,7 +54,7 @@ if (!empty($categoryImage)) {
                                         $newFilters = array_merge($selectedFilters, [$cat['name']]);
                                     }
                                     
-                                    $url = '/products';
+                                    $url = $baseUrl;
                                     $params = [];
                                     if ($search) $params['search'] = $search;
                                     if (!empty($newFilters)) {
@@ -86,8 +92,13 @@ if (!empty($categoryImage)) {
                         <div class="flex-1 overflow-y-auto">
                             <div class="p-6 space-y-4">
                                 <?php 
-                                $visibleFilters = array_filter($categories['filters'], function($filterValues) {
-                                    return count($filterValues) > 1;
+                                // Filter out options with 0 count (unless active) for each filter group
+                                $visibleFilters = array_filter($categories['filters'], function($filterValues) use ($selectedFilters) {
+                                    $availableOptions = array_filter($filterValues, function($filter) use ($selectedFilters) {
+                                        $isActive = in_array($filter['fullName'], $selectedFilters);
+                                        return $filter['count'] > 0 || $isActive;
+                                    });
+                                    return count($availableOptions) > 1;
                                 });
                                 $filterCount = 0;
                                 $totalVisibleFilters = count($visibleFilters);
@@ -105,6 +116,12 @@ if (!empty($categoryImage)) {
                                                 <?php foreach ($filterValues as $filter): ?>
                                                     <?php 
                                                     $isActive = in_array($filter['fullName'], $selectedFilters);
+                                                    
+                                                    // Skip filters with 0 count unless they're currently active
+                                                    if ($filter['count'] == 0 && !$isActive) {
+                                                        continue;
+                                                    }
+                                                    
                                                     $linkClass = $isActive ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-600 hover:text-red-600 hover:bg-gray-50';
                                                     
                                                     if ($isActive) {
@@ -115,7 +132,7 @@ if (!empty($categoryImage)) {
                                                         $newFilters = array_merge($selectedFilters, [$filter['fullName']]);
                                                     }
                                                     
-                                                    $url = '/products';
+                                                    $url = $baseUrl;
                                                     if ($search || !empty($newFilters)) {
                                                         $url .= '?';
                                                         if ($search) $url .= 'search=' . urlencode($search) . '&';
@@ -146,81 +163,112 @@ if (!empty($categoryImage)) {
         <!-- Main Content -->
         <div class="lg:w-3/4">
             <!-- Header with Title and Search -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <?php if (isset($categoryFilter)): ?>
-                        <h1 class="text-3xl font-bold text-gray-800 mb-2"><?= htmlspecialchars($categoryFilter) ?></h1>
-                        <p class="text-gray-600">Browse our <?= htmlspecialchars($categoryFilter) ?> products</p>
-                    <?php else: ?>
-                        <h1 class="text-3xl font-bold text-gray-800 mb-2">Products</h1>
-                        <p class="text-gray-600">Discover our amazing collection</p>
-                    <?php endif; ?>
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                    <div>
+                        <?php if (isset($categoryFilter)): ?>
+                            <h1 class="text-3xl font-bold text-gray-800 mb-2"><?= htmlspecialchars($categoryFilter) ?></h1>
+                            <p class="text-gray-600">Browse our <?= htmlspecialchars($categoryFilter) ?> products</p>
+                        <?php else: ?>
+                            <h1 class="text-3xl font-bold text-gray-800 mb-2">Products</h1>
+                            <p class="text-gray-600">Discover our amazing collection</p>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <!-- Search -->
+                    <div>
+                        <form method="GET" action="<?= isset($baseUrl) ? $baseUrl : '/products' ?>" class="flex space-x-2">
+                            <div class="relative">
+                                <input type="text" name="search" placeholder="Search products..." 
+                                       value="<?= htmlspecialchars($search) ?>"
+                                       class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                            <?php if (!empty($selectedFilters)): ?>
+                                <?php foreach ($selectedFilters as $filter): ?>
+                                    <input type="hidden" name="filters[]" value="<?= htmlspecialchars($filter) ?>">
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                            <?php if (!empty($sort)): ?>
+                                <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
+                            <?php endif; ?>
+                            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                Search
+                            </button>
+                            <?php if ($search): ?>
+                                <a href="<?= isset($baseUrl) ? $baseUrl : '/products' ?>" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                                    Clear
+                                </a>
+                            <?php endif; ?>
+                        </form>
+                    </div>
                 </div>
                 
-                <!-- Search -->
-                <div class="mt-4 md:mt-0">
-                    <form method="GET" action="<?= isset($baseUrl) ? $baseUrl : '/products' ?>" class="flex space-x-2">
-                        <div class="relative">
-                            <input type="text" name="search" placeholder="Search products..." 
-                                   value="<?= htmlspecialchars($search) ?>"
-                                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                <!-- Active Filters -->
+                <?php if (!empty($selectedFilters)): ?>
+                    <div class="pt-4 pb-2 border-t border-gray-200">
+                        <div class="flex items-start space-x-2">
+                            <span class="text-sm text-gray-600 mt-1">Active filters:</span>
+                            <div class="flex flex-wrap gap-2">
+                                <?php foreach ($selectedFilters as $filter): ?>
+                                    <?php 
+                                    // Format the filter name for display
+                                    if (strpos($filter, ':') !== false) {
+                                        // Filter category - show just the value part
+                                        $parts = explode(':', $filter, 2);
+                                        $displayName = trim($parts[1]);
+                                        $filterType = trim($parts[0]);
+                                    } else {
+                                        // Primary category
+                                        $displayName = $filter;
+                                        $filterType = 'Category';
+                                    }
+                                    
+                                    // Create URL to remove this specific filter
+                                    $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter; });
+                                    $url = $baseUrl;
+                                    if ($search || !empty($newFilters)) {
+                                        $url .= '?';
+                                        if ($search) $url .= 'search=' . urlencode($search) . '&';
+                                        foreach ($newFilters as $f) {
+                                            $url .= 'filters[]=' . urlencode($f) . '&';
+                                        }
+                                        $url = rtrim($url, '&');
+                                    }
+                                    ?>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
+                                        <?= htmlspecialchars($filterType) ?>: <?= htmlspecialchars($displayName) ?>
+                                        <a href="<?= $url ?>" class="ml-2 hover:text-red-600">
+                                            <i class="fas fa-times"></i>
+                                        </a>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
                         </div>
-                        <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                            Search
-                        </button>
-                        <?php if ($search): ?>
-                            <a href="<?= isset($baseUrl) ? $baseUrl : '/products' ?>" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
-                                Clear
-                            </a>
-                        <?php endif; ?>
-                    </form>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- Sort Dropdown -->
+                <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                    <div class="text-sm text-gray-600">
+                        Showing <?= count($products['items'] ?? []) ?> of <?= $products['total'] ?? 0 ?> products
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="sort-select" class="text-sm text-gray-600">Sort by:</label>
+                        <select id="sort-select" name="sort" onchange="updateSort(this.value)" 
+                                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">Default</option>
+                            <option value="title:asc" <?= ($sort ?? '') === 'title:asc' ? 'selected' : '' ?>>Name (A-Z)</option>
+                            <option value="title:desc" <?= ($sort ?? '') === 'title:desc' ? 'selected' : '' ?>>Name (Z-A)</option>
+                            <option value="price:asc" <?= ($sort ?? '') === 'price:asc' ? 'selected' : '' ?>>Price (Low to High)</option>
+                            <option value="price:desc" <?= ($sort ?? '') === 'price:desc' ? 'selected' : '' ?>>Price (High to Low)</option>
+                            <option value="createdAt:desc" <?= ($sort ?? '') === 'createdAt:desc' ? 'selected' : '' ?>>Newest First</option>
+                            <option value="createdAt:asc" <?= ($sort ?? '') === 'createdAt:asc' ? 'selected' : '' ?>>Oldest First</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <!-- Active Filters -->
-            <?php if (!empty($selectedFilters)): ?>
-                <div class="mb-6">
-                    <div class="flex items-start space-x-2">
-                        <span class="text-sm text-gray-600 mt-1">Active filters:</span>
-                        <div class="flex flex-wrap gap-2">
-                            <?php foreach ($selectedFilters as $filter): ?>
-                                <?php 
-                                // Format the filter name for display
-                                if (strpos($filter, ':') !== false) {
-                                    // Filter category - show just the value part
-                                    $parts = explode(':', $filter, 2);
-                                    $displayName = trim($parts[1]);
-                                    $filterType = trim($parts[0]);
-                                } else {
-                                    // Primary category
-                                    $displayName = $filter;
-                                    $filterType = 'Category';
-                                }
-                                
-                                // Create URL to remove this specific filter
-                                $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter; });
-                                $url = '/products';
-                                if ($search || !empty($newFilters)) {
-                                    $url .= '?';
-                                    if ($search) $url .= 'search=' . urlencode($search) . '&';
-                                    foreach ($newFilters as $f) {
-                                        $url .= 'filters[]=' . urlencode($f) . '&';
-                                    }
-                                    $url = rtrim($url, '&');
-                                }
-                                ?>
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
-                                    <?= htmlspecialchars($filterType) ?>: <?= htmlspecialchars($displayName) ?>
-                                    <a href="<?= $url ?>" class="ml-2 hover:text-red-600">
-                                        <i class="fas fa-times"></i>
-                                    </a>
-                                </span>
-                            <?php endforeach; ?>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
 
             <!-- Search Results Info -->
             <?php if ($search): ?>
@@ -417,6 +465,18 @@ function toggleFilterGroup(filterKey) {
     if (window.productFilters) {
         window.productFilters.toggleFilterGroup(filterKey);
     }
+}
+
+// Sort function
+function updateSort(sortValue) {
+    const url = new URL(window.location.href);
+    if (sortValue) {
+        url.searchParams.set('sort', sortValue);
+    } else {
+        url.searchParams.delete('sort');
+    }
+    url.searchParams.set('page', '1'); // Reset to first page when sorting
+    window.location.href = url.toString();
 }
 
 // Initialize when DOM is loaded

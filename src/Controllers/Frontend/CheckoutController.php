@@ -44,41 +44,65 @@ class CheckoutController extends BaseController
                 
                 // Add shipping address - check customer profile first, then guest session
                 $shippingAddress = null;
+                $customerName = '';
                 
-                if ($customer && !empty($customer['shippingAddress'])) {
-                    $shippingAddress = $customer['shippingAddress'];
-                } elseif (!empty($_SESSION['guest_shipping_address'])) {
-                    $shippingAddress = $_SESSION['guest_shipping_address'];
-                }
-                
-                // If we have a shipping address, validate and add it
-                if ($shippingAddress) {
-                    // Validate required fields are present and not empty
-                    $hasRequiredFields = !empty($shippingAddress['line1']) && 
-                                        !empty($shippingAddress['city']) && 
-                                        !empty($shippingAddress['postalCode']) && 
-                                        !empty($shippingAddress['country']);
-                    
-                    if ($hasRequiredFields) {
-                        // Build validated address with only the fields we need
-                        $validatedAddress = [
-                            'line1' => trim($shippingAddress['line1']),
-                            'city' => trim($shippingAddress['city']),
-                            'postalCode' => trim($shippingAddress['postalCode']),
-                            'country' => trim($shippingAddress['country'])
-                        ];
-                        
-                        // Add optional fields if present
-                        if (!empty($shippingAddress['line2'])) {
-                            $validatedAddress['line2'] = trim($shippingAddress['line2']);
+                if ($this->isLoggedIn()) {
+                    // Logged in: Get full profile for shipping address and name
+                    try {
+                        $profile = $this->client->customer->getProfile();
+                        if (!empty($profile['shippingAddress'])) {
+                            $shippingAddress = $profile['shippingAddress'];
                         }
-                        if (!empty($shippingAddress['state'])) {
-                            $validatedAddress['state'] = trim($shippingAddress['state']);
-                        }
-                        
-                        $requestData['shippingAddress'] = $validatedAddress;
+                        // Get customer name from profile
+                        $customerName = trim(($profile['firstName'] ?? '') . ' ' . ($profile['lastName'] ?? ''));
+                    } catch (\Exception $e) {
+                        error_log("Failed to get customer profile: " . $e->getMessage());
                     }
+                } elseif (!empty($_SESSION['guest_shipping_address'])) {
+                    // Guest: Get from session
+                    $shippingAddress = $_SESSION['guest_shipping_address'];
+                    // For guest, name should be in the address
+                    $customerName = $shippingAddress['name'] ?? '';
                 }
+                
+                // Validate shipping address is present and has required fields
+                if (!$shippingAddress || 
+                    empty($shippingAddress['line1']) || 
+                    empty($shippingAddress['city']) || 
+                    empty($shippingAddress['postalCode']) || 
+                    empty($shippingAddress['country'])) {
+                    error_log("Checkout blocked: Missing or incomplete shipping address");
+                    $_SESSION['checkout_error'] = 'Please provide a complete shipping address before checkout.';
+                    $this->redirect('/cart');
+                    return;
+                }
+                
+                // Validate customer name is present
+                if (empty($customerName)) {
+                    error_log("Checkout blocked: Missing customer name");
+                    $_SESSION['checkout_error'] = 'Please provide your name before checkout.';
+                    $this->redirect('/cart');
+                    return;
+                }
+                
+                // Build validated address with name
+                $validatedAddress = [
+                    'name' => trim($customerName),
+                    'line1' => trim($shippingAddress['line1']),
+                    'city' => trim($shippingAddress['city']),
+                    'postalCode' => trim($shippingAddress['postalCode']),
+                    'country' => trim($shippingAddress['country'])
+                ];
+                
+                // Add optional fields if present
+                if (!empty($shippingAddress['line2'])) {
+                    $validatedAddress['line2'] = trim($shippingAddress['line2']);
+                }
+                if (!empty($shippingAddress['state'])) {
+                    $validatedAddress['state'] = trim($shippingAddress['state']);
+                }
+                
+                $requestData['shippingAddress'] = $validatedAddress;
                 
                 // Create Stripe session
                 $session = $this->client->checkout->createStripeSession($requestData);

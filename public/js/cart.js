@@ -83,9 +83,13 @@ window.CartPage = {
             country: formData.get('country')
         };
         
+        // Add name for guest users
+        const isLoggedIn = window.MiaStoreConfig?.isLoggedIn || false;
+        if (!isLoggedIn) {
+            address.name = formData.get('name');
+        }
+        
         try {
-            const isLoggedIn = window.MiaStoreConfig?.isLoggedIn || false;
-            
             if (isLoggedIn) {
                 // Logged in: Save to customer profile
                 const response = await MiaStore.request('/api/customer/update-shipping-address', {

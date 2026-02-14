@@ -309,6 +309,12 @@ class AccountController extends BaseController
             }
             
             $result = $this->client->customer->updateProfile($data);
+            
+            // Update session with new customer data
+            if (isset($_SESSION['customer'])) {
+                $_SESSION['customer'] = $result;
+            }
+            
             echo json_encode(['success' => true, 'customer' => $result]);
         } catch (\Exception $e) {
             http_response_code(500);

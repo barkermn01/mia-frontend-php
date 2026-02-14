@@ -286,6 +286,13 @@ class FrontendRouter
                 return;
             }
 
+            // Product API
+            if (preg_match('#^/api/products/([a-f0-9-]+)$#', $path, $matches)) {
+                $controller = new \Marti\Frontend\Controllers\Frontend\ProductController($this->client, $this->view);
+                $controller->apiGetProduct($matches[1]);
+                return;
+            }
+
             // Not found
             http_response_code(404);
             echo json_encode(['error' => 'API endpoint not found']);

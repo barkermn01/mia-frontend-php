@@ -28,19 +28,29 @@ class CartController extends BaseController
                 unset($item);
             }
             
-            // Get shipping options
-            $shippingOptions = null;
-            $customer = $this->getCustomer();
+            // Get customer profile if logged in (same as account page)
+            $profile = null;
+            if ($this->isLoggedIn()) {
+                try {
+                    $profile = $this->client->customer->getProfile();
+                    error_log("Cart - Customer profile loaded: " . json_encode($profile));
+                } catch (\Exception $e) {
+                    error_log("Cart - Failed to load customer profile: " . $e->getMessage());
+                }
+            }
             
             // Determine shipping address source (customer profile or guest session)
             $shippingAddress = null;
-            if ($customer && !empty($customer['shippingAddress']['country'])) {
-                $shippingAddress = $customer['shippingAddress'];
+            if ($profile && !empty($profile['shippingAddress']['country'])) {
+                $shippingAddress = $profile['shippingAddress'];
+                error_log("Cart - Using customer shipping address: " . json_encode($shippingAddress));
             } elseif (!empty($_SESSION['guest_shipping_address']['country'])) {
                 $shippingAddress = $_SESSION['guest_shipping_address'];
+                error_log("Cart - Using guest shipping address: " . json_encode($shippingAddress));
             }
             
             // Get shipping options if we have an address with country
+            $shippingOptions = null;
             if ($shippingAddress) {
                 try {
                     $shippingOptions = $this->client->shipping->getCartShippingOptions(
@@ -65,11 +75,10 @@ class CartController extends BaseController
             $this->renderLayout('cart', [
                 'cart' => $cart,
                 'shippingOptions' => $shippingOptions,
-                'customer' => $customer,
+                'profile' => $profile,
                 'vatRate' => $vatRate,
                 'checkoutEnabled' => $checkoutEnabled,
-                'subtotalExVat' => $subtotalExVat,
-                'totalVat' => $totalVat
+                'isLoggedIn' => $this->isLoggedIn()
             ], 'Shopping Cart - OxWinches');
             
         } catch (MiaException $e) {
@@ -117,7 +126,10 @@ class CartController extends BaseController
             }
             
             error_log("Cart data: " . json_encode($cart));
-            $html = $this->view->render('cart-sidebar', ['cart' => $cart]);
+            $html = $this->view->render('cart-sidebar', [
+                'cart' => $cart,
+                'vatRate' => $this->getVatRate()
+            ]);
             
             echo json_encode([
                 'success' => true,
@@ -226,8 +238,17 @@ class CartController extends BaseController
             $result = $this->client->cart->loadSavedBasket($data['basketName'], [
                 'cartId' => $this->cartId
             ]);
-            echo json_encode(['success' => true, 'cart' => $result]);
+            error_log("Load basket result: " . json_encode($result));
+            
+            echo json_encode([
+                'success' => true,
+                'addedItems' => $result['addedItems'] ?? 0,
+                'totalItems' => $result['totalItems'] ?? 0,
+                'skippedItems' => $result['skippedItems'] ?? [],
+                'cartCount' => $this->getCartItemCount()
+            ]);
         } catch (\Exception $e) {
+            error_log("Load basket error: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
@@ -284,6 +305,9 @@ class CartController extends BaseController
             ];
 
             // Add optional fields if present
+            if (!empty($address['name'])) {
+                $guestAddress['name'] = trim($address['name']);
+            }
             if (!empty($address['line2'])) {
                 $guestAddress['line2'] = trim($address['line2']);
             }

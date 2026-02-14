@@ -16,8 +16,16 @@
             <?= htmlspecialchars($item['title'] ?? $item['sku']) ?>
         </h4>
         <p class="text-sm text-gray-500">SKU: <?= htmlspecialchars($item['sku']) ?></p>
+        <?php 
+        $priceExVat = $view->getDisplayPrice($item['price']);
+        $vatRate = $vatRate ?? 0.20;
+        $priceIncVat = $priceExVat * (1 + $vatRate);
+        ?>
         <p class="text-sm font-medium text-blue-600">
-            <?= $view->formatPrice($item['price']) ?>
+            £<?= number_format($priceIncVat, 2) ?>
+        </p>
+        <p class="text-xs text-gray-500">
+            (£<?= number_format($priceExVat, 2) ?> ex-VAT)
         </p>
     </div>
     
