@@ -127,9 +127,6 @@ function showEditAddressDialog() {
         'FR': 'France'
     };
     
-    console.log('Supported countries:', supportedCountries);
-    console.log('Delivery address:', deliveryAddress);
-    
     const modalManager = new ModalManager();
     
     // Build country options
@@ -137,8 +134,6 @@ function showEditAddressDialog() {
         const selected = (deliveryAddress?.country || 'GB') === code ? 'selected' : '';
         return `<option value="${code}" ${selected}>${name}</option>`;
     }).join('');
-    
-    console.log('Country options HTML:', countryOptions);
     
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto';
@@ -438,25 +433,58 @@ function closeModal() {
     }
 }
 
-async function deleteBasket(basketName) {
-    if (!confirm('Are you sure you want to delete this saved basket?')) {
-        return;
-    }
-    
-    try {
-        const response = await MiaStore.request('/api/cart/delete-basket', {
-            method: 'POST',
-            body: JSON.stringify({ basketName })
-        });
-        
-        if (response.success) {
-            MiaStore.showToast('Basket deleted successfully!');
-            location.reload(); // Refresh to update the list
-        } else {
-            MiaStore.showToast(response.message || 'Failed to delete basket', 'error');
+function deleteBasket(basketName) {
+    const modalManager = new ModalManager();
+
+    modalManager.confirm({
+        title: 'Delete Saved Basket',
+        message: `Are you sure you want to delete the basket "${basketName}"? This action cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        confirmClass: 'danger',
+        onConfirm: async () => {
+            try {
+                const response = await fetch('/api/cart/delete-basket', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ basketName })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const alertManager = new ModalManager();
+                    alertManager.alert({
+                        type: 'success',
+                        title: 'Success',
+                        message: 'Basket deleted successfully!'
+                    });
+
+                    // Refresh to update the list
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const alertManager = new ModalManager();
+                    alertManager.alert({
+                        type: 'error',
+                        title: 'Error',
+                        message: 'Failed to delete basket: ' + (result.message || 'Unknown error')
+                    });
+                }
+            } catch (error) {
+                console.error('Delete basket error:', error);
+                const alertManager = new ModalManager();
+                alertManager.alert({
+                    type: 'error',
+                    title: 'Error',
+                    message: 'Failed to delete basket: ' + error.message
+                });
+            }
+        },
+        onCancel: () => {
+            // User cancelled - do nothing
         }
-    } catch (error) {
-        console.error('Delete basket error:', error);
-        MiaStore.showToast('Failed to delete basket', 'error');
-    }
+    });
 }
+
