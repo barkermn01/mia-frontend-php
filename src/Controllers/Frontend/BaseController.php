@@ -129,12 +129,13 @@ abstract class BaseController
     protected function getSupportedCountries(): array
     {
         try {
-            $setting = $this->client->siteSettings->getSetting('supported_countries');
+            // Setting name is "Supported Countries" (with spaces and capitals)
+            $setting = $this->client->siteSettings->getSetting('Supported Countries');
             if (isset($setting['value']) && is_array($setting['value'])) {
                 return $setting['value'];
             }
         } catch (\Exception $e) {
-            error_log("Failed to load supported_countries setting: " . $e->getMessage());
+            // Setting not found, use fallback
         }
         
         // Default fallback countries
