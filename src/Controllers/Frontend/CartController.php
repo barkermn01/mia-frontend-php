@@ -74,7 +74,8 @@ class CartController extends BaseController
                 'profile' => $profile,
                 'vatRate' => $vatRate,
                 'checkoutEnabled' => $checkoutEnabled,
-                'isLoggedIn' => $this->isLoggedIn()
+                'isLoggedIn' => $this->isLoggedIn(),
+                'supportedCountries' => $this->getSupportedCountries()
             ], 'Shopping Cart - OxWinches');
             
         } catch (MiaException $e) {

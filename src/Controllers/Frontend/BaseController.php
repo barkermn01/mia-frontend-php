@@ -126,6 +126,28 @@ abstract class BaseController
         return [];
     }
 
+    protected function getSupportedCountries(): array
+    {
+        try {
+            $setting = $this->client->siteSettings->getSetting('supported_countries');
+            if (isset($setting['value']) && is_array($setting['value'])) {
+                return $setting['value'];
+            }
+        } catch (\Exception $e) {
+            error_log("Failed to load supported_countries setting: " . $e->getMessage());
+        }
+        
+        // Default fallback countries
+        return [
+            'GB' => 'United Kingdom',
+            'US' => 'United States',
+            'CA' => 'Canada',
+            'AU' => 'Australia',
+            'DE' => 'Germany',
+            'FR' => 'France'
+        ];
+    }
+
     protected function redirect(string $url): void
     {
         header("Location: {$url}");

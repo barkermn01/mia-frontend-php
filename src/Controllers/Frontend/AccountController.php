@@ -185,7 +185,8 @@ class AccountController extends BaseController
                         'lastName' => $profile['lastName'] ?? '',
                         'phone' => $profile['phone'] ?? ''
                     ],
-                    'deliveryAddress' => $profile['shippingAddress'] ?? null
+                    'deliveryAddress' => $profile['shippingAddress'] ?? null,
+                    'supportedCountries' => $this->getSupportedCountries()
                 ]
             ], 'My Account - OxWinches');
             

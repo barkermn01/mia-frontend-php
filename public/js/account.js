@@ -118,8 +118,22 @@ function showEditProfileDialog() {
 function showEditAddressDialog() {
     // Get delivery address from MiaStoreConfig
     const deliveryAddress = window.MiaStoreConfig?.deliveryAddress || null;
+    const supportedCountries = window.MiaStoreConfig?.supportedCountries || {
+        'GB': 'United Kingdom',
+        'US': 'United States',
+        'CA': 'Canada',
+        'AU': 'Australia',
+        'DE': 'Germany',
+        'FR': 'France'
+    };
     
     const modalManager = new ModalManager();
+    
+    // Build country options
+    const countryOptions = Object.entries(supportedCountries).map(([code, name]) => {
+        const selected = (deliveryAddress?.country || 'GB') === code ? 'selected' : '';
+        return `<option value="${code}" ${selected}>${name}</option>`;
+    }).join('');
     
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto';
@@ -154,8 +168,10 @@ function showEditAddressDialog() {
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Country *</label>
-                    <input type="text" id="address-country" value="${deliveryAddress?.country || 'GB'}" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <select id="address-country" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        ${countryOptions}
+                    </select>
                 </div>
             </form>
             <div class="flex justify-end space-x-3 mt-6">
@@ -180,7 +196,7 @@ function showEditAddressDialog() {
         const city = document.getElementById('address-city').value.trim();
         const state = document.getElementById('address-state').value.trim();
         const postalCode = document.getElementById('address-postal-code').value.trim();
-        const country = document.getElementById('address-country').value.trim();
+        const country = document.getElementById('address-country').value;
         
         if (!line1 || !city || !postalCode || !country) {
             const alertManager = new ModalManager();
