@@ -18,7 +18,7 @@
                 </button>
                 <button onclick="showRefundDialog('<?= $orderId ?>')" 
                         class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
-                    <i class="fas fa-undo mr-2"></i>Cancel & Refund Order
+                    <i class="fas fa-undo mr-2"></i>Refund or Cancel Order
                 </button>
             <?php elseif ($status === 'processing'): ?>
                 <button onclick="updateOrderStatus('<?= $orderId ?>', 'paid')" 
@@ -237,12 +237,6 @@
                     <p class="font-mono text-gray-900"><?= htmlspecialchars($order['trackingNumber']) ?></p>
                 </div>
             <?php endif; ?>
-        </div>
-    <?php else: ?>
-        <!-- DEBUG: Show what we have -->
-        <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-            <h4 class="font-semibold text-red-900 mb-4">DEBUG: Shipping Information Missing</h4>
-            <pre class="text-xs text-red-800 overflow-auto"><?= htmlspecialchars(json_encode($order, JSON_PRETTY_PRINT)) ?></pre>
         </div>
     <?php endif; ?>
 
@@ -493,15 +487,15 @@ function showRefundDialog(orderId) {
                     <div class="space-y-2">
                         <label class="flex items-center">
                             <input type="radio" name="refund-type" value="full" checked class="mr-2">
-                            <span>Full Refund (${symbol}${(orderTotal / 100).toFixed(2)}) - Cancels order</span>
+                            <span>Full Refund (${symbol}${(orderTotal / 100).toFixed(2)}) - <strong>Cancels order</strong></span>
                         </label>
                         <label class="flex items-center">
                             <input type="radio" name="refund-type" value="partial-amount" class="mr-2">
-                            <span>Partial Refund - Specific Amount</span>
+                            <span>Partial Refund - Specific Amount - <strong>Order remains active</strong></span>
                         </label>
                         <label class="flex items-center">
                             <input type="radio" name="refund-type" value="partial-items" class="mr-2">
-                            <span>Partial Refund - Select Items</span>
+                            <span>Partial Refund - Select Items - <strong>Order remains active</strong></span>
                         </label>
                     </div>
                 </div>
@@ -551,7 +545,7 @@ function showRefundDialog(orderId) {
                     Cancel
                 </button>
                 <button class="confirm-btn px-4 py-2 rounded-lg text-white transition-colors bg-red-600 hover:bg-red-700">
-                    Process Refund
+                    <i class="fas fa-ban mr-2"></i>Cancel & Refund Order
                 </button>
             </div>
         </div>
@@ -577,8 +571,13 @@ function showRefundDialog(orderId) {
             
             if (e.target.value === 'partial-amount') {
                 partialAmountSection.classList.remove('hidden');
+                confirmBtn.innerHTML = '<i class="fas fa-undo mr-2"></i>Process Refund';
             } else if (e.target.value === 'partial-items') {
                 partialItemsSection.classList.remove('hidden');
+                confirmBtn.innerHTML = '<i class="fas fa-undo mr-2"></i>Process Refund';
+            } else {
+                // Full refund
+                confirmBtn.innerHTML = '<i class="fas fa-ban mr-2"></i>Cancel & Refund Order';
             }
         });
     });
