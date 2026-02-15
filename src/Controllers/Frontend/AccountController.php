@@ -110,7 +110,7 @@ class AccountController extends BaseController
                 'lastName' => $lastName
             ]);
             
-            $content = $this->view->render('register', ['success' => 'Registration successful! Please check your email to verify your account.']);
+            $content = $this->view->render('register', ['success' => 'Registration successful! You can now log in with your credentials.']);
             echo $this->view->renderLayout('layout', $content, [
                 'title' => 'Register - OxWinches',
                 'cartCount' => $this->getCartItemCount(),
