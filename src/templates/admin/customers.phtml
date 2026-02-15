@@ -339,77 +339,147 @@ function editCustomer(customerId) {
 }
 
 function toggleCustomerStatus(customerId, newStatus) {
-    if (!confirm(`Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} this customer?`)) {
-        return;
-    }
+    const modalManager = new ModalManager();
     
-    fetch(`<?= $adminPath ?>/api/customers/${customerId}/status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Failed to update customer status: ' + data.message);
+    modalManager.confirm({
+        title: newStatus === 'active' ? 'Activate Customer' : 'Deactivate Customer',
+        message: `Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} this customer?`,
+        confirmText: newStatus === 'active' ? 'Activate' : 'Deactivate',
+        cancelText: 'Cancel',
+        confirmClass: newStatus === 'active' ? 'primary' : 'danger',
+        onConfirm: () => {
+            fetch(`<?= $adminPath ?>/api/customers/${customerId}/status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: newStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    const alertManager = new ModalManager();
+                    alertManager.alert({
+                        type: 'error',
+                        title: 'Error',
+                        message: 'Failed to update customer status: ' + data.message
+                    });
+                }
+            })
+            .catch(error => {
+                const alertManager = new ModalManager();
+                alertManager.alert({
+                    type: 'error',
+                    title: 'Error',
+                    message: 'Error updating customer status: ' + error.message
+                });
+            });
         }
-    })
-    .catch(error => {
-        alert('Error updating customer status: ' + error.message);
     });
 }
 
 function archiveCustomer(customerId) {
-    if (!confirm('Are you sure you want to archive this customer? Their email address will be freed up for reuse, but all data will be preserved.')) {
-        return;
-    }
+    const modalManager = new ModalManager();
     
-    fetch(`<?= $adminPath ?>/api/customers/${customerId}/archive`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    modalManager.confirm({
+        title: 'Archive Customer',
+        message: 'Are you sure you want to archive this customer? Their email address will be freed up for reuse, but all data will be preserved.',
+        confirmText: 'Archive',
+        cancelText: 'Cancel',
+        confirmClass: 'danger',
+        onConfirm: () => {
+            fetch(`<?= $adminPath ?>/api/customers/${customerId}/archive`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const alertManager = new ModalManager();
+                    alertManager.alert({
+                        type: 'success',
+                        title: 'Success',
+                        message: data.message || 'Customer archived successfully'
+                    });
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const alertManager = new ModalManager();
+                    alertManager.alert({
+                        type: 'error',
+                        title: 'Error',
+                        message: 'Failed to archive customer: ' + data.message
+                    });
+                }
+            })
+            .catch(error => {
+                const alertManager = new ModalManager();
+                alertManager.alert({
+                    type: 'error',
+                    title: 'Error',
+                    message: 'Error archiving customer: ' + error.message
+                });
+            });
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message || 'Customer archived successfully');
-            location.reload();
-        } else {
-            alert('Failed to archive customer: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error archiving customer: ' + error.message);
     });
 }
 
 function unarchiveCustomer(customerId) {
-    if (!confirm('Are you sure you want to unarchive this customer? This will restore their account if their email address is still available.')) {
-        return;
-    }
+    const modalManager = new ModalManager();
     
-    fetch(`<?= $adminPath ?>/api/customers/${customerId}/unarchive`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    modalManager.confirm({
+        title: 'Unarchive Customer',
+        message: 'Are you sure you want to unarchive this customer? This will restore their account if their email address is still available.',
+        confirmText: 'Unarchive',
+        cancelText: 'Cancel',
+        confirmClass: 'primary',
+        onConfirm: () => {
+            fetch(`<?= $adminPath ?>/api/customers/${customerId}/unarchive`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const alertManager = new ModalManager();
+                    alertManager.alert({
+                        type: 'success',
+                        title: 'Success',
+                        message: data.message || 'Customer unarchived successfully'
+                    });
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const alertManager = new ModalManager();
+                    alertManager.alert({
+                        type: 'error',
+                        title: 'Error',
+                        message: 'Failed to unarchive customer: ' + data.message
+                    });
+                }
+            })
+            .catch(error => {
+                const alertManager = new ModalManager();
+                alertManager.alert({
+                    type: 'error',
+                    title: 'Error',
+                    message: 'Error unarchiving customer: ' + error.message
+                });
+            });
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(data.message || 'Customer unarchived successfully');
-            location.reload();
-        } else {
-            alert('Failed to unarchive customer: ' + data.message);
-        }
-    })
-    .catch(error => {
-        alert('Error unarchiving customer: ' + error.message);
+    });
+}
+
+function editCustomer(customerId) {
+    const alertManager = new ModalManager();
+    alertManager.alert({
+        type: 'info',
+        title: 'Coming Soon',
+        message: 'Customer editing functionality will be implemented in a future update.'
     });
 }
 
