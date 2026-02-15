@@ -201,6 +201,36 @@ class AdminRouter
                 $this->customerController->index();
                 break;
             
+            // Customer Orders
+            case (preg_match('#^/customers/([^/]+)/orders$#', $path, $matches) ? true : false):
+                $_GET['id'] = $matches[1];
+                $this->customerController->showOrders();
+                break;
+            
+            // Customer API - Get Single Customer
+            case (preg_match('#^/api/customers/([^/]+)$#', $path, $matches) ? true : false):
+                $_GET['id'] = $matches[1];
+                $this->customerController->apiGetCustomer();
+                break;
+            
+            // Customer API - Update Status
+            case (preg_match('#^/api/customers/([^/]+)/status$#', $path, $matches) ? true : false):
+                $_GET['id'] = $matches[1];
+                $this->customerController->apiUpdateStatus();
+                break;
+            
+            // Customer API - Archive Customer
+            case (preg_match('#^/api/customers/([^/]+)/archive$#', $path, $matches) ? true : false):
+                $_GET['id'] = $matches[1];
+                $this->customerController->apiArchiveCustomer();
+                break;
+            
+            // Customer API - Unarchive Customer
+            case (preg_match('#^/api/customers/([^/]+)/unarchive$#', $path, $matches) ? true : false):
+                $_GET['id'] = $matches[1];
+                $this->customerController->apiUnarchiveCustomer();
+                break;
+            
             // Site Admins
             case '/site-admins':
                 $this->siteAdminController->index();

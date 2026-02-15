@@ -19,20 +19,29 @@
 
     <!-- Search and Filters -->
     <div class="bg-white rounded-lg shadow p-6">
-        <form method="GET" class="flex items-center space-x-4">
-            <div class="flex-1">
-                <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
-                       placeholder="Search customers by name or email..." 
-                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <form method="GET" class="space-y-4">
+            <div class="flex items-center space-x-4">
+                <div class="flex-1">
+                    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" 
+                           placeholder="Search customers by name or email..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div>
+                    <select name="archived" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All Customers</option>
+                        <option value="false" <?= $archived === 'false' ? 'selected' : '' ?>>Active Only</option>
+                        <option value="true" <?= $archived === 'true' ? 'selected' : '' ?>>Archived Only</option>
+                    </select>
+                </div>
+                <button type="submit" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-search mr-2"></i>Search
+                </button>
+                <?php if ($search || $archived !== null): ?>
+                    <a href="?" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                        <i class="fas fa-times mr-2"></i>Clear
+                    </a>
+                <?php endif; ?>
             </div>
-            <button type="submit" class="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                <i class="fas fa-search mr-2"></i>Search
-            </button>
-            <?php if ($search): ?>
-                <a href="?" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
-                    <i class="fas fa-times mr-2"></i>Clear
-                </a>
-            <?php endif; ?>
         </form>
     </div>
 
@@ -80,11 +89,19 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <?php 
                                     $status = $customer['status'] ?? 'active';
-                                    $statusClass = $status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                                    $archived = $customer['archived'] ?? false;
+                                    
+                                    if ($archived) {
+                                        echo '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">';
+                                        echo 'Archived';
+                                        echo '</span>';
+                                    } else {
+                                        $statusClass = $status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                                        echo '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ' . $statusClass . '">';
+                                        echo ucfirst($status);
+                                        echo '</span>';
+                                    }
                                     ?>
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <?= $statusClass ?>">
-                                        <?= ucfirst($status) ?>
-                                    </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     <?php if (!empty($customer['createdAt'])): ?>
@@ -108,8 +125,11 @@
                                     <?php endif; ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <span class="text-blue-600 font-medium"><?= $customer['orderCount'] ?? 0 ?></span>
-                                    <?php if (!empty($customer['totalSpent'])): ?>
+                                    <a href="<?= $adminPath ?>/customers/<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>/orders" 
+                                       class="text-blue-600 hover:text-blue-800 font-medium">
+                                        <?= $customer['orderCount'] ?? 0 ?>
+                                    </a>
+                                    <?php if (isset($customer['totalSpent'])): ?>
                                         <div class="text-xs text-gray-500">£<?= number_format($customer['totalSpent'] / 100, 2) ?></div>
                                     <?php endif; ?>
                                 </td>
@@ -119,19 +139,30 @@
                                                 class="text-blue-600 hover:text-blue-900 transition-colors" title="View Customer Details">
                                             <i class="fas fa-eye fa-lg"></i>
                                         </button>
-                                        <button onclick="editCustomer('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>')" 
-                                                class="text-green-600 hover:text-green-900 transition-colors" title="Edit Customer">
-                                            <i class="fas fa-edit fa-lg"></i>
-                                        </button>
-                                        <?php if (($customer['status'] ?? 'active') === 'active'): ?>
-                                            <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>', 'inactive')" 
-                                                    class="text-orange-600 hover:text-orange-900 transition-colors" title="Deactivate Customer">
-                                                <i class="fas fa-user-slash fa-lg"></i>
+                                        <?php if (!($customer['archived'] ?? false)): ?>
+                                            <button onclick="editCustomer('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>')" 
+                                                    class="text-green-600 hover:text-green-900 transition-colors" title="Edit Customer">
+                                                <i class="fas fa-edit fa-lg"></i>
+                                            </button>
+                                            <?php if (($customer['status'] ?? 'active') === 'active'): ?>
+                                                <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>', 'inactive')" 
+                                                        class="text-orange-600 hover:text-orange-900 transition-colors" title="Deactivate Customer">
+                                                    <i class="fas fa-user-slash fa-lg"></i>
+                                                </button>
+                                            <?php else: ?>
+                                                <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>', 'active')" 
+                                                        class="text-green-600 hover:text-green-900 transition-colors" title="Activate Customer">
+                                                    <i class="fas fa-user-check fa-lg"></i>
+                                                </button>
+                                            <?php endif; ?>
+                                            <button onclick="archiveCustomer('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>')" 
+                                                    class="text-red-600 hover:text-red-900 transition-colors" title="Archive Customer">
+                                                <i class="fas fa-archive fa-lg"></i>
                                             </button>
                                         <?php else: ?>
-                                            <button onclick="toggleCustomerStatus('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>', 'active')" 
-                                                    class="text-green-600 hover:text-green-900 transition-colors" title="Activate Customer">
-                                                <i class="fas fa-user-check fa-lg"></i>
+                                            <button onclick="unarchiveCustomer('<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>')" 
+                                                    class="text-purple-600 hover:text-purple-900 transition-colors" title="Unarchive Customer">
+                                                <i class="fas fa-undo fa-lg"></i>
                                             </button>
                                         <?php endif; ?>
                                     </div>
@@ -239,14 +270,27 @@ function displayCustomerDetails(customer) {
                     <p class="text-sm text-gray-900">${customer.status || 'active'}</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Order Count</label>
+                    <label class="block text-sm font-medium text-gray-700">Total Orders</label>
                     <p class="text-sm text-gray-900">${customer.orderCount || 0}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Total Spent</label>
+                    <p class="text-sm text-gray-900">£${customer.totalSpent ? (customer.totalSpent / 100).toFixed(2) : '0.00'}</p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Email Verified</label>
                     <p class="text-sm text-gray-900">${customer.emailVerified ? 'Yes' : 'No'}</p>
                 </div>
             </div>
+            ${(customer.orderCount || 0) > 0 ? `
+                <div class="pt-4 border-t border-gray-200">
+                    <a href="<?= $adminPath ?>/customers/${customer.uuid || customer.id}/orders" 
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-box mr-2"></i>
+                        View Orders (${customer.orderCount})
+                    </a>
+                </div>
+            ` : ''}
             ${customer.shippingAddress ? `
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Shipping Address</label>
@@ -279,10 +323,6 @@ function displayCustomerDetails(customer) {
                             <p class="text-sm">${customer.addresses.shipping.country || ''}</p>
                         </div>
                     ` : ''}
-                </div>
-            ` : ''}
-                        </div>
-                    `).join('')}
                 </div>
             ` : ''}
         </div>
@@ -320,6 +360,56 @@ function toggleCustomerStatus(customerId, newStatus) {
     })
     .catch(error => {
         alert('Error updating customer status: ' + error.message);
+    });
+}
+
+function archiveCustomer(customerId) {
+    if (!confirm('Are you sure you want to archive this customer? Their email address will be freed up for reuse, but all data will be preserved.')) {
+        return;
+    }
+    
+    fetch(`<?= $adminPath ?>/api/customers/${customerId}/archive`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Customer archived successfully');
+            location.reload();
+        } else {
+            alert('Failed to archive customer: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error archiving customer: ' + error.message);
+    });
+}
+
+function unarchiveCustomer(customerId) {
+    if (!confirm('Are you sure you want to unarchive this customer? This will restore their account if their email address is still available.')) {
+        return;
+    }
+    
+    fetch(`<?= $adminPath ?>/api/customers/${customerId}/unarchive`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || 'Customer unarchived successfully');
+            location.reload();
+        } else {
+            alert('Failed to unarchive customer: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error unarchiving customer: ' + error.message);
     });
 }
 

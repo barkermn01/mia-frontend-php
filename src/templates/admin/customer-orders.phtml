@@ -1,0 +1,163 @@
+<div class="space-y-6">
+    <!-- Customer Info Header -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-2xl font-bold text-gray-900">
+                    Orders for <?= htmlspecialchars($customer['firstName'] ?? '') ?> <?= htmlspecialchars($customer['lastName'] ?? '') ?>
+                </h3>
+                <p class="text-sm text-gray-600 mt-1"><?= htmlspecialchars($customer['email'] ?? '') ?></p>
+            </div>
+            <div class="text-right">
+                <div class="text-sm text-gray-600">Total Orders</div>
+                <div class="text-3xl font-bold text-blue-600"><?= $pagination['total'] ?? 0 ?></div>
+                <div class="text-sm text-gray-600 mt-2">Total Spent</div>
+                <div class="text-2xl font-bold text-green-600">£<?= number_format(($customer['totalSpent'] ?? 0) / 100, 2) ?></div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <a href="<?= $adminPath ?>/customers" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Customers
+            </a>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <?php if (!empty($orders)): ?>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Number</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <?php foreach ($orders as $order): ?>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        <?= htmlspecialchars($order['orderNumber'] ?? 'N/A') ?>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        ID: <?= htmlspecialchars($order['uuid'] ?? $order['id'] ?? 'N/A') ?>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <?php
+                                    $createdAt = $order['createdAt'] ?? null;
+                                    if ($createdAt) {
+                                        if (is_array($createdAt) && isset($createdAt['$date']['$numberLong'])) {
+                                            $timestamp = (int)($createdAt['$date']['$numberLong'] / 1000);
+                                            echo date('M j, Y', $timestamp);
+                                            echo '<div class="text-xs text-gray-500">' . date('H:i', $timestamp) . '</div>';
+                                        } elseif (is_string($createdAt)) {
+                                            echo date('M j, Y', strtotime($createdAt));
+                                            echo '<div class="text-xs text-gray-500">' . date('H:i', strtotime($createdAt)) . '</div>';
+                                        } elseif (is_numeric($createdAt)) {
+                                            $timestamp = $createdAt > 1000000000000 ? (int)($createdAt / 1000) : (int)$createdAt;
+                                            echo date('M j, Y', $timestamp);
+                                            echo '<div class="text-xs text-gray-500">' . date('H:i', $timestamp) . '</div>';
+                                        }
+                                    } else {
+                                        echo 'N/A';
+                                    }
+                                    ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php
+                                    $status = $order['status'] ?? 'pending';
+                                    $statusColors = [
+                                        'pending' => 'bg-yellow-100 text-yellow-800',
+                                        'processing' => 'bg-blue-100 text-blue-800',
+                                        'paid' => 'bg-green-100 text-green-800',
+                                        'shipped' => 'bg-purple-100 text-purple-800',
+                                        'completed' => 'bg-green-100 text-green-800',
+                                        'cancelled' => 'bg-red-100 text-red-800',
+                                        'refunded' => 'bg-gray-100 text-gray-800'
+                                    ];
+                                    $statusClass = $statusColors[$status] ?? 'bg-gray-100 text-gray-800';
+                                    ?>
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <?= $statusClass ?>">
+                                        <?= ucfirst($status) ?>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <?php
+                                    $paymentStatus = $order['paymentStatus'] ?? 'pending';
+                                    $paymentColors = [
+                                        'pending' => 'bg-yellow-100 text-yellow-800',
+                                        'paid' => 'bg-green-100 text-green-800',
+                                        'partially_refunded' => 'bg-orange-100 text-orange-800',
+                                        'refunded' => 'bg-gray-100 text-gray-800',
+                                        'failed' => 'bg-red-100 text-red-800',
+                                        'cancelled' => 'bg-red-100 text-red-800'
+                                    ];
+                                    $paymentClass = $paymentColors[$paymentStatus] ?? 'bg-gray-100 text-gray-800';
+                                    ?>
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <?= $paymentClass ?>">
+                                        <?= ucfirst(str_replace('_', ' ', $paymentStatus)) ?>
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <?= count($order['items'] ?? []) ?> item<?= count($order['items'] ?? []) !== 1 ? 's' : '' ?>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-bold text-gray-900">
+                                        £<?= number_format(($order['total'] ?? 0) / 100, 2) ?>
+                                    </div>
+                                    <div class="text-xs text-gray-500">
+                                        £<?= number_format((($order['subtotal'] ?? 0) - ($order['tax'] ?? 0)) / 100, 2) ?> ex VAT
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="<?= $adminPath ?>/orders/<?= htmlspecialchars($order['uuid'] ?? $order['id']) ?>" 
+                                       class="text-blue-600 hover:text-blue-900 transition-colors">
+                                        <i class="fas fa-eye mr-1"></i>View
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <?php if (($pagination['total'] ?? 0) > 20): ?>
+                <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm text-gray-700">
+                            Showing <?= (($page - 1) * 20) + 1 ?> to <?= min($page * 20, $pagination['total']) ?> of <?= $pagination['total'] ?> results
+                        </div>
+                        <div class="flex space-x-2">
+                            <?php if ($page > 1): ?>
+                                <a href="?id=<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>&page=<?= $page - 1 ?>" 
+                                   class="px-3 py-2 text-sm bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
+                                    Previous
+                                </a>
+                            <?php endif; ?>
+                            <?php if ($page * 20 < $pagination['total']): ?>
+                                <a href="?id=<?= htmlspecialchars($customer['uuid'] ?? $customer['id']) ?>&page=<?= $page + 1 ?>" 
+                                   class="px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                                    Next
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php else: ?>
+            <div class="text-center py-12">
+                <i class="fas fa-box-open text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
+                <p class="text-gray-500">This customer hasn't placed any orders yet.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
