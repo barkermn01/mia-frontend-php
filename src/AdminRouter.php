@@ -201,34 +201,10 @@ class AdminRouter
                 $this->customerController->index();
                 break;
             
-            // Customer Orders
-            case (preg_match('#^/customers/([^/]+)/orders$#', $path, $matches) ? true : false):
+            // Customer Orders - needs to match the route parameter
+            case (preg_match('#^/customers/([a-f0-9\-]{36})/orders$#', $route, $matches) ? true : false):
                 $_GET['id'] = $matches[1];
                 $this->customerController->showOrders();
-                break;
-            
-            // Customer API - Get Single Customer
-            case (preg_match('#^/api/customers/([^/]+)$#', $path, $matches) ? true : false):
-                $_GET['id'] = $matches[1];
-                $this->customerController->apiGetCustomer();
-                break;
-            
-            // Customer API - Update Status
-            case (preg_match('#^/api/customers/([^/]+)/status$#', $path, $matches) ? true : false):
-                $_GET['id'] = $matches[1];
-                $this->customerController->apiUpdateStatus();
-                break;
-            
-            // Customer API - Archive Customer
-            case (preg_match('#^/api/customers/([^/]+)/archive$#', $path, $matches) ? true : false):
-                $_GET['id'] = $matches[1];
-                $this->customerController->apiArchiveCustomer();
-                break;
-            
-            // Customer API - Unarchive Customer
-            case (preg_match('#^/api/customers/([^/]+)/unarchive$#', $path, $matches) ? true : false):
-                $_GET['id'] = $matches[1];
-                $this->customerController->apiUnarchiveCustomer();
                 break;
             
             // Site Admins
@@ -456,6 +432,42 @@ class AdminRouter
             case '/orders/partial-refund':
                 if ($method === 'POST') {
                     $this->orderController->handlePartialRefund();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            // Customer API routes
+            case (preg_match('/^\/customers\/([a-f0-9\-]{36})$/', $apiRoute, $matches) ? true : false):
+                $_GET['id'] = $matches[1];
+                $this->customerController->apiGetCustomer();
+                break;
+            
+            case (preg_match('/^\/customers\/([a-f0-9\-]{36})\/status$/', $apiRoute, $matches) ? true : false):
+                if ($method === 'POST') {
+                    $_GET['id'] = $matches[1];
+                    $this->customerController->apiUpdateStatus();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case (preg_match('/^\/customers\/([a-f0-9\-]{36})\/archive$/', $apiRoute, $matches) ? true : false):
+                if ($method === 'POST') {
+                    $_GET['id'] = $matches[1];
+                    $this->customerController->apiArchiveCustomer();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
+            case (preg_match('/^\/customers\/([a-f0-9\-]{36})\/unarchive$/', $apiRoute, $matches) ? true : false):
+                if ($method === 'POST') {
+                    $_GET['id'] = $matches[1];
+                    $this->customerController->apiUnarchiveCustomer();
                 } else {
                     http_response_code(405);
                     echo json_encode(['error' => 'Method not allowed']);
