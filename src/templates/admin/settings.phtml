@@ -169,12 +169,32 @@
             <p><strong>vat_rate</strong> (text) - VAT rate as percentage (e.g., 20 for 20% VAT, defaults to 20)</p>
             <p><strong>site_logo</strong> (image) - Your site logo</p>
             <p><strong>site_description</strong> (text) - Site description for SEO</p>
+            <p><strong>mailgun_sending_domain</strong> (text) - Mailgun domain for sending emails (e.g., mg.yourdomain.com)</p>
+            <p><strong>mailgun_sending_key</strong> (secret) - Mailgun API key for authentication</p>
+            <p><strong>mailgun_template_name</strong> (text) - Mailgun template name for order notifications</p>
             <p><strong>theme_config</strong> (property set) - Theme configuration object</p>
             <p><strong>contact_info</strong> (property set) - Contact information</p>
             <p><strong>social_links</strong> (property set) - Social media links</p>
             <p><strong>main_menu</strong> (list) - Main navigation menu items</p>
             <p><strong>terms_of_service</strong> (markdown) - Terms of service document</p>
             <p><strong>privacy_policy</strong> (markdown) - Privacy policy document</p>
+        </div>
+    </div>
+    
+    <!-- Email Configuration Info -->
+    <div class="bg-green-50 rounded-lg p-6">
+        <h4 class="text-sm font-medium text-green-900 mb-2">
+            <i class="fas fa-envelope mr-2"></i>Email Notifications Setup
+        </h4>
+        <div class="text-sm text-green-800 space-y-2">
+            <p>Configure Mailgun to enable automatic email notifications for order status updates:</p>
+            <ol class="list-decimal list-inside space-y-1 ml-2">
+                <li>Add <strong>mailgun_sending_domain</strong> setting with your Mailgun domain</li>
+                <li>Add <strong>mailgun_sending_key</strong> setting with your Mailgun API key</li>
+                <li>Create an HTML email template in Mailgun with order status variables</li>
+                <li>Add <strong>mailgun_template_name</strong> setting with your template name</li>
+            </ol>
+            <p class="mt-2"><strong>Note:</strong> Emails are automatically sent when orders are marked as "paid" or "shipped". If Mailgun is not configured, status updates will still work but no emails will be sent.</p>
         </div>
     </div>
 </div>

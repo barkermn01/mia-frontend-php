@@ -147,31 +147,46 @@ class OrderController extends BaseController
         try {
             $data = json_decode(file_get_contents('php://input'), true);
             $orderId = $data['orderId'] ?? '';
+            $trackingNumber = $data['trackingNumber'] ?? '';
+            $trackingUrl = $data['trackingUrl'] ?? '';
+            $carrier = $data['carrier'] ?? '';
             
             if (empty($orderId)) {
                 throw new \Exception('Order ID is required');
             }
             
-            // Mark order as shipped with optional tracking information
-            $updateData = ['status' => 'shipped'];
-            
-            if (!empty($data['trackingNumber'])) {
-                $updateData['trackingNumber'] = $data['trackingNumber'];
+            if (empty($trackingNumber)) {
+                throw new \Exception('Tracking number is required');
             }
             
-            if (!empty($data['carrier'])) {
-                $updateData['carrier'] = $data['carrier'];
+            if (empty($trackingUrl)) {
+                throw new \Exception('Tracking URL is required');
             }
             
-            if (!empty($data['trackingUrl'])) {
-                $updateData['trackingUrl'] = $data['trackingUrl'];
+            // Validate URL format
+            if (!filter_var($trackingUrl, FILTER_VALIDATE_URL)) {
+                throw new \Exception('Invalid tracking URL format');
+            }
+            
+            // Build shipping object according to new API requirements
+            $updateData = [
+                'status' => 'shipped',
+                'shipping' => [
+                    'trackingNumber' => $trackingNumber,
+                    'trackingUrl' => $trackingUrl
+                ]
+            ];
+            
+            // Add optional carrier
+            if (!empty($carrier)) {
+                $updateData['shipping']['carrier'] = $carrier;
             }
             
             $result = $this->client->orders->updateOrderStatus($orderId, $updateData);
             
             echo json_encode([
                 'success' => true,
-                'message' => 'Order marked as shipped'
+                'message' => 'Order marked as shipped. Customer will receive an email notification.'
             ]);
         } catch (\Exception $e) {
             http_response_code(400);

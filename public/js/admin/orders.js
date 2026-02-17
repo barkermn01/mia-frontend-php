@@ -160,17 +160,34 @@ class OrdersManager {
     showShipOrderDialog(orderId) {
         const formHtml = `
             <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
-                    <input type="text" id="ship-tracking-number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., TRK123456789">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-envelope mr-2"></i>
+                        Customer will receive an email notification with tracking information
+                    </p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Carrier</label>
-                    <input type="text" id="ship-carrier" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., Royal Mail, DPD, UPS">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Tracking Number <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="ship-tracking-number" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                           placeholder="e.g., TRK123456789">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tracking URL</label>
-                    <input type="url" id="ship-tracking-url" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://track.carrier.com/...">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Tracking URL <span class="text-red-500">*</span>
+                    </label>
+                    <input type="url" id="ship-tracking-url" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                           placeholder="https://track.carrier.com/...">
+                    <p class="text-xs text-gray-500 mt-1">Must be a valid URL</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Carrier (Optional)</label>
+                    <input type="text" id="ship-carrier" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                           placeholder="e.g., Royal Mail, DPD, UPS">
                 </div>
             </div>
         `;
@@ -204,6 +221,37 @@ class OrdersManager {
             const carrier = modal.querySelector('#ship-carrier').value.trim();
             const trackingUrl = modal.querySelector('#ship-tracking-url').value.trim();
             
+            // Validate required fields
+            if (!trackingNumber) {
+                this.modalManager.alert({
+                    type: 'warning',
+                    title: 'Validation Error',
+                    message: 'Tracking number is required'
+                });
+                return;
+            }
+            
+            if (!trackingUrl) {
+                this.modalManager.alert({
+                    type: 'warning',
+                    title: 'Validation Error',
+                    message: 'Tracking URL is required'
+                });
+                return;
+            }
+            
+            // Validate URL format
+            try {
+                new URL(trackingUrl);
+            } catch (e) {
+                this.modalManager.alert({
+                    type: 'warning',
+                    title: 'Validation Error',
+                    message: 'Please enter a valid tracking URL (must start with http:// or https://)'
+                });
+                return;
+            }
+            
             this.modalManager.hideModal(modal);
             modal.remove();
             
@@ -219,11 +267,15 @@ class OrdersManager {
     }
     
     shipOrder(orderId, trackingNumber, carrier, trackingUrl) {
-        const payload = { orderId: orderId };
+        const payload = { 
+            orderId: orderId,
+            trackingNumber: trackingNumber,
+            trackingUrl: trackingUrl
+        };
         
-        if (trackingNumber) payload.trackingNumber = trackingNumber;
-        if (carrier) payload.carrier = carrier;
-        if (trackingUrl) payload.trackingUrl = trackingUrl;
+        if (carrier) {
+            payload.carrier = carrier;
+        }
         
         fetch('/admin/api/orders/ship', {
             method: 'POST',
@@ -242,7 +294,13 @@ class OrdersManager {
         })
         .then(data => {
             if (data.success) {
-                window.location.reload();
+                // Show success message with email notification info
+                this.modalManager.alert({
+                    type: 'success',
+                    title: 'Order Shipped',
+                    message: data.message || 'Order marked as shipped. Customer will receive an email notification.',
+                    onClose: () => window.location.reload()
+                });
             } else {
                 this.modalManager.alert({
                     type: 'error',
