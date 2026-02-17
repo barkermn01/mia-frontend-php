@@ -214,6 +214,34 @@ class AccountController extends BaseController
                 // Regular customers can view their orders
                 $ordersResponse = $this->client->orders->getOrders();
                 $orders = $ordersResponse['items'] ?? [];
+                
+                // Enrich order items with product details (images, full titles)
+                foreach ($orders as &$order) {
+                    if (!empty($order['items'])) {
+                        foreach ($order['items'] as &$item) {
+                            if (!empty($item['productId'])) {
+                                try {
+                                    $product = $this->client->products->getProduct($item['productId']);
+                                    
+                                    // Add product image
+                                    if (!empty($product['images']) && is_array($product['images'])) {
+                                        $item['image'] = $product['images'][0];
+                                    }
+                                    
+                                    // Add full product title if not already present
+                                    if (empty($item['name']) || $item['name'] === $item['sku']) {
+                                        $item['name'] = $product['title'] ?? $item['name'];
+                                    }
+                                } catch (\Exception $e) {
+                                    error_log("Failed to fetch product {$item['productId']}: " . $e->getMessage());
+                                    // Continue without product details
+                                }
+                            }
+                        }
+                        unset($item); // Break reference
+                    }
+                }
+                unset($order); // Break reference
             }
             
             $this->renderLayout('orders', [
@@ -242,6 +270,31 @@ class AccountController extends BaseController
         
         try {
             $order = $this->client->orders->getOrder($orderId);
+            
+            // Enrich order items with product details (images, full titles)
+            if (!empty($order['items'])) {
+                foreach ($order['items'] as &$item) {
+                    if (!empty($item['productId'])) {
+                        try {
+                            $product = $this->client->products->getProduct($item['productId']);
+                            
+                            // Add product image
+                            if (!empty($product['images']) && is_array($product['images'])) {
+                                $item['image'] = $product['images'][0];
+                            }
+                            
+                            // Add full product title if not already present
+                            if (empty($item['name']) || $item['name'] === $item['sku']) {
+                                $item['name'] = $product['title'] ?? $item['name'];
+                            }
+                        } catch (\Exception $e) {
+                            error_log("Failed to fetch product {$item['productId']}: " . $e->getMessage());
+                            // Continue without product details
+                        }
+                    }
+                }
+                unset($item); // Break reference
+            }
             
             $this->renderLayout('order-details', [
                 'order' => $order

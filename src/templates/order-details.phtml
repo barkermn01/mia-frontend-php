@@ -52,7 +52,25 @@
                 <div class="mt-4 md:mt-0 text-right">
                     <p class="text-sm text-gray-600">Order Date</p>
                     <p class="text-lg font-semibold text-gray-900">
-                        <?= date('F j, Y', strtotime($order['createdAt'])) ?>
+                        <?php 
+                        $createdAt = $order['createdAt'] ?? null;
+                        if ($createdAt) {
+                            if (is_numeric($createdAt)) {
+                                // Unix timestamp (seconds)
+                                echo date('F j, Y', $createdAt);
+                            } else {
+                                // ISO date string
+                                $timestamp = strtotime($createdAt);
+                                if ($timestamp !== false) {
+                                    echo date('F j, Y', $timestamp);
+                                } else {
+                                    echo 'Invalid date';
+                                }
+                            }
+                        } else {
+                            echo 'N/A';
+                        }
+                        ?>
                     </p>
                 </div>
             </div>
@@ -156,7 +174,19 @@
                                 <div>
                                     <p class="font-medium text-gray-900"><?= htmlspecialchars($event['type']) ?></p>
                                     <p class="text-sm text-gray-600">
-                                        <?= date('F j, Y g:i A', strtotime($event['processedAt'])) ?>
+                                        <?php 
+                                        $processedAt = $event['processedAt'] ?? null;
+                                        if ($processedAt) {
+                                            if (is_numeric($processedAt)) {
+                                                echo date('F j, Y g:i A', $processedAt);
+                                            } else {
+                                                $timestamp = strtotime($processedAt);
+                                                echo $timestamp !== false ? date('F j, Y g:i A', $timestamp) : 'Invalid date';
+                                            }
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
                                     </p>
                                 </div>
                                 <span class="text-green-600">
@@ -181,7 +211,19 @@
                                             <?= htmlspecialchars($refund['reason']) ?>
                                         </p>
                                         <p class="text-xs text-gray-500">
-                                            <?= date('F j, Y', strtotime($refund['createdAt'])) ?>
+                                            <?php 
+                                            $refundDate = $refund['createdAt'] ?? null;
+                                            if ($refundDate) {
+                                                if (is_numeric($refundDate)) {
+                                                    echo date('F j, Y', $refundDate);
+                                                } else {
+                                                    $timestamp = strtotime($refundDate);
+                                                    echo $timestamp !== false ? date('F j, Y', $timestamp) : 'Invalid date';
+                                                }
+                                            } else {
+                                                echo 'N/A';
+                                            }
+                                            ?>
                                         </p>
                                     </div>
                                     <span class="text-purple-600">

@@ -34,8 +34,8 @@ class CheckoutController extends BaseController
                     'returnUrl' => $returnUrl
                 ];
                 
-                // Add customer info if logged in
-                if ($customer) {
+                // Add customer info ONLY if logged in
+                if ($customer && $this->isLoggedIn()) {
                     if (!empty($customer['email'])) {
                         $requestData['customerEmail'] = $customer['email'];
                     }
@@ -43,6 +43,9 @@ class CheckoutController extends BaseController
                         $requestData['customerId'] = $customer['id'];
                     }
                 }
+                
+                // NOTE: For guest checkout, do NOT send customerEmail or customerId
+                // Backend will set customerId to "guest" automatically
                 
                 // Add shipping address - check customer profile first, then guest session
                 $shippingAddress = null;
@@ -89,6 +92,13 @@ class CheckoutController extends BaseController
                     return;
                 }
                 
+                // Validate customer phone is present (required for shipping)
+                if (empty($customerPhone)) {
+                    $_SESSION['checkout_error'] = 'Please provide your phone number before checkout.';
+                    $this->redirect('/cart');
+                    return;
+                }
+                
                 // Build validated address with name
                 $validatedAddress = [
                     'name' => trim($customerName),
@@ -105,12 +115,8 @@ class CheckoutController extends BaseController
                 if (!empty($shippingAddress['state'])) {
                     $validatedAddress['state'] = trim($shippingAddress['state']);
                 }
-                // Add phone - prefer from profile for logged-in users, otherwise from address
-                if (!empty($customerPhone)) {
-                    $validatedAddress['phone'] = trim($customerPhone);
-                } elseif (!empty($shippingAddress['phone'])) {
-                    $validatedAddress['phone'] = trim($shippingAddress['phone']);
-                }
+                // Add phone (required) - prefer from profile for logged-in users, otherwise from address
+                $validatedAddress['phone'] = trim($customerPhone);
                 
                 $requestData['shippingAddress'] = $validatedAddress;
                 

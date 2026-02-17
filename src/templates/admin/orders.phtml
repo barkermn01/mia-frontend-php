@@ -103,7 +103,7 @@
                                     <div class="text-sm text-gray-900">
                                         <?php if (!empty($order['customerName'])): ?>
                                             <?= htmlspecialchars($order['customerName']) ?>
-                                        <?php elseif (!empty($order['customerId'])): ?>
+                                        <?php elseif (!empty($order['customerId']) && $order['customerId'] !== 'guest'): ?>
                                             <span class="text-blue-600">Registered User</span>
                                         <?php else: ?>
                                             <span class="text-gray-500">Guest</span>

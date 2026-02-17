@@ -24,24 +24,18 @@
                                         <p class="text-sm text-gray-600">
                                             <?php 
                                             $createdAt = $order['createdAt'] ?? null;
-                                            $dateStr = 'N/A';
-                                            
-                                            if ($createdAt && is_array($createdAt)) {
-                                                // MongoDB date format: ['$date' => ['$numberLong' => '1770971630282']]
-                                                $timestamp = $createdAt['$date']['$numberLong'] ?? null;
-                                                if ($timestamp) {
-                                                    // Convert from milliseconds to seconds
-                                                    $dateStr = date('F j, Y \a\t g:i A', intval(intval($timestamp) / 1000));
+                                            if ($createdAt) {
+                                                if (is_numeric($createdAt)) {
+                                                    // Unix timestamp (seconds)
+                                                    echo 'Placed on ' . date('F j, Y \a\t g:i A', $createdAt);
+                                                } else {
+                                                    // ISO date string
+                                                    echo 'Placed on ' . date('F j, Y \a\t g:i A', strtotime($createdAt));
                                                 }
-                                            } elseif (is_string($createdAt)) {
-                                                // ISO date string
-                                                $dateStr = date('F j, Y \a\t g:i A', strtotime($createdAt));
-                                            } elseif (is_numeric($createdAt)) {
-                                                // Unix timestamp
-                                                $dateStr = date('F j, Y \a\t g:i A', $createdAt);
+                                            } else {
+                                                echo 'Placed on N/A';
                                             }
                                             ?>
-                                            Placed on <?= $dateStr ?>
                                         </p>
                                     </div>
                                 </div>
@@ -184,7 +178,7 @@
 <script>
 function viewOrderDetails(orderId) {
     // In a real implementation, this would open a detailed order view
-    window.location.href = `/order/${orderId}`;
+    window.location.href = `/orders/${orderId}`;
 }
 
 async function reorderItems(orderId) {

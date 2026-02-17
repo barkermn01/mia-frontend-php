@@ -165,6 +165,14 @@ class FrontendRouter
             return;
         }
 
+        // Order details route - /orders/{uuid}
+        if (preg_match('#^/orders/([a-f0-9\-]{36})$#', $path, $matches)) {
+            $_GET['id'] = $matches[1]; // Set the order ID for the controller
+            $controller = new AccountController($this->client, $this->view);
+            $controller->showOrderDetails();
+            return;
+        }
+
         // Static page routes
         if ($path === '/') {
             $controller = new PageController($this->client, $this->view);
