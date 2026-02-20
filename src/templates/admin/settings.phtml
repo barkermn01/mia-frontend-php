@@ -166,6 +166,7 @@
             <i class="fas fa-info-circle mr-2"></i>Common Setting Names
         </h4>
         <div class="text-sm text-blue-800 space-y-1">
+            <p><strong>shipping_calculation_mode</strong> (text) - Shipping calculation mode: "modern" (cost per kg) or "classic" (weight brackets), defaults to "modern"</p>
             <p><strong>vat_rate</strong> (text) - VAT rate as percentage (e.g., 20 for 20% VAT, defaults to 20)</p>
             <p><strong>site_logo</strong> (image) - Your site logo</p>
             <p><strong>site_description</strong> (text) - Site description for SEO</p>
@@ -178,6 +179,28 @@
             <p><strong>main_menu</strong> (list) - Main navigation menu items</p>
             <p><strong>terms_of_service</strong> (markdown) - Terms of service document</p>
             <p><strong>privacy_policy</strong> (markdown) - Privacy policy document</p>
+        </div>
+    </div>
+    
+    <!-- Shipping Configuration Info -->
+    <div class="bg-purple-50 rounded-lg p-6">
+        <h4 class="text-sm font-medium text-purple-900 mb-2">
+            <i class="fas fa-shipping-fast mr-2"></i>Shipping Calculation Modes
+        </h4>
+        <div class="text-sm text-purple-800 space-y-2">
+            <p>Configure how shipping costs are calculated across your site:</p>
+            <div class="ml-4 space-y-2">
+                <div>
+                    <p class="font-medium">Modern Mode (default):</p>
+                    <p class="ml-2">Base cost + cost per kilogram. Example: £5.00 base + £2.00/kg</p>
+                </div>
+                <div>
+                    <p class="font-medium">Classic Mode:</p>
+                    <p class="ml-2">Weight bracket table. Example: 0-1kg: £5.00, 1-2kg: £7.50, 2-5kg: £12.00</p>
+                </div>
+            </div>
+            <p class="mt-2"><strong>To configure:</strong> Add a setting named <code class="bg-purple-100 px-1 rounded">shipping_calculation_mode</code> with value "modern" or "classic"</p>
+            <p><strong>Note:</strong> All shipping methods on your site will use the same mode. When switching modes, you'll need to reconfigure regions for existing shipping methods.</p>
         </div>
     </div>
     

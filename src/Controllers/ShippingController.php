@@ -92,14 +92,31 @@ class ShippingController extends BaseController
                 $regionsData = json_decode($_POST['regions'], true);
                 if (is_array($regionsData)) {
                     foreach ($regionsData as $region) {
-                        if (!empty($region['countryCode']) && isset($region['baseCost'])) {
-                            $regions[] = [
+                        if (!empty($region['countryCode'])) {
+                            $regionData = [
                                 'countryCode' => $region['countryCode'],
-                                'countryName' => $region['countryName'] ?? '',
-                                'baseCost' => (int)($region['baseCost'] * 100),
-                                'costPerKg' => !empty($region['costPerKg']) ? (int)($region['costPerKg'] * 100) : 0,
-                                'freeShippingThreshold' => !empty($region['freeShippingThreshold']) ? (int)($region['freeShippingThreshold'] * 100) : null
+                                'countryName' => $region['countryName'] ?? ''
                             ];
+                            
+                            // Check if this is Classic mode (weightBrackets) or Modern mode (baseCost)
+                            if (isset($region['weightBrackets']) && is_array($region['weightBrackets'])) {
+                                // Classic mode: weight brackets
+                                $regionData['weightBrackets'] = $region['weightBrackets'];
+                            } elseif (isset($region['baseCost'])) {
+                                // Modern mode: base cost + cost per kg
+                                $regionData['baseCost'] = (int)$region['baseCost'];
+                                $regionData['costPerKg'] = !empty($region['costPerKg']) ? (int)$region['costPerKg'] : 0;
+                            } else {
+                                // Skip invalid regions
+                                continue;
+                            }
+                            
+                            // Free shipping threshold (both modes)
+                            if (!empty($region['freeShippingThreshold'])) {
+                                $regionData['freeShippingThreshold'] = (int)$region['freeShippingThreshold'];
+                            }
+                            
+                            $regions[] = $regionData;
                         }
                     }
                 }
@@ -163,16 +180,31 @@ class ShippingController extends BaseController
                     $processedCountries = [];
                     
                     foreach ($regionsData as $region) {
-                        if (!empty($region['countryCode']) && isset($region['baseCost'])) {
+                        if (!empty($region['countryCode'])) {
                             $countryCode = $region['countryCode'];
                             $processedCountries[] = $countryCode;
                             
                             $regionData = [
-                                'countryName' => $region['countryName'] ?? '',
-                                'baseCost' => (int)($region['baseCost'] * 100),
-                                'costPerKg' => !empty($region['costPerKg']) ? (int)($region['costPerKg'] * 100) : 0,
-                                'freeShippingThreshold' => !empty($region['freeShippingThreshold']) ? (int)($region['freeShippingThreshold'] * 100) : null
+                                'countryName' => $region['countryName'] ?? ''
                             ];
+                            
+                            // Check if this is Classic mode (weightBrackets) or Modern mode (baseCost)
+                            if (isset($region['weightBrackets']) && is_array($region['weightBrackets'])) {
+                                // Classic mode: weight brackets
+                                $regionData['weightBrackets'] = $region['weightBrackets'];
+                            } elseif (isset($region['baseCost'])) {
+                                // Modern mode: base cost + cost per kg
+                                $regionData['baseCost'] = (int)$region['baseCost'];
+                                $regionData['costPerKg'] = !empty($region['costPerKg']) ? (int)$region['costPerKg'] : 0;
+                            } else {
+                                // Skip invalid regions
+                                continue;
+                            }
+                            
+                            // Free shipping threshold (both modes)
+                            if (!empty($region['freeShippingThreshold'])) {
+                                $regionData['freeShippingThreshold'] = (int)$region['freeShippingThreshold'];
+                            }
 
                             if (isset($existingRegions[$countryCode])) {
                                 $this->client->shipping->updateRegion($methodId, $countryCode, $regionData);

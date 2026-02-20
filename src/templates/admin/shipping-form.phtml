@@ -76,9 +76,14 @@
                     <h4 class="text-md font-medium text-gray-900">Regional Pricing</h4>
                     <p class="text-sm text-gray-600">Configure pricing for different countries</p>
                 </div>
-                <button type="button" id="add-region-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                    <i class="fas fa-plus mr-2"></i>Add Region
-                </button>
+                <div class="flex space-x-2">
+                    <button type="button" id="add-all-regions-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-globe mr-2"></i>Add All Regions
+                    </button>
+                    <button type="button" id="add-region-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Add Region
+                    </button>
+                </div>
             </div>
 
             <div id="regions-container" class="space-y-4">
@@ -107,8 +112,12 @@ window.ShippingFormData = {
     isEdit: <?= $isEdit ? 'true' : 'false' ?>,
     regions: <?= json_encode($method['regions'] ?? []) ?>
 };
+
+// Initialize ModalManager when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof ModalManager !== 'undefined') {
+        window.modalManager = new ModalManager();
+    }
+});
 </script>
 <script src="/js/admin/shipping-form.js"></script>
-<script>
-window.modalManager = new ModalManager();
-</script>

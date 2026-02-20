@@ -346,6 +346,23 @@ class AdminRouter
                 }
                 break;
             
+            // Get single setting
+            case (preg_match('/^\/settings\/(.+)$/', $apiRoute, $matches) ? true : false):
+                if ($method === 'GET') {
+                    try {
+                        $settingName = urldecode($matches[1]);
+                        $setting = $this->client->siteSettings->getSetting($settingName);
+                        echo json_encode($setting);
+                    } catch (\Exception $e) {
+                        // Setting doesn't exist, return default
+                        echo json_encode(['value' => null]);
+                    }
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
             // Alert API routes
             case (preg_match('/^\/alerts\/([a-f0-9\-]{36})\/([a-f0-9\-]{36})\/read$/', $apiRoute, $matches) ? true : false):
                 if ($method === 'PATCH') {

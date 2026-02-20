@@ -20,6 +20,52 @@
         </a>
     </div>
 
+    <!-- Shipping Calculation Mode Toggle (Compact) -->
+    <div class="bg-white rounded-lg shadow">
+        <button type="button" id="toggle-mode-section" class="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+            <div class="flex items-center">
+                <i class="fas fa-calculator text-gray-600 mr-3"></i>
+                <div class="text-left">
+                    <div class="font-medium text-gray-900">Shipping Calculation Mode</div>
+                    <div class="text-sm text-gray-600">
+                        Current: <span id="current-mode-display-compact" class="font-medium">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <i class="fas fa-chevron-down text-gray-400 transition-transform" id="mode-section-icon"></i>
+        </button>
+        
+        <div id="mode-section-content" class="hidden border-t border-gray-200 px-6 py-4">
+            <div class="space-y-3 mb-4">
+                <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" id="mode-modern-label">
+                    <input type="radio" name="shipping_mode" value="modern" id="mode-modern" class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500">
+                    <div class="ml-3">
+                        <div class="font-medium text-gray-900">Modern Mode</div>
+                        <div class="text-sm text-gray-600">Base cost + cost per kilogram (e.g., £5.00 + £2.00/kg)</div>
+                    </div>
+                </label>
+                
+                <label class="flex items-start p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors" id="mode-classic-label">
+                    <input type="radio" name="shipping_mode" value="classic" id="mode-classic" class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500">
+                    <div class="ml-3">
+                        <div class="font-medium text-gray-900">Classic Mode</div>
+                        <div class="text-sm text-gray-600">Weight bracket table (e.g., 0-1kg: £5.00, 1-2kg: £7.50)</div>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="flex items-center justify-between pt-3 border-t border-gray-200">
+                <div class="text-xs text-amber-600">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Changing modes requires reconfiguring regions
+                </div>
+                <button type="button" id="save-mode-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed text-sm" disabled>
+                    <i class="fas fa-save mr-2"></i>Save Mode
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Shipping Methods List -->
     <?php if (!empty($methods)): ?>
         <div class="grid gap-6">
@@ -84,9 +130,21 @@
                                                             <?php endif; ?>
                                                         </div>
                                                         <div class="space-y-1 text-xs text-gray-600">
-                                                            <div>Base: <?= $view->formatPrice($region['baseCost']) ?></div>
-                                                            <?php if (!empty($region['costPerKg'])): ?>
-                                                                <div>Per kg: <?= $view->formatPrice($region['costPerKg']) ?></div>
+                                                            <?php if (!empty($region['weightBrackets'])): ?>
+                                                                <!-- Classic Mode: Weight Brackets -->
+                                                                <div class="font-medium text-gray-700">Weight Brackets:</div>
+                                                                <?php foreach (array_slice($region['weightBrackets'], 0, 3) as $bracket): ?>
+                                                                    <div><?= number_format($bracket['minKg'], 1) ?>-<?= number_format($bracket['maxKg'], 1) ?>kg: <?= $view->formatPrice($bracket['cost']) ?></div>
+                                                                <?php endforeach; ?>
+                                                                <?php if (count($region['weightBrackets']) > 3): ?>
+                                                                    <div class="text-gray-500">+<?= count($region['weightBrackets']) - 3 ?> more...</div>
+                                                                <?php endif; ?>
+                                                            <?php else: ?>
+                                                                <!-- Modern Mode: Base + Per Kg -->
+                                                                <div>Base: <?= $view->formatPrice($region['baseCost']) ?></div>
+                                                                <?php if (!empty($region['costPerKg'])): ?>
+                                                                    <div>Per kg: <?= $view->formatPrice($region['costPerKg']) ?></div>
+                                                                <?php endif; ?>
                                                             <?php endif; ?>
                                                             <?php if (!empty($region['freeShippingThreshold'])): ?>
                                                                 <div class="text-green-600">Free over: <?= $view->formatPrice($region['freeShippingThreshold']) ?></div>
