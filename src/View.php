@@ -182,4 +182,13 @@ class View
         
         return $isUnlimited || $inventoryType === 'digital' || $available > 0;
     }
+
+    /**
+     * Get country display name from country code
+     * Looks up the country code in the supportedCountries array
+     */
+    public function getCountryName(string $countryCode, array $supportedCountries): string
+    {
+        return $supportedCountries[$countryCode] ?? $countryCode;
+    }
 }

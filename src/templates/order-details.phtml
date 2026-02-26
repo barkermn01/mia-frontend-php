@@ -150,7 +150,7 @@
                         <?php endif; ?>
                         <?= htmlspecialchars($order['shippingAddress']['postalCode'] ?? '') ?>
                     </p>
-                    <p><?= htmlspecialchars($order['shippingAddress']['country'] ?? '') ?></p>
+                    <p><?= htmlspecialchars($view->getCountryName($order['shippingAddress']['country'] ?? '', $supportedCountries)) ?></p>
                 </div>
                 
                 <?php if (!empty($order['trackingNumber'])): ?>

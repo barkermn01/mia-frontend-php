@@ -226,7 +226,7 @@
                                     <p><?= htmlspecialchars($displayAddress['state']) ?></p>
                                 <?php endif; ?>
                                 <p><?= htmlspecialchars($displayAddress['postalCode'] ?? '') ?></p>
-                                <p><?= htmlspecialchars($displayAddress['country'] ?? '') ?></p>
+                                <p><?= htmlspecialchars($view->getCountryName($displayAddress['country'] ?? '', $supportedCountries)) ?></p>
                                 <?php 
                                 // Display phone - for logged in users use profile, for guests use address phone
                                 $displayPhone = '';

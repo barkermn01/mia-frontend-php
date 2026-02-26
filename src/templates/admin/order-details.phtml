@@ -222,7 +222,7 @@
                     <?php endif; ?>
                     <?= htmlspecialchars($order['shippingAddress']['postalCode'] ?? '') ?>
                 </p>
-                <p><?= htmlspecialchars($order['shippingAddress']['country'] ?? '') ?></p>
+                <p><?= htmlspecialchars($view->getCountryName($order['shippingAddress']['country'] ?? '', $supportedCountries)) ?></p>
                 <?php if (!empty($order['shippingAddress']['phone'])): ?>
                     <p class="mt-2">
                         <i class="fas fa-phone text-gray-500 mr-1"></i>

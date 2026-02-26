@@ -179,6 +179,7 @@ class AccountController extends BaseController
                 'profile' => $profile,
                 'savedBaskets' => $savedBaskets,
                 'isAdmin' => isset($customer['role']) && in_array($customer['role'], ['super_admin', 'site_admin']),
+                'supportedCountries' => $this->getSupportedCountries(),
                 'jsConfig' => [
                     'profileData' => [
                         'firstName' => $profile['firstName'] ?? '',
@@ -297,7 +298,8 @@ class AccountController extends BaseController
             }
             
             $this->renderLayout('order-details', [
-                'order' => $order
+                'order' => $order,
+                'supportedCountries' => $this->getSupportedCountries()
             ], 'Order #' . ($order['orderNumber'] ?? $orderId) . ' - OxWinches');
             
         } catch (\Exception $e) {

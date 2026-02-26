@@ -63,9 +63,13 @@ class OrderController extends BaseController
             // Use the new getAdminOrder method for admin panel (no customer restriction)
             $order = $this->client->orders->getAdminOrder($orderId);
             
+            // Get supported countries for display
+            $supportedCountries = $this->getSupportedCountries();
+            
             $content = $this->view->render('order-details', [
                 'order' => $order,
-                'adminPath' => $this->adminPath
+                'adminPath' => $this->adminPath,
+                'supportedCountries' => $supportedCountries
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [
@@ -76,6 +80,28 @@ class OrderController extends BaseController
         } catch (MiaException $e) {
             $this->showError("Failed to load order details: " . $e->getMessage());
         }
+    }
+
+    private function getSupportedCountries(): array
+    {
+        try {
+            $setting = $this->client->siteSettings->getSetting('Supported Countries');
+            if (isset($setting['value']) && is_array($setting['value'])) {
+                return $setting['value'];
+            }
+        } catch (\Exception $e) {
+            // Setting not found, use fallback
+        }
+        
+        // Default fallback countries
+        return [
+            'GB' => 'United Kingdom',
+            'US' => 'United States',
+            'CA' => 'Canada',
+            'AU' => 'Australia',
+            'DE' => 'Germany',
+            'FR' => 'France'
+        ];
     }
     
     public function handleProcess(): void

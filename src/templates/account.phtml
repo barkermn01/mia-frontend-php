@@ -103,7 +103,7 @@
                                     </div>
                                     
                                     <?php if (!empty($deliveryAddress['country'])): ?>
-                                        <div class="text-gray-700"><?= htmlspecialchars($deliveryAddress['country']) ?></div>
+                                        <div class="text-gray-700"><?= htmlspecialchars($view->getCountryName($deliveryAddress['country'], $supportedCountries)) ?></div>
                                     <?php endif; ?>
                                 </div>
                                 

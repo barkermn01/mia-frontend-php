@@ -212,7 +212,8 @@ class CheckoutController extends BaseController
         
         $content = $this->view->render('checkout-complete', [
             'order' => $order,
-            'error' => $error
+            'error' => $error,
+            'supportedCountries' => $this->getSupportedCountries()
         ]);
         
         echo $this->view->renderLayout('layout', $content, [
