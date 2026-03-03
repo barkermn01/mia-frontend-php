@@ -85,7 +85,7 @@ class OrderController extends BaseController
     private function getSupportedCountries(): array
     {
         try {
-            $setting = $this->client->siteSettings->getSetting('Supported Countries');
+            $setting = $this->getSetting('Supported Countries');
             if (isset($setting['value']) && is_array($setting['value'])) {
                 return $setting['value'];
             }

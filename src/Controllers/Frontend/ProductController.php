@@ -169,7 +169,7 @@ class ProductController extends BaseController
     {
         try {
             // Get VAT rate setting (no siteId needed, SDK handles it)
-            $setting = $this->client->siteSettings->getSetting('vat_rate');
+            $setting = $this->getSetting('vat_rate');
             
             if (isset($setting['value']) && is_numeric($setting['value'])) {
                 // Return as decimal (e.g., 0.20 for 20%)

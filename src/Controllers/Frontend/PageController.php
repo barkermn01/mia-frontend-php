@@ -17,7 +17,7 @@ class PageController extends BaseController
             // Fetch homepage categories setting (controlled by site admins)
             $homepageCategories = null;
             try {
-                $setting = $this->client->siteSettings->getSetting('homepage_categories');
+                $setting = $this->getSetting('homepage_categories');
                 if (isset($setting['value'])) {
                     // Decode if it's a JSON string
                     if (is_string($setting['value'])) {
@@ -180,7 +180,7 @@ class PageController extends BaseController
             // Get excluded tags setting
             $excludedTags = [];
             try {
-                $setting = $this->client->siteSettings->getSetting('exclude_tags_from_categories');
+                $setting = $this->getSetting('exclude_tags_from_categories');
                 if (isset($setting['value'])) {
                     // Decode if it's a JSON string
                     if (is_string($setting['value'])) {
@@ -235,7 +235,7 @@ class PageController extends BaseController
     private function getCategorySetting(string $key, string $default): string
     {
         try {
-            $setting = $this->client->siteSettings->getSetting($key);
+            $setting = $this->getSetting($key);
             if (isset($setting['value']) && !empty(trim($setting['value']))) {
                 return $setting['value'];
             }

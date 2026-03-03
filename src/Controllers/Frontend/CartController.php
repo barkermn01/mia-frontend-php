@@ -321,7 +321,7 @@ class CartController extends BaseController
     {
         try {
             // Get VAT rate setting (no siteId needed, SDK handles it)
-            $setting = $this->client->siteSettings->getSetting('vat_rate');
+            $setting = $this->getSetting('vat_rate');
             
             if (isset($setting['value']) && is_numeric($setting['value'])) {
                 // Return as decimal (e.g., 0.20 for 20%)
@@ -338,7 +338,7 @@ class CartController extends BaseController
     private function isCheckoutEnabled(): bool
     {
         try {
-            $setting = $this->client->siteSettings->getSetting('checkout_enabled');
+            $setting = $this->getSetting('checkout_enabled');
             
             if (isset($setting['value'])) {
                 $value = strtolower(trim($setting['value']));

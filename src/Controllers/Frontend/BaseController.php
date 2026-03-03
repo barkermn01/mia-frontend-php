@@ -4,12 +4,14 @@ namespace Marti\Frontend\Controllers\Frontend;
 
 use Mia\SDK\MiaClient;
 use Marti\Frontend\View;
+use Marti\Frontend\SettingsCache;
 
 abstract class BaseController
 {
     protected MiaClient $client;
     protected View $view;
     protected ?string $cartId = null;
+    protected ?SettingsCache $settingsCache = null;
 
     public function __construct(MiaClient $client, View $view)
     {
@@ -17,6 +19,12 @@ abstract class BaseController
         $this->view = $view;
         
         $this->cartId = $_SESSION['cart_id'] ?? null;
+        
+        // Initialize settings cache
+        $siteId = $_ENV['MIA_SITE_ID'] ?? getenv('MIA_SITE_ID');
+        if ($siteId) {
+            $this->settingsCache = new SettingsCache($siteId);
+        }
     }
 
     protected function isLoggedIn(): bool
@@ -96,7 +104,7 @@ abstract class BaseController
     protected function getMenuCategories(): array
     {
         try {
-            $setting = $this->client->siteSettings->getSetting('menu_categories');
+            $setting = $this->getSetting('menu_categories');
             if (isset($setting['value'])) {
                 // Decode if it's a JSON string
                 if (is_string($setting['value'])) {
@@ -130,7 +138,7 @@ abstract class BaseController
     {
         try {
             // Setting name is "Supported Countries" (with spaces and capitals)
-            $setting = $this->client->siteSettings->getSetting('Supported Countries');
+            $setting = $this->getSetting('Supported Countries');
             if (isset($setting['value']) && is_array($setting['value'])) {
                 return $setting['value'];
             }
@@ -147,6 +155,50 @@ abstract class BaseController
             'DE' => 'Germany',
             'FR' => 'France'
         ];
+    }
+
+    /**
+     * Get a setting with caching support
+     * 
+     * @param string $name Setting name
+     * @return array|null Setting data ['type' => ..., 'value' => ..., ...] or null if not found
+     */
+    protected function getSetting(string $name): ?array
+    {
+        // Try cache first if available
+        if ($this->settingsCache) {
+            $cached = $this->settingsCache->get($name);
+            
+            // Cache hit with data
+            if ($cached !== null && $cached !== false) {
+                return $cached;
+            }
+            
+            // Cache hit with "not found" marker
+            if ($cached === false) {
+                return null;
+            }
+        }
+
+        // Cache miss or unavailable - fetch from API
+        try {
+            $setting = $this->client->siteSettings->getSetting($name);
+            
+            // Store in cache for future requests
+            if ($this->settingsCache && $setting) {
+                $this->settingsCache->set($name, $setting);
+            }
+            
+            return $setting;
+        } catch (\Exception $e) {
+            // Setting not found - cache the "not found" result
+            if ($this->settingsCache) {
+                $this->settingsCache->setNotFound($name);
+            }
+            
+            error_log("Setting '{$name}' not found: " . $e->getMessage());
+            return null;
+        }
     }
 
     protected function redirect(string $url): void

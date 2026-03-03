@@ -141,6 +141,11 @@ class SettingsController extends BaseController
             // Update the setting (no siteId needed, SDK handles it)
             $this->client->siteSettings->updateSetting($settingName, $settingType, $settingValue);
             
+            // Invalidate cache
+            if ($this->settingsCache) {
+                $this->settingsCache->delete($settingName);
+            }
+            
             $this->redirect('/settings', "Setting '{$settingName}' updated successfully");
         } catch (\Exception $e) {
             $this->redirect('/settings', $e->getMessage(), true);
@@ -161,6 +166,11 @@ class SettingsController extends BaseController
             
             // Delete the setting (no siteId needed, SDK handles it)
             $this->client->siteSettings->deleteSetting($settingName);
+            
+            // Invalidate cache
+            if ($this->settingsCache) {
+                $this->settingsCache->delete($settingName);
+            }
             
             echo json_encode([
                 'success' => true,

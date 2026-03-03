@@ -13,9 +13,9 @@ class SessionConfig
         }
 
         // Get Memcached configuration from environment variables
-        // Defaults to localhost for local development
-        $memcachedHost = getenv('MEMCACHED_HOST') ?: 'localhost';
-        $memcachedPort = getenv('MEMCACHED_PORT') ?: '11211';
+        // Defaults to localhost for local development when no environment variable is set
+        $memcachedHost = $_ENV['MEMCACHED_HOST'] ?? 'localhost';
+        $memcachedPort = $_ENV['MEMCACHED_PORT'] ?? '11211';
 
         // Try to connect to Memcached to verify it's available
         $memcached = new \Memcached();

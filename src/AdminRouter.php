@@ -22,6 +22,7 @@ class AdminRouter
     private $view;
     private $config;
     private $adminPath;
+    private $settingsCache;
     
     // Controllers
     private $productController;
@@ -40,6 +41,7 @@ class AdminRouter
         $this->initializeSession();
         $this->initializeClient();
         $this->initializeCache();
+        $this->initializeSettingsCache();
         $this->initializeView();
         $this->initializeControllers();
     }
@@ -105,6 +107,13 @@ class AdminRouter
     private function initializeCache(): void
     {
         $this->cache = null;
+    }
+
+    private function initializeSettingsCache(): void
+    {
+        if (!empty($this->config['site_id'])) {
+            $this->settingsCache = new SettingsCache($this->config['site_id']);
+        }
     }
 
     private function initializeView(): void
@@ -351,10 +360,41 @@ class AdminRouter
                 if ($method === 'GET') {
                     try {
                         $settingName = urldecode($matches[1]);
-                        $setting = $this->client->siteSettings->getSetting($settingName);
+                        
+                        // Try cache first
+                        $setting = null;
+                        if ($this->settingsCache) {
+                            $cached = $this->settingsCache->get($settingName);
+                            
+                            // Cache hit with data
+                            if ($cached !== null && $cached !== false) {
+                                $setting = $cached;
+                            }
+                            
+                            // Cache hit with "not found" marker
+                            if ($cached === false) {
+                                echo json_encode(['value' => null]);
+                                return;
+                            }
+                        }
+                        
+                        // Cache miss - fetch from API
+                        if ($setting === null) {
+                            $setting = $this->client->siteSettings->getSetting($settingName);
+                            
+                            // Store in cache
+                            if ($this->settingsCache && $setting) {
+                                $this->settingsCache->set($settingName, $setting);
+                            }
+                        }
+                        
                         echo json_encode($setting);
                     } catch (\Exception $e) {
-                        // Setting doesn't exist, return default
+                        // Setting doesn't exist - cache the "not found" result
+                        if ($this->settingsCache) {
+                            $this->settingsCache->setNotFound($settingName);
+                        }
+                        
                         echo json_encode(['value' => null]);
                     }
                 } else {
