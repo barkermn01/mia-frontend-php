@@ -88,11 +88,12 @@ class SiteAdminController extends BaseController
     public function handleAdd(): void
     {
         try {
+            // Force role to site_admin only - prevent any manipulation
             $data = [
                 'email' => $_POST['email'] ?? '',
                 'firstName' => $_POST['firstName'] ?? '',
                 'lastName' => $_POST['lastName'] ?? '',
-                'role' => $_POST['role'] ?? 'site_admin',
+                'role' => 'site_admin', // Always site_admin, never read from POST
                 'password' => $_POST['password'] ?? '',
                 'status' => $_POST['status'] ?? 'active'
             ];
@@ -146,11 +147,12 @@ class SiteAdminController extends BaseController
         }
 
         try {
+            // Force role to site_admin only - prevent any manipulation
             $data = [
                 'email' => $_POST['email'] ?? '',
                 'firstName' => $_POST['firstName'] ?? '',
                 'lastName' => $_POST['lastName'] ?? '',
-                'role' => $_POST['role'] ?? 'site_admin',
+                'role' => 'site_admin', // Always site_admin, never read from POST
                 'status' => $_POST['status'] ?? 'active'
             ];
 
