@@ -1,0 +1,50 @@
+[
+    {
+        "ParameterKey":  "ProjectName",
+        "ParameterValue":  "mia-frontend"
+    },
+    {
+        "ParameterKey":  "MiaSiteId",
+        "ParameterValue":  "c41374a3-a02d-4922-adf0-4e26728fdfa6"
+    },
+    {
+        "ParameterKey":  "Environment",
+        "ParameterValue":  "production"
+    },
+    {
+        "ParameterKey":  "FrontendDomains",
+        "ParameterValue":  "oxwinches.com,oxwinch.com,oxwinches.miaai.me"
+    },
+    {
+        "ParameterKey":  "SSLCertificateArn",
+        "ParameterValue":  "arn:aws:acm:eu-west-2:959690686680:certificate/bea31ac9-71fe-40f1-95f7-06e6d5b94572"
+    },
+    {
+        "ParameterKey":  "ImageTag",
+        "ParameterValue":  "latest"
+    },
+    {
+        "ParameterKey":  "WebCpu",
+        "ParameterValue":  "512"
+    },
+    {
+        "ParameterKey":  "WebMemory",
+        "ParameterValue":  "2048"
+    },
+    {
+        "ParameterKey":  "MinTasks",
+        "ParameterValue":  "1"
+    },
+    {
+        "ParameterKey":  "MaxTasks",
+        "ParameterValue":  "10"
+    },
+    {
+        "ParameterKey":  "TargetCPUUtilization",
+        "ParameterValue":  "70"
+    },
+    {
+        "ParameterKey":  "TargetRequestCountPerTarget",
+        "ParameterValue":  "1000"
+    }
+]

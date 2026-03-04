@@ -24,6 +24,10 @@ abstract class BaseController
         $siteId = $_ENV['MIA_SITE_ID'] ?? getenv('MIA_SITE_ID');
         if ($siteId) {
             $this->settingsCache = new SettingsCache($siteId);
+            // Pass settings getter callback to view
+            $this->view->setSettingsGetter(function($name) {
+                return $this->getSetting($name);
+            });
         }
     }
 
@@ -171,16 +175,19 @@ abstract class BaseController
             
             // Cache hit with data
             if ($cached !== null && $cached !== false) {
+                error_log("[SETTINGS] Cache HIT: {$name}");
                 return $cached;
             }
             
             // Cache hit with "not found" marker
             if ($cached === false) {
+                error_log("[SETTINGS] Cache HIT (not found): {$name}");
                 return null;
             }
         }
 
         // Cache miss or unavailable - fetch from API
+        error_log("[SETTINGS] Cache MISS: {$name} - fetching from API");
         try {
             $setting = $this->client->siteSettings->getSetting($name);
             
@@ -207,9 +214,20 @@ abstract class BaseController
         exit;
     }
 
-    protected function renderLayout(string $template, array $data = [], string $title = 'OxWinches'): void
+    protected function renderLayout(string $template, array $data = [], string $title = ''): void
     {
         $content = $this->view->render($template, $data);
+        
+        // Get title suffix from settings
+        $titleSuffix = $this->view->setting('SEO:title_suffix', 'Store');
+        
+        // If no title provided, use just the suffix
+        if (empty($title)) {
+            $title = $titleSuffix;
+        } else {
+            // Append suffix to title
+            $title = $title . ' - ' . $titleSuffix;
+        }
         
         $layoutData = [
             'title' => $title,
@@ -232,8 +250,11 @@ abstract class BaseController
         http_response_code($code);
         $content = $this->view->render('error', ['message' => $message]);
         
+        // Get title suffix from settings
+        $titleSuffix = $this->view->setting('SEO:title_suffix', 'Store');
+        
         echo $this->view->renderLayout('layout', $content, [
-            'title' => 'Error - OxWinches',
+            'title' => 'Error - ' . $titleSuffix,
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
             'isLoggedIn' => $this->isLoggedIn(),
@@ -246,8 +267,11 @@ abstract class BaseController
         http_response_code(404);
         $content = $this->view->render('404');
         
+        // Get title suffix from settings
+        $titleSuffix = $this->view->setting('SEO:title_suffix', 'Store');
+        
         echo $this->view->renderLayout('layout', $content, [
-            'title' => '404 Not Found - OxWinches',
+            'title' => '404 Not Found - ' . $titleSuffix,
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
             'isLoggedIn' => $this->isLoggedIn(),

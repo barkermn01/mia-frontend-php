@@ -25,6 +25,10 @@ abstract class BaseController
         // Initialize settings cache
         if (!empty($config['site_id'])) {
             $this->settingsCache = new SettingsCache($config['site_id']);
+            // Pass settings getter callback to view
+            $this->view->setSettingsGetter(function($name) {
+                return $this->getSetting($name);
+            });
         }
     }
 
@@ -98,16 +102,19 @@ abstract class BaseController
             
             // Cache hit with data
             if ($cached !== null && $cached !== false) {
+                error_log("[SETTINGS] Cache HIT: {$name}");
                 return $cached;
             }
             
             // Cache hit with "not found" marker
             if ($cached === false) {
+                error_log("[SETTINGS] Cache HIT (not found): {$name}");
                 return null;
             }
         }
 
         // Cache miss or unavailable - fetch from API
+        error_log("[SETTINGS] Cache MISS: {$name} - fetching from API");
         try {
             $setting = $this->client->siteSettings->getSetting($name);
             

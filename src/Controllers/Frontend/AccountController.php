@@ -16,7 +16,7 @@ class AccountController extends BaseController
         $content = $this->view->render('login');
         
         echo $this->view->renderLayout('layout', $content, [
-            'title' => 'Login - OxWinches',
+            'title' => 'Login',
             'cartCount' => $this->getCartItemCount(),
             'customer' => null,
             'isLoggedIn' => false
@@ -31,7 +31,7 @@ class AccountController extends BaseController
         if (!$email || !$password) {
             $content = $this->view->render('login', ['error' => 'Email and password are required']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Login - OxWinches',
+                'title' => 'Login',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -59,7 +59,7 @@ class AccountController extends BaseController
             error_log("Login failed: " . $e->getMessage());
             $content = $this->view->render('login', ['error' => 'Invalid email or password']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Login - OxWinches',
+                'title' => 'Login',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -77,7 +77,7 @@ class AccountController extends BaseController
         $content = $this->view->render('register');
         
         echo $this->view->renderLayout('layout', $content, [
-            'title' => 'Register - OxWinches',
+            'title' => 'Register',
             'cartCount' => $this->getCartItemCount(),
             'customer' => null,
             'isLoggedIn' => false
@@ -94,7 +94,7 @@ class AccountController extends BaseController
         if (!$email || !$password || !$firstName || !$lastName) {
             $content = $this->view->render('register', ['error' => 'All fields are required']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Register - OxWinches',
+                'title' => 'Register',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -112,7 +112,7 @@ class AccountController extends BaseController
             
             $content = $this->view->render('register', ['success' => 'Registration successful! You can now log in with your credentials.']);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Register - OxWinches',
+                'title' => 'Register',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -120,7 +120,7 @@ class AccountController extends BaseController
         } catch (\Exception $e) {
             $content = $this->view->render('register', ['error' => 'Registration failed: ' . $e->getMessage()]);
             echo $this->view->renderLayout('layout', $content, [
-                'title' => 'Register - OxWinches',
+                'title' => 'Register',
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => null,
                 'isLoggedIn' => false
@@ -189,7 +189,7 @@ class AccountController extends BaseController
                     'deliveryAddress' => $profile['shippingAddress'] ?? null,
                     'supportedCountries' => $this->getSupportedCountries()
                 ]
-            ], 'My Account - OxWinches');
+            ], 'My Account');
             
         } catch (MiaException $e) {
             error_log("Account MiaException: " . $e->getMessage());
@@ -248,7 +248,7 @@ class AccountController extends BaseController
             $this->renderLayout('orders', [
                 'orders' => $orders,
                 'isAdmin' => isset($customer['role']) && in_array($customer['role'], ['super_admin', 'site_admin'])
-            ], 'Order History - OxWinches');
+            ], 'Order History');
             
         } catch (MiaException $e) {
             error_log("Orders MiaException: " . $e->getMessage());
@@ -300,7 +300,7 @@ class AccountController extends BaseController
             $this->renderLayout('order-details', [
                 'order' => $order,
                 'supportedCountries' => $this->getSupportedCountries()
-            ], 'Order #' . ($order['orderNumber'] ?? $orderId) . ' - OxWinches');
+            ], 'Order #' . ($order['orderNumber'] ?? $orderId));
             
         } catch (\Exception $e) {
             error_log("Order details error: " . $e->getMessage());

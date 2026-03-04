@@ -10,12 +10,18 @@ class ProductController extends BaseController
 {
     public function index(): void
     {
+        error_log("=== ProductController::index() CALLED ===");
         try {
             $page = (int)($_GET['page'] ?? 1);
             $search = $_GET['search'] ?? '';
             $category = $_GET['category'] ?? '';
             $selectedFilters = $_GET['filters'] ?? [];
             $sort = $_GET['sort'] ?? '';
+            
+            error_log("About to fetch filter mode setting...");
+            // Get filter mode setting
+            $filterMode = $this->getSetting('OPERATION:filter_mode')['value'] ?? 'Faceted';
+            error_log("Filter mode: " . $filterMode);
             
             // Convert single category to filters array for backward compatibility
             if ($category && !$selectedFilters) {
@@ -51,7 +57,9 @@ class ProductController extends BaseController
                 }
             }
             
+            error_log("About to call getProducts()...");
             $products = $this->getProducts($filters);
+            error_log("Products fetched: " . ($products['total'] ?? 0) . " total");
             
             // Get categories for sidebar - pass current filters to get updated counts
             $categoryFilters = [];
@@ -66,7 +74,9 @@ class ProductController extends BaseController
                 $categoryFilters['search'] = $search;
             }
             
+            error_log("About to call getCategories() with filters: " . json_encode($categoryFilters));
             $categories = $this->getCategories($categoryFilters);
+            error_log("Categories fetched - primary: " . count($categories['primary'] ?? []) . ", filter groups: " . count($categories['filters'] ?? []));
             
             // Set page-specific resources
             $title = 'Products';
@@ -81,7 +91,6 @@ class ProductController extends BaseController
                 }, is_array($selectedFilters) ? $selectedFilters : [$selectedFilters]);
                 $title .= ' - Filters: ' . htmlspecialchars(implode(', ', $filterNames));
             }
-            $title .= ' - OxWinches';
             
             HtmlResources::getInstance()->setTitle($title);
             HtmlResources::getInstance()->setDescription('Browse our collection of products. Find exactly what you\'re looking for.');
@@ -96,7 +105,8 @@ class ProductController extends BaseController
                 'page' => $page,
                 'baseUrl' => '/products',
                 'vatRate' => $this->getVatRate(),
-                'sort' => $sort
+                'sort' => $sort,
+                'filterMode' => $filterMode
             ]);
             
             echo $this->view->renderLayout('layout', $content, [
@@ -127,31 +137,76 @@ class ProductController extends BaseController
     private function getCategories(array $filters = []): array
     {
         try {
-            $categories = $this->client->products->getCategories(array_merge(['status' => 'active'], $filters));
+            $apiFilters = array_merge(['status' => 'active'], $filters);
+            error_log("getCategories() - Sending to API: " . json_encode($apiFilters));
+            
+            $categories = $this->client->products->getCategories($apiFilters);
+            
+            error_log("Raw API response: " . json_encode($categories));
+            
             $allCategories = $categories['categories'] ?? [];
+            
+            // DEBUG: Log what we're getting from the API
+            error_log("=== DEBUG getCategories ===");
+            error_log("Total categories from API: " . count($allCategories));
+            error_log("First 10 categories:");
+            foreach (array_slice($allCategories, 0, 10) as $cat) {
+                error_log("  - Name: " . $cat['name'] . " | Count: " . $cat['count']);
+            }
+            error_log("=========================");
             
             $primaryCategories = [];
             $filterGroups = [];
             
-            foreach ($allCategories as $category) {
-                if (strpos($category['name'], ':') === false) {
-                    // Primary category (no colon)
-                    $primaryCategories[] = $category;
-                } else {
-                    // Filter category (has colon) - group by key
-                    $parts = explode(':', $category['name'], 2);
-                    $key = trim($parts[0]);
-                    $value = trim($parts[1]);
-                    
-                    if (!isset($filterGroups[$key])) {
-                        $filterGroups[$key] = [];
-                    }
-                    
-                    $filterGroups[$key][] = [
-                        'name' => $value,
+            // Get filter mode to determine how to process categories
+            $filterMode = $this->getSetting('OPERATION:filter_mode')['value'] ?? 'Faceted';
+            $isHierarchical = ($filterMode === 'Hierarchical');
+            
+            error_log("Filter mode: " . $filterMode);
+            
+            if ($isHierarchical) {
+                // Hierarchical mode - all categories are hierarchical paths without colons
+                // Group them all under "Vehicle" for display
+                $filterGroups['Vehicle'] = [];
+                
+                foreach ($allCategories as $category) {
+                    $filterGroups['Vehicle'][] = [
+                        'name' => $category['name'],
                         'fullName' => $category['name'],
-                        'count' => $category['count']
+                        'count' => $category['count'],
+                        'depth' => substr_count($category['name'], ',')
                     ];
+                }
+            } else {
+                // Faceted mode - categories should have colons like "Vehicle: Alfa Romeo"
+                foreach ($allCategories as $category) {
+                    if (strpos($category['name'], ':') === false) {
+                        // Primary category (no colon)
+                        $primaryCategories[] = $category;
+                    } else {
+                        // Filter category (has colon) - group by key
+                        $parts = explode(':', $category['name'], 2);
+                        $key = trim($parts[0]);
+                        $value = trim($parts[1]);
+                        
+                        if (!isset($filterGroups[$key])) {
+                            $filterGroups[$key] = [];
+                        }
+                        
+                        $filterGroups[$key][] = [
+                            'name' => $value,
+                            'fullName' => $category['name'],
+                            'count' => $category['count']
+                        ];
+                    }
+                }
+            }
+            
+            error_log("Filter groups created: " . count($filterGroups));
+            foreach ($filterGroups as $key => $values) {
+                error_log("  Group '$key': " . count($values) . " items");
+                foreach (array_slice($values, 0, 5) as $v) {
+                    error_log("    - " . $v['name'] . " (depth: " . ($v['depth'] ?? 'N/A') . ")");
                 }
             }
             
@@ -197,7 +252,7 @@ class ProductController extends BaseController
             $variants = $this->client->products->getProductVariants($id);
             
             // Add product-specific resources
-            HtmlResources::getInstance()->setTitle(htmlspecialchars($product['title']) . ' - OxWinches');
+            HtmlResources::getInstance()->setTitle(htmlspecialchars($product['title']));
             HtmlResources::getInstance()->setDescription(strip_tags($product['description'] ?? ''));
             HtmlResources::getInstance()->addJsBody('/js/product.js'); // Product JS needs to be after DOM and config
             
@@ -208,7 +263,7 @@ class ProductController extends BaseController
             ]);
             
             echo $this->view->renderLayout('layout', $content, [
-                'title' => htmlspecialchars($product['title']) . ' - OxWinches',
+                'title' => htmlspecialchars($product['title']),
                 'cartCount' => $this->getCartItemCount(),
                 'customer' => $this->getCustomer(),
                 'isLoggedIn' => $this->isLoggedIn(),

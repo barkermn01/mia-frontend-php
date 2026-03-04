@@ -76,7 +76,7 @@ class CartController extends BaseController
                 'checkoutEnabled' => $checkoutEnabled,
                 'isLoggedIn' => $this->isLoggedIn(),
                 'supportedCountries' => $this->getSupportedCountries()
-            ], 'Shopping Cart - OxWinches');
+            ], 'Shopping Cart');
             
         } catch (MiaException $e) {
             $this->showError("Failed to load cart: " . $e->getMessage());

@@ -6,10 +6,38 @@ class View
 {
     private $templatePath;
     private $data = [];
+    private $settingsGetter = null;
 
     public function __construct(string $templatePath)
     {
         $this->templatePath = rtrim($templatePath, '/');
+    }
+    
+    /**
+     * Set the settings getter callback (from BaseController)
+     */
+    public function setSettingsGetter(?callable $settingsGetter): void
+    {
+        $this->settingsGetter = $settingsGetter;
+    }
+    
+    /**
+     * Get a setting value with optional fallback
+     * Uses the controller's getSetting() method which handles caching and API calls
+     */
+    public function setting(string $name, $default = null)
+    {
+        if (!$this->settingsGetter) {
+            return $default;
+        }
+        
+        $setting = call_user_func($this->settingsGetter, $name);
+        
+        if ($setting === null) {
+            return $default;
+        }
+        
+        return $setting['value'] ?? $default;
     }
 
     public function assign(string $key, $value): void

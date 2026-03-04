@@ -217,7 +217,7 @@ class CheckoutController extends BaseController
         ]);
         
         echo $this->view->renderLayout('layout', $content, [
-            'title' => $status === 'success' ? 'Order Complete - OxWinches' : 'Checkout - OxWinches',
+            'title' => $status === 'success' ? 'Order Complete' : 'Checkout',
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
             'isLoggedIn' => $this->isLoggedIn()

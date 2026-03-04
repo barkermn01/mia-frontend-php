@@ -22,7 +22,27 @@ class FrontendRouter
         
         // Initialize HTML resources
         HtmlResources::getInstance()->addDefaults();
-        HtmlResources::getInstance()->setTitle('OxWinches - Premium Winches & Recovery Equipment');
+        
+        // Set default title from settings (will be overridden by specific pages)
+        $siteId = $_ENV['MIA_SITE_ID'] ?? getenv('MIA_SITE_ID');
+        if ($siteId) {
+            $settingsCache = new SettingsCache($siteId);
+            $titleSetting = $settingsCache->get('SEO:home_title');
+            if ($titleSetting && isset($titleSetting['value'])) {
+                HtmlResources::getInstance()->setTitle($titleSetting['value']);
+            } else {
+                // Fallback to company name
+                $companyName = $settingsCache->get('BRAND:company_name');
+                $tagline = $settingsCache->get('BRAND:hero_subtitle');
+                if ($companyName && isset($companyName['value'])) {
+                    $title = $companyName['value'];
+                    if ($tagline && isset($tagline['value'])) {
+                        $title .= ' - ' . $tagline['value'];
+                    }
+                    HtmlResources::getInstance()->setTitle($title);
+                }
+            }
+        }
         
         // Ensure cart exists and is in session
         $this->cartId = $_SESSION['cart_id'] ?? null;

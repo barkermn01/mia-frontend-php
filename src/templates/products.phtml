@@ -17,7 +17,7 @@ if (!empty($categoryImage)) {
         <div class="lg:w-1/4">
             <div class="space-y-6 sticky top-24 max-h-[calc(100vh-8rem)] overflow-hidden">
                 <!-- Primary Categories (hidden on category pages) -->
-                <?php if (!isset($categoryFilter)): ?>
+                <?php if (!isset($categoryFilter) && !empty($categories['primary'])): ?>
                 <div class="bg-white rounded-lg shadow-lg">
                     <div class="p-6 border-b border-gray-200">
                         <h3 class="text-lg font-semibold text-gray-800">Categories</h3>
@@ -34,8 +34,7 @@ if (!empty($categoryImage)) {
                             </a>
                             
                             <!-- Individual Primary Categories -->
-                            <?php if (!empty($categories['primary'])): ?>
-                                <?php foreach ($categories['primary'] as $cat): ?>
+                            <?php foreach ($categories['primary'] as $cat): ?>
                                     <?php 
                                     $isActive = in_array($cat['name'], $selectedFilters);
                                     
@@ -75,9 +74,6 @@ if (!empty($categoryImage)) {
                                         </div>
                                     </a>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <p class="text-gray-500 text-sm">No categories available</p>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -85,35 +81,126 @@ if (!empty($categoryImage)) {
 
                 <!-- Filters -->
                 <?php if (!empty($categories['filters'])): ?>
+                    <?php 
+                    // Get filter mode (default to Faceted)
+                    $filterMode = $filterMode ?? 'Faceted';
+                    $isHierarchical = ($filterMode === 'Hierarchical');
+                    
+                    // For hierarchical mode, parse the depth structure
+                    if ($isHierarchical) {
+                        // Determine current depth level based on selected filters
+                        $currentDepth = 0;
+                        $selectedPath = [];
+                        
+                        if (!empty($selectedFilters)) {
+                            // Find the deepest selected filter to determine current depth
+                            foreach ($selectedFilters as $filter) {
+                                // In hierarchical mode, filters are just comma-separated values (no colon)
+                                // Count commas to determine depth
+                                $commas = substr_count($filter, ',');
+                                if ($commas >= $currentDepth) {
+                                    $currentDepth = $commas + 1;
+                                    $selectedPath = array_map('trim', explode(',', $filter));
+                                }
+                            }
+                        }
+                    }
+                    ?>
                     <div class="bg-white rounded-lg shadow-lg flex-1 flex flex-col min-h-0">
                         <div class="p-6 border-b border-gray-200 flex-shrink-0">
                             <h3 class="text-lg font-semibold text-gray-800">Filters</h3>
+                            <?php if ($isHierarchical): ?>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <?php if ($currentDepth > 0): ?>
+                                        Level <?= $currentDepth ?> - <a href="<?= $baseUrl ?><?= $search ? '?search=' . urlencode($search) : '' ?>" class="text-blue-600 hover:underline">Reset</a>
+                                    <?php else: ?>
+                                        Select a category to drill down
+                                    <?php endif; ?>
+                                </p>
+                            <?php endif; ?>
                         </div>
                         <div class="flex-1 overflow-y-auto">
                             <div class="p-6 space-y-4">
                                 <?php 
-                                // Filter out options with 0 count (unless active) for each filter group
-                                $visibleFilters = array_filter($categories['filters'], function($filterValues) use ($selectedFilters) {
-                                    $availableOptions = array_filter($filterValues, function($filter) use ($selectedFilters) {
-                                        $isActive = in_array($filter['fullName'], $selectedFilters);
-                                        return $filter['count'] > 0 || $isActive;
-                                    });
-                                    return count($availableOptions) > 1;
-                                });
+                                // Build display filters based on mode
+                                $displayFilters = [];
+                                
+                                foreach ($categories['filters'] as $filterKey => $filterValues) {
+                                    if ($isHierarchical) {
+                                        // Hierarchical mode - only show options at current depth
+                                        $depthGroups = [];
+                                        
+                                        foreach ($filterValues as $filter) {
+                                            // Skip filters with 0 count unless active
+                                            $isActive = in_array($filter['fullName'], $selectedFilters);
+                                            if ($filter['count'] == 0 && !$isActive) {
+                                                continue;
+                                            }
+                                            
+                                            // Parse the filter value by commas
+                                            $valueParts = array_map('trim', explode(',', $filter['name']));
+                                            $depth = count($valueParts) - 1;
+                                            
+                                            // Only show filters at exactly the current depth
+                                            if ($depth !== $currentDepth) {
+                                                continue;
+                                            }
+                                            
+                                            // If we're at depth > 0, check if this filter matches the selected path
+                                            if ($currentDepth > 0) {
+                                                $matchesPath = true;
+                                                for ($i = 0; $i < $currentDepth; $i++) {
+                                                    if (!isset($valueParts[$i]) || !isset($selectedPath[$i]) || $valueParts[$i] !== $selectedPath[$i]) {
+                                                        $matchesPath = false;
+                                                        break;
+                                                    }
+                                                }
+                                                
+                                                if (!$matchesPath) {
+                                                    continue;
+                                                }
+                                            }
+                                            
+                                            // Add to display
+                                            if (!isset($depthGroups[$depth])) {
+                                                $depthGroups[$depth] = [];
+                                            }
+                                            $depthGroups[$depth][] = $filter;
+                                        }
+                                        
+                                        // Only add if we have filters to show
+                                        if (!empty($depthGroups)) {
+                                            $displayFilters[$filterKey] = $depthGroups;
+                                        }
+                                    } else {
+                                        // Faceted mode - show all with count > 0
+                                        $availableOptions = array_filter($filterValues, function($filter) use ($selectedFilters) {
+                                            $isActive = in_array($filter['fullName'], $selectedFilters);
+                                            return $filter['count'] > 0 || $isActive;
+                                        });
+                                        
+                                        if (count($availableOptions) > 1) {
+                                            $displayFilters[$filterKey] = ['all' => $filterValues];
+                                        }
+                                    }
+                                }
+                                
                                 $filterCount = 0;
-                                $totalVisibleFilters = count($visibleFilters);
+                                $totalVisibleFilters = count($displayFilters);
                                 ?>
-                                <?php foreach ($categories['filters'] as $filterKey => $filterValues): ?>
-                                    <?php if (count($filterValues) > 1): // Only show filter groups with more than 1 option ?>
-                                        <?php $filterCount++; ?>
-                                        <div class="filter-group <?= $filterCount < $totalVisibleFilters ? 'border-b border-gray-200 pb-4' : 'pb-4' ?>" data-filter-key="<?= htmlspecialchars($filterKey) ?>">
+                                <?php foreach ($displayFilters as $filterKey => $depthGroups): ?>
+                                    <?php $filterCount++; ?>
+                                    <div class="filter-group <?= $filterCount < $totalVisibleFilters ? 'border-b border-gray-200 pb-4' : 'pb-4' ?>" data-filter-key="<?= htmlspecialchars($filterKey) ?>">
+                                        <?php if (!$isHierarchical): ?>
                                             <button class="filter-toggle w-full flex justify-between items-center py-2 text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded" 
                                                     onclick="toggleFilterGroup('<?= htmlspecialchars($filterKey) ?>')">
                                                 <h4 class="font-medium text-gray-700"><?= htmlspecialchars($filterKey) ?></h4>
                                                 <i class="filter-icon fas fa-chevron-down text-gray-400 transition-transform duration-200"></i>
                                             </button>
-                                            <div class="filter-content mt-2 space-y-1" style="display: none;">
-                                                <?php foreach ($filterValues as $filter): ?>
+                                        <?php endif; ?>
+                                        <div class="filter-content mt-2 space-y-1" <?= $isHierarchical ? '' : 'style="display: none;"' ?>>
+                                            <?php foreach ($depthGroups as $depth => $filters): ?>
+                                                <?php foreach ($filters as $filter): ?>
                                                     <?php 
                                                     $isActive = in_array($filter['fullName'], $selectedFilters);
                                                     
@@ -122,14 +209,28 @@ if (!empty($categoryImage)) {
                                                         continue;
                                                     }
                                                     
+                                                    // Calculate indentation for hierarchical display
+                                                    $valueParts = array_map('trim', explode(',', $filter['name']));
+                                                    $displayDepth = count($valueParts) - 1;
+                                                    $indentClass = $isHierarchical ? 'pl-' . ($displayDepth * 3) : '';
+                                                    
                                                     $linkClass = $isActive ? 'text-red-600 font-semibold bg-red-50' : 'text-gray-600 hover:text-red-600 hover:bg-gray-50';
                                                     
-                                                    if ($isActive) {
-                                                        // Remove this filter
-                                                        $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter['fullName']; });
+                                                    if ($isHierarchical) {
+                                                        // Hierarchical mode - clicking selects this level
+                                                        // Remove any existing filters (since we only allow one path)
+                                                        $newFilters = [];
+                                                        
+                                                        if (!$isActive) {
+                                                            $newFilters[] = $filter['fullName'];
+                                                        }
                                                     } else {
-                                                        // Add this filter
-                                                        $newFilters = array_merge($selectedFilters, [$filter['fullName']]);
+                                                        // Faceted mode - toggle individual filters
+                                                        if ($isActive) {
+                                                            $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter['fullName']; });
+                                                        } else {
+                                                            $newFilters = array_merge($selectedFilters, [$filter['fullName']]);
+                                                        }
                                                     }
                                                     
                                                     $url = $baseUrl;
@@ -141,18 +242,33 @@ if (!empty($categoryImage)) {
                                                         }
                                                         $url = rtrim($url, '&');
                                                     }
+                                                    
+                                                    // Display only the last part of the path for cleaner UI
+                                                    $displayName = $isHierarchical ? end($valueParts) : $filter['name'];
                                                     ?>
-                                                    <a href="<?= $url ?>" class="<?= $linkClass ?> block py-1 px-2 rounded text-sm transition-colors">
+                                                    <a href="<?= $url ?>" class="<?= $linkClass ?> <?= $indentClass ?> block py-1 px-2 rounded text-sm transition-colors">
                                                         <div class="flex justify-between items-center">
-                                                            <span><?= htmlspecialchars($filter['name']) ?></span>
+                                                            <span><?= htmlspecialchars($displayName) ?></span>
                                                             <span class="text-xs text-gray-400"><?= $filter['count'] ?></span>
                                                         </div>
                                                     </a>
                                                 <?php endforeach; ?>
-                                            </div>
+                                            <?php endforeach; ?>
                                         </div>
-                                    <?php endif; ?>
+                                    </div>
                                 <?php endforeach; ?>
+                                
+                                <?php if (empty($displayFilters)): ?>
+                                    <div class="text-center py-8 text-gray-500">
+                                        <?php if ($isHierarchical && $currentDepth > 0): ?>
+                                            <i class="fas fa-check-circle text-3xl mb-2 text-gray-400"></i>
+                                            <p class="text-sm">Can't narrow down anymore</p>
+                                            <p class="text-xs mt-1">You've reached the most specific level</p>
+                                        <?php else: ?>
+                                            <p class="text-sm">No filters available</p>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -210,39 +326,72 @@ if (!empty($categoryImage)) {
                         <div class="flex items-start space-x-2">
                             <span class="text-sm text-gray-600 mt-1">Active filters:</span>
                             <div class="flex flex-wrap gap-2">
-                                <?php foreach ($selectedFilters as $filter): ?>
+                                <?php if ($isHierarchical): ?>
                                     <?php 
-                                    // Format the filter name for display
-                                    if (strpos($filter, ':') !== false) {
-                                        // Filter category - show just the value part
-                                        $parts = explode(':', $filter, 2);
-                                        $displayName = trim($parts[1]);
-                                        $filterType = trim($parts[0]);
-                                    } else {
-                                        // Primary category
-                                        $displayName = $filter;
-                                        $filterType = 'Category';
-                                    }
-                                    
-                                    // Create URL to remove this specific filter
-                                    $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter; });
-                                    $url = $baseUrl;
-                                    if ($search || !empty($newFilters)) {
-                                        $url .= '?';
-                                        if ($search) $url .= 'search=' . urlencode($search) . '&';
-                                        foreach ($newFilters as $f) {
-                                            $url .= 'filters[]=' . urlencode($f) . '&';
+                                    // Hierarchical mode - show breadcrumb path with clickable segments
+                                    foreach ($selectedFilters as $filter):
+                                        $pathParts = array_map('trim', explode(',', $filter));
+                                        ?>
+                                        <div class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
+                                            <?php foreach ($pathParts as $index => $part): ?>
+                                                <?php if ($index > 0): ?>
+                                                    <span class="mx-1">&gt;</span>
+                                                <?php endif; ?>
+                                                <?php 
+                                                // Create URL to go back to this level
+                                                if ($index < count($pathParts) - 1) {
+                                                    // Clickable - go back to this level
+                                                    $parentPath = implode(', ', array_slice($pathParts, 0, $index + 1));
+                                                    $url = $baseUrl . '?';
+                                                    if ($search) $url .= 'search=' . urlencode($search) . '&';
+                                                    $url .= 'filters[]=' . urlencode($parentPath);
+                                                    ?>
+                                                    <a href="<?= $url ?>" class="hover:underline"><?= htmlspecialchars($part) ?></a>
+                                                <?php } else { ?>
+                                                    <span class="font-semibold"><?= htmlspecialchars($part) ?></span>
+                                                <?php } ?>
+                                            <?php endforeach; ?>
+                                            <a href="<?= $baseUrl ?><?= $search ? '?search=' . urlencode($search) : '' ?>" class="ml-2 hover:text-red-600">
+                                                <i class="fas fa-times"></i>
+                                            </a>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <?php 
+                                    // Faceted mode - show individual filter badges
+                                    foreach ($selectedFilters as $filter): 
+                                        // Format the filter name for display
+                                        if (strpos($filter, ':') !== false) {
+                                            // Filter category - show just the value part
+                                            $parts = explode(':', $filter, 2);
+                                            $displayName = trim($parts[1]);
+                                            $filterType = trim($parts[0]);
+                                        } else {
+                                            // Primary category
+                                            $displayName = $filter;
+                                            $filterType = 'Category';
                                         }
-                                        $url = rtrim($url, '&');
-                                    }
-                                    ?>
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
-                                        <?= htmlspecialchars($filterType) ?>: <?= htmlspecialchars($displayName) ?>
-                                        <a href="<?= $url ?>" class="ml-2 hover:text-red-600">
-                                            <i class="fas fa-times"></i>
-                                        </a>
-                                    </span>
-                                <?php endforeach; ?>
+                                        
+                                        // Create URL to remove this specific filter
+                                        $newFilters = array_filter($selectedFilters, function($f) use ($filter) { return $f !== $filter; });
+                                        $url = $baseUrl;
+                                        if ($search || !empty($newFilters)) {
+                                            $url .= '?';
+                                            if ($search) $url .= 'search=' . urlencode($search) . '&';
+                                            foreach ($newFilters as $f) {
+                                                $url .= 'filters[]=' . urlencode($f) . '&';
+                                            }
+                                            $url = rtrim($url, '&');
+                                        }
+                                        ?>
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-100 text-red-800">
+                                            <?= htmlspecialchars($filterType) ?>: <?= htmlspecialchars($displayName) ?>
+                                            <a href="<?= $url ?>" class="ml-2 hover:text-red-600">
+                                                <i class="fas fa-times"></i>
+                                            </a>
+                                        </span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

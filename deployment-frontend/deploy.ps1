@@ -39,26 +39,26 @@ try {
 }
 
 # Check parameters file
-if (!(Test-Path "parameters.json")) {
-    Write-Host "parameters.json not found" -ForegroundColor Red
-    Write-Host "Please edit parameters.json with your values"
+if (!(Test-Path "${StackName}.prms.json")) {
+    Write-Host "${StackName}.prms.json not found" -ForegroundColor Red
+    Write-Host "Please edit ${StackName}.prms.json with your values"
     exit 1
 }
-Write-Host "parameters.json found successfully" -ForegroundColor Green
+Write-Host "${StackName}.prms.json found successfully" -ForegroundColor Green
 
 # Frontend is standalone - no backend stack dependencies needed
 Write-Host "Frontend deployment is standalone - no backend dependencies" -ForegroundColor Green
 
 # Update ImageTag in parameters
 Write-Host "Updating image tag to: $ImageTag" -ForegroundColor Yellow
-$parameters = Get-Content "parameters.json" | ConvertFrom-Json
+$parameters = Get-Content "${StackName}.prms.json" | ConvertFrom-Json
 foreach ($param in $parameters) {
     if ($param.ParameterKey -eq "ImageTag") {
         $param.ParameterValue = $ImageTag
         break
     }
 }
-$parameters | ConvertTo-Json -Depth 10 | Set-Content "parameters.json"
+$parameters | ConvertTo-Json -Depth 10 | Set-Content "${StackName}.prms.json"
 
 # Create ECR repository if it doesn't exist
 Write-Host "Ensuring ECR repository exists..." -ForegroundColor Yellow
@@ -162,8 +162,8 @@ if ($stackExists) {
         $ErrorActionPreference = "Continue"
         $updateOutput = aws cloudformation update-stack `
             --stack-name $StackName `
-            --template-body file://mia-frontend.yaml `
-            --parameters file://parameters.json `
+            --template-body file://${StackName}.yaml `
+            --parameters file://${StackName}.prms.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --profile $AWSProfile `
@@ -225,8 +225,8 @@ if ($stackExists) {
         $ErrorActionPreference = "Continue"
         $updateOutput = aws cloudformation update-stack `
             --stack-name $StackName `
-            --template-body file://mia-frontend.yaml `
-            --parameters file://parameters.json `
+            --template-body file://${StackName}.yaml `
+            --parameters file://${StackName}.prms.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --no-cli-pager 2>&1
@@ -289,8 +289,8 @@ if ($stackExists) {
     if ($AWSProfile) {
         aws cloudformation create-stack `
             --stack-name $StackName `
-            --template-body file://mia-frontend.yaml `
-            --parameters file://parameters.json `
+            --template-body file://${StackName}.yaml `
+            --parameters file://${StackName}.prms.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --profile $AWSProfile `
@@ -303,8 +303,8 @@ if ($stackExists) {
     } else {
         aws cloudformation create-stack `
             --stack-name $StackName `
-            --template-body file://mia-frontend.yaml `
-            --parameters file://parameters.json `
+            --template-body file://${StackName}.yaml `
+            --parameters file://${StackName}.prms.json `
             --capabilities CAPABILITY_IAM `
             --region $Region `
             --no-cli-pager

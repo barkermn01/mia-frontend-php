@@ -12,10 +12,10 @@ services:
       - .:/var/www/html
     environment:
       - ENV=development
-      - MIA_DEBUG=true
-      - MIA_API_URL=https://api.miaai.me
-      - MIA_SITE_ID=c41374a3-a02d-4922-adf0-4e26728fdfa6
-      - MIA_SSL_VERIFY=true
+      - MIA_DEBUG=${MIA_DEBUG}
+      - MIA_API_URL=${MIA_API_URL}
+      - MIA_SITE_ID=${MIA_SITE_ID}
+      - MIA_VERIFY_SSL=${MIA_VERIFY_SSL}
       - MEMCACHED_HOST=memcached
       - MEMCACHED_PORT=11211
     depends_on:

@@ -1,7 +1,11 @@
 [
     {
         "ParameterKey":  "ProjectName",
-        "ParameterValue":  "mia-frontend"
+        "ParameterValue":  "miltek-frontend"
+    },
+    {
+        "ParameterKey":  "MiaSiteId",
+        "ParameterValue":  "1b4e9a3d-e4f8-4617-9b16-34d6328171ab"
     },
     {
         "ParameterKey":  "Environment",
@@ -9,7 +13,7 @@
     },
     {
         "ParameterKey":  "FrontendDomains",
-        "ParameterValue":  "oxwinches.com,oxwinch.com,oxwinches.miaai.me"
+        "ParameterValue":  "miltek.miaai.me"
     },
     {
         "ParameterKey":  "SSLCertificateArn",

@@ -1,5 +1,17 @@
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-4xl mx-auto">
+        <?php
+        // Get help page content from settings
+        $helpContent = $view->setting('CONTENT:help_page');
+        
+        if ($helpContent):
+            // Render markdown content with proper styling
+        ?>
+        <div class="markdown-content">
+            <?= \Marti\Frontend\MarkdownRenderer::render($helpContent) ?>
+        </div>
+        <?php else: ?>
+            <!-- Fallback content if setting not found -->
         <h1 class="text-4xl font-bold mb-8">Help Center</h1>
 
         <!-- Contact Information -->
@@ -14,7 +26,7 @@
                     </div>
                     <div>
                         <h3 class="font-semibold mb-1">Email</h3>
-                        <p class="text-gray-600">support@oxwinches.com</p>
+                        <p class="text-gray-600"><?= htmlspecialchars($view->setting('CONTACT:support_email', 'support@example.com')) ?></p>
                         <p class="text-sm text-gray-500 mt-1">We typically respond within 24 hours</p>
                     </div>
                 </div>
@@ -27,209 +39,12 @@
                     </div>
                     <div>
                         <h3 class="font-semibold mb-1">Phone</h3>
-                        <p class="text-gray-600">+44 (0)1924 201120</p>
-                        <p class="text-sm text-gray-500 mt-1">Mon-Fri: 9am-5pm GMT</p>
+                        <p class="text-gray-600"><?= htmlspecialchars($view->setting('CONTACT:phone_display', '+44 (0)1234 567890')) ?></p>
+                        <p class="text-sm text-gray-500 mt-1"><?= htmlspecialchars($view->setting('CONTACT:phone_hours', 'Mon-Fri: 9am-5pm')) ?></p>
                     </div>
                 </div>
             </div>
         </section>
-
-        <!-- FAQ Section -->
-        <section class="bg-white rounded-lg shadow-lg p-8 mb-8">
-            <h2 class="text-2xl font-semibold mb-6">Frequently Asked Questions</h2>
-            
-            <div class="space-y-6">
-                <!-- Orders & Payment -->
-                <div>
-                    <h3 class="text-xl font-semibold mb-4 text-blue-600">Orders & Payment</h3>
-                    <div class="space-y-4">
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">What payment methods do you accept?</h4>
-                            <p class="text-gray-600">
-                                We accept all major credit and debit cards including Visa, Mastercard, American Express, 
-                                and Discover. All payments are processed securely through our payment provider.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Can I modify or cancel my order?</h4>
-                            <p class="text-gray-600">
-                                If you need to modify or cancel your order, please contact us as soon as possible. 
-                                We can make changes before the order is dispatched. Once shipped, modifications are 
-                                not possible, but you can return the items following our returns policy.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Do you offer VAT invoices?</h4>
-                            <p class="text-gray-600">
-                                Yes, VAT invoices are automatically generated for all orders and can be accessed from 
-                                your account order history. If you need a specific invoice format, please contact us.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Shipping -->
-                <div>
-                    <h3 class="text-xl font-semibold mb-4 text-blue-600">Shipping & Delivery</h3>
-                    <div class="space-y-4">
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">What are your shipping options?</h4>
-                            <p class="text-gray-600">
-                                We offer multiple shipping options at checkout, including standard and express delivery. 
-                                Shipping costs and estimated delivery times are calculated based on your location and 
-                                the weight of your order. You can select your preferred shipping method during checkout.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">How long does delivery take?</h4>
-                            <p class="text-gray-600">
-                                Delivery times vary depending on your location and chosen shipping method:
-                            </p>
-                            <ul class="list-disc pl-6 mt-2 text-gray-600">
-                                <li>UK Standard: 3-5 business days</li>
-                                <li>UK Express: 1-2 business days</li>
-                                <li>International: 5-10 business days (varies by destination)</li>
-                            </ul>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Do you ship internationally?</h4>
-                            <p class="text-gray-600">
-                                Yes, we ship to most countries worldwide. International shipping costs and delivery 
-                                times are calculated at checkout. Please note that customs duties and taxes may apply 
-                                for international orders and are the responsibility of the recipient.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Can I track my order?</h4>
-                            <p class="text-gray-600">
-                                Yes, once your order is dispatched, you'll receive a tracking number via email. 
-                                You can also view tracking information in your account order history.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Returns & Refunds -->
-                <div>
-                    <h3 class="text-xl font-semibold mb-4 text-blue-600">Returns & Refunds</h3>
-                    <div class="space-y-4">
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">What is your returns policy?</h4>
-                            <p class="text-gray-600">
-                                We offer a 30-day return policy for most items. Products must be unused, in their 
-                                original packaging, and in resalable condition. To initiate a return, please contact 
-                                our customer service team with your order number.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">How do I return an item?</h4>
-                            <p class="text-gray-600">
-                                To return an item:
-                            </p>
-                            <ol class="list-decimal pl-6 mt-2 text-gray-600">
-                                <li>Contact us at support@oxwinches.com with your order number</li>
-                                <li>We'll provide you with return instructions and a return authorization number</li>
-                                <li>Pack the item securely in its original packaging</li>
-                                <li>Ship the item back to us using a tracked service</li>
-                                <li>Once received and inspected, we'll process your refund</li>
-                            </ol>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Who pays for return shipping?</h4>
-                            <p class="text-gray-600">
-                                For defective or incorrect items, we'll cover the return shipping costs. For returns 
-                                due to change of mind, the customer is responsible for return shipping costs unless 
-                                otherwise stated in a promotion.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">When will I receive my refund?</h4>
-                            <p class="text-gray-600">
-                                Refunds are typically processed within 5-7 business days of receiving the returned item. 
-                                The refund will be issued to your original payment method. Please allow additional time 
-                                for your bank to process the refund.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Products -->
-                <div>
-                    <h3 class="text-xl font-semibold mb-4 text-blue-600">Products & Technical</h3>
-                    <div class="space-y-4">
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Do your products come with a warranty?</h4>
-                            <p class="text-gray-600">
-                                Yes, all our products come with a manufacturer's warranty. Warranty periods vary by 
-                                product and manufacturer. Specific warranty information is provided with each product 
-                                and on the product page.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Can you help me choose the right product?</h4>
-                            <p class="text-gray-600">
-                                Absolutely! Our team has extensive knowledge of marine equipment and can help you 
-                                select the right product for your needs. Contact us with details about your vessel 
-                                and requirements, and we'll provide expert recommendations.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Do you provide installation instructions?</h4>
-                            <p class="text-gray-600">
-                                Most products come with manufacturer installation instructions. For additional support, 
-                                please contact us and we can provide guidance or recommend professional installers in 
-                                your area.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Account -->
-                <div>
-                    <h3 class="text-xl font-semibold mb-4 text-blue-600">Account & Privacy</h3>
-                    <div class="space-y-4">
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">Do I need an account to place an order?</h4>
-                            <p class="text-gray-600">
-                                While you can browse our products without an account, you'll need to create one to 
-                                place an order. Having an account allows you to track orders, save addresses, and 
-                                view your order history.
-                            </p>
-                        </div>
-
-                        <div class="border-l-4 border-gray-300 pl-4">
-                            <h4 class="font-semibold mb-2">How do you protect my personal information?</h4>
-                            <p class="text-gray-600">
-                                We take data security seriously. All personal information is encrypted and stored 
-                                securely. We never share your information with third parties except as necessary to 
-                                fulfill your order. For more details, please see our 
-                                <a href="/privacy" class="text-blue-600 hover:underline">Privacy Policy</a>.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Still Need Help -->
-        <section class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-8 text-white text-center">
-            <h2 class="text-2xl font-semibold mb-4">Still Need Help?</h2>
-            <p class="text-lg mb-6">
-                Can't find the answer you're looking for? Our customer service team is here to help.
-            </p>
-            <a href="mailto:support@oxwinches.com" class="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                Email Support
-            </a>
-        </section>
+        <?php endif; ?>
     </div>
 </div>

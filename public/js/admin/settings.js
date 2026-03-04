@@ -33,6 +33,11 @@ class SettingsManager {
         
         // Event delegation for buttons
         document.addEventListener('click', (e) => {
+            // Help button
+            if (e.target.closest('#settings-help-btn')) {
+                this.showHelpModal();
+            }
+            
             // Add setting buttons
             if (e.target.closest('#add-setting-btn') || e.target.closest('#add-setting-btn-empty')) {
                 this.showAddSettingModal();
@@ -135,9 +140,80 @@ class SettingsManager {
         }
     }
     
+    showHelpModal() {
+        const helpContent = document.getElementById('settings-help-modal').innerHTML;
+        
+        // Create a custom modal for help content
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 overflow-y-auto';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8 flex flex-col" style="max-height: calc(100vh - 4rem);">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+                    <h3 class="text-lg font-semibold text-gray-900">Settings Help</h3>
+                    <button class="close-help-btn text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="px-6 py-4 overflow-y-auto flex-1" style="min-height: 0;">
+                    ${helpContent}
+                </div>
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end flex-shrink-0">
+                    <button class="close-help-btn px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // Add to document
+        document.body.appendChild(modal);
+        
+        // Handle close buttons
+        const closeButtons = modal.querySelectorAll('.close-help-btn');
+        closeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.modalManager.hideModal(modal);
+                modal.remove();
+            });
+        });
+        
+        // Handle collapsible sections using event delegation on the modal
+        modal.addEventListener('click', (e) => {
+            const toggleBtn = e.target.closest('.help-section-toggle');
+            if (toggleBtn) {
+                const targetId = toggleBtn.getAttribute('data-target');
+                const content = modal.querySelector(`#${targetId}`);
+                const chevron = toggleBtn.querySelector('.fa-chevron-down');
+                
+                if (content && chevron) {
+                    if (content.classList.contains('hidden')) {
+                        content.classList.remove('hidden');
+                        chevron.style.transform = 'rotate(180deg)';
+                    } else {
+                        content.classList.add('hidden');
+                        chevron.style.transform = 'rotate(0deg)';
+                    }
+                }
+            }
+        });
+        
+        // Show modal
+        this.modalManager.showModal(modal);
+    }
+    
     updateValueField() {
         const type = document.getElementById('setting_type').value;
         const valueField = document.getElementById('value-field');
+        
+        // Update modal width based on type
+        const modalContent = document.querySelector('#setting-modal .bg-white');
+        if (type === 'markdown') {
+            modalContent.classList.remove('max-w-4xl');
+            modalContent.classList.add('max-w-7xl');
+        } else {
+            modalContent.classList.remove('max-w-7xl');
+            modalContent.classList.add('max-w-4xl');
+        }
         
         // Destroy existing editor if any
         if (this.toastEditor) {

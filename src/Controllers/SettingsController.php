@@ -10,54 +10,58 @@ class SettingsController extends BaseController
     public function index(): void
     {
         try {
-            // Get search query from URL
+            // Get search query and page from URL
             $search = $_GET['search'] ?? '';
+            $page = max(1, intval($_GET['page'] ?? 1));
+            $perPage = 50; // Show 50 settings per page
             
-            // Build filters for API call
-            $filters = [];
+            // Build options for API call
+            $options = [
+                'page' => $page,
+                'limit' => $perPage
+            ];
+            
             if ($search) {
-                $filters['search'] = $search;
+                $options['search'] = $search;
             }
             
-            // Get all site settings with optional search
-            $response = $this->client->siteSettings->getAllSettings($filters);
+            // Get paginated settings from API
+            $response = $this->client->siteSettings->getAllSettings($options);
             
-            // Handle both old and new response formats
-            if (isset($response['items'])) {
-                // New paginated format - convert array of objects to keyed array
-                $settings = [];
-                foreach ($response['items'] as $item) {
-                    $value = $item['value'];
-                    
-                    // Decode JSON values for display
-                    if ($item['type'] === 'json' && is_string($value)) {
-                        $decoded = json_decode($value, true);
-                        if (json_last_error() === JSON_ERROR_NONE) {
-                            $value = $decoded;
-                        }
-                    }
-                    
-                    $settings[$item['name']] = [
-                        'type' => $item['type'],
-                        'value' => $value,
-                        'createdAt' => $item['createdAt'],
-                        'updatedAt' => $item['updatedAt']
-                    ];
+            // Extract pagination data
+            $totalSettings = $response['total'] ?? 0;
+            $totalPages = $response['totalPages'] ?? 1;
+            $items = $response['items'] ?? [];
+            
+            // If we're on a page that doesn't exist (e.g., page 2 when there's only 1 page), redirect to page 1
+            if ($page > 1 && $page > $totalPages && $totalPages > 0) {
+                $redirectUrl = $this->adminPath . '/settings';
+                if ($search) {
+                    $redirectUrl .= '?search=' . urlencode($search);
                 }
-            } else {
-                // Old format - settings is already a keyed array
-                $settings = $response['settings'] ?? [];
+                header('Location: ' . $redirectUrl);
+                exit;
+            }
+            
+            // Convert items to keyed array and decode JSON values
+            $settings = [];
+            foreach ($items as $item) {
+                $value = $item['value'];
                 
                 // Decode JSON values for display
-                foreach ($settings as $name => &$setting) {
-                    if ($setting['type'] === 'json' && is_string($setting['value'])) {
-                        $decoded = json_decode($setting['value'], true);
-                        if (json_last_error() === JSON_ERROR_NONE) {
-                            $setting['value'] = $decoded;
-                        }
+                if ($item['type'] === 'json' && is_string($value)) {
+                    $decoded = json_decode($value, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $value = $decoded;
                     }
                 }
-                unset($setting);
+                
+                $settings[$item['name']] = [
+                    'type' => $item['type'],
+                    'value' => $value,
+                    'createdAt' => $item['createdAt'] ?? null,
+                    'updatedAt' => $item['updatedAt'] ?? null
+                ];
             }
             
             // Add Toast UI Editor resources for markdown settings
@@ -69,7 +73,11 @@ class SettingsController extends BaseController
                 'settings' => $settings,
                 'siteId' => $this->config['site_id'],
                 'adminPath' => $this->adminPath,
-                'search' => $search
+                'search' => $search,
+                'page' => $page,
+                'totalPages' => $totalPages,
+                'totalSettings' => $totalSettings,
+                'perPage' => $perPage
             ]);
             
             echo $this->view->renderLayout('admin-layout', $content, [

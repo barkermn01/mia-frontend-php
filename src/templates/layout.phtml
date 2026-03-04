@@ -18,42 +18,42 @@
     <div class="bg-white border-b border-gray-200 py-3">
         <div class="container mx-auto px-4">
             <div class="flex flex-wrap justify-between items-center gap-y-3">
-                <!-- Warranty -->
+                <!-- Badge 1 -->
                 <div class="flex items-center gap-1.5 lg:gap-2 w-[48%] lg:w-auto">
-                    <i class="fas fa-shield-alt text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
+                    <i class="fas fa-<?= htmlspecialchars($view->setting('BRAND:topbar_badge_1_icon', 'shield-alt')) ?> text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
                     <div class="min-w-0">
                         <div class="font-semibold text-gray-900 text-xs lg:text-xs xl:text-sm whitespace-nowrap">
-                            2-Year Warranty<span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - Manufacturing defects</span>
+                            <?= htmlspecialchars($view->setting('BRAND:topbar_badge_1_text', '2-Year Warranty')) ?><span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - <?= htmlspecialchars($view->setting('BRAND:topbar_badge_1_subtext', 'Manufacturing defects')) ?></span>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Fast Delivery -->
+                <!-- Badge 2 -->
                 <div class="flex items-center gap-1.5 lg:gap-2 w-[48%] lg:w-auto">
-                    <i class="fas fa-shipping-fast text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
+                    <i class="fas fa-<?= htmlspecialchars($view->setting('BRAND:topbar_badge_2_icon', 'shipping-fast')) ?> text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
                     <div class="min-w-0">
                         <div class="font-semibold text-gray-900 text-xs lg:text-xs xl:text-sm whitespace-nowrap">
-                            Fast UK Delivery<span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - 1pm for same-day dispatch</span>
+                            <?= htmlspecialchars($view->setting('BRAND:topbar_badge_2_text', 'Fast UK Delivery')) ?><span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - <?= htmlspecialchars($view->setting('BRAND:topbar_badge_2_subtext', '1pm for same-day dispatch')) ?></span>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Buy Now Pay Later -->
+                <!-- Badge 3 -->
                 <div class="flex items-center gap-1.5 lg:gap-2 w-[48%] lg:w-auto">
-                    <i class="fas fa-credit-card text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
+                    <i class="fas fa-<?= htmlspecialchars($view->setting('BRAND:topbar_badge_3_icon', 'credit-card')) ?> text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
                     <div class="min-w-0">
                         <div class="font-semibold text-gray-900 text-xs lg:text-xs xl:text-sm whitespace-nowrap">
-                            Buy Now Pay Later<span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - Available at checkout</span>
+                            <?= htmlspecialchars($view->setting('BRAND:topbar_badge_3_text', 'Buy Now Pay Later')) ?><span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - <?= htmlspecialchars($view->setting('BRAND:topbar_badge_3_subtext', 'Available at checkout')) ?></span>
                         </div>
                     </div>
                 </div>
                 
-                <!-- UK Support -->
+                <!-- Badge 4 -->
                 <div class="flex items-center gap-1.5 lg:gap-2 w-[48%] lg:w-auto">
-                    <i class="fas fa-headset text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
+                    <i class="fas fa-<?= htmlspecialchars($view->setting('BRAND:topbar_badge_4_icon', 'headset')) ?> text-base lg:text-lg xl:text-xl flex-shrink-0" style="color: var(--ox-red);"></i>
                     <div class="min-w-0">
                         <div class="font-semibold text-gray-900 text-xs lg:text-xs xl:text-sm whitespace-nowrap">
-                            UK-Based Support<span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - Expert help when you need it</span>
+                            <?= htmlspecialchars($view->setting('BRAND:topbar_badge_4_text', 'UK-Based Support')) ?><span class="hidden lg:hidden xl:inline font-normal text-gray-600"> - <?= htmlspecialchars($view->setting('BRAND:topbar_badge_4_subtext', 'Expert help when you need it')) ?></span>
                         </div>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
             <div class="flex items-center justify-between h-16">
                 <!-- Logo -->
                 <a href="/" class="flex items-center hover:opacity-80 transition-opacity">
-                    <img src="/images/title-logo.png" alt="OxWinches" class="h-12 w-auto">
+                    <img src="<?= htmlspecialchars($view->setting('ASSETS:logo_header', '/images/title-logo.png')) ?>" alt="<?= htmlspecialchars($view->setting('ASSETS:logo_alt_text', 'Company Logo')) ?>" class="h-12 w-auto">
                 </a>
 
                 <!-- Navigation -->
@@ -227,12 +227,12 @@
         <div class="container mx-auto px-4 py-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
-                    <h3 class="text-lg font-semibold mb-4">OxWinches</h3>
-                    <p class="text-gray-300 mb-2">Premium winches and recovery equipment powered by Mia AI Store.</p>
+                    <h3 class="text-lg font-semibold mb-4"><?= htmlspecialchars($view->setting('BRAND:company_name', 'Company Name')) ?></h3>
+                    <p class="text-gray-300 mb-2"><?= htmlspecialchars($view->setting('FOOTER:footer_tagline', 'Premium products powered by Mia AI Store.')) ?></p>
                     <p class="text-sm text-gray-400">
-                        A trading name of A AND K MCQUIRE LTD<br>
-                        Company Registration: 09535770<br>
-                        VAT Number: GB 212145754
+                        A trading name of <?= htmlspecialchars($view->setting('BRAND:company_legal_name', 'Company Legal Name')) ?><br>
+                        Company Registration: <?= htmlspecialchars($view->setting('BRAND:company_registration', 'N/A')) ?><br>
+                        VAT Number: <?= htmlspecialchars($view->setting('BRAND:vat_number', 'N/A')) ?>
                     </p>
                 </div>
                 <div>
@@ -260,13 +260,15 @@
                     </div>
                     <div class="mt-4">
                         <h4 class="font-semibold mb-2">Payment Methods</h4>
-                        <img src="/images/payment.png" alt="Accepted payment methods" class="max-w-full h-auto">
+                        <img src="<?= htmlspecialchars($view->setting('ASSETS:payment_methods_image', '/images/payment.png')) ?>" alt="Accepted payment methods" class="max-w-full h-auto">
                     </div>
                 </div>
             </div>
             <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-300">
-                <p>&copy; 2024 OxWinches - A trading name of A AND K MCQUIRE LTD. Powered by Mia AI Store.</p>
-                <p class="text-sm mt-2">12a Montpellier Parade, Harrogate, North Yorkshire, HG1 2TJ, UK</p>
+                <p><?= htmlspecialchars($view->setting('FOOTER:copyright_text', '© 2024 Company Name. Powered by Mia AI Store.')) ?></p>
+                <p class="text-sm mt-2">
+                    <?= htmlspecialchars($view->setting('CONTACT:registered_office_line1', '')) ?><?php if ($view->setting('CONTACT:registered_office_line1')): ?>, <?php endif; ?><?= htmlspecialchars($view->setting('CONTACT:registered_office_line2', '')) ?><?php if ($view->setting('CONTACT:registered_office_line2')): ?>, <?php endif; ?><?= htmlspecialchars($view->setting('CONTACT:registered_office_line3', '')) ?><?php if ($view->setting('CONTACT:registered_office_line3')): ?>, <?php endif; ?><?= htmlspecialchars($view->setting('CONTACT:registered_office_postcode', '')) ?><?php if ($view->setting('CONTACT:registered_office_postcode')): ?>, <?php endif; ?><?= htmlspecialchars($view->setting('CONTACT:registered_office_country', '')) ?>
+                </p>
             </div>
         </div>
     </footer>

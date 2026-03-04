@@ -63,7 +63,7 @@ class PageController extends BaseController
                 'homepageCategories' => $homepageCategories,
                 'categoryMetadata' => $categoryMetadata,
                 'heroImage' => $heroImage
-            ], 'OxWinches - Premium Winches & Recovery Equipment');
+            ], 'Home');
         } catch (\Exception $e) {
             error_log("Failed to load products for homepage: " . $e->getMessage());
             // Show homepage without products
@@ -72,7 +72,7 @@ class PageController extends BaseController
                 'homepageCategories' => null,
                 'categoryMetadata' => [],
                 'heroImage' => '/images/hero-banner.png'
-            ], 'OxWinches - Premium Winches & Recovery Equipment');
+            ], 'Home');
         }
     }
 
@@ -87,6 +87,9 @@ class PageController extends BaseController
                 $this->show404();
                 return;
             }
+            
+            // Get filter mode setting
+            $filterMode = $this->getSetting('OPERATION:filter_mode')['value'] ?? 'Faceted';
             
             // Get page, search, sort, and filters from query string
             $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
@@ -157,8 +160,9 @@ class PageController extends BaseController
                 'categorySlug' => $categorySlug,
                 'baseUrl' => '/category/' . $categorySlug,
                 'categoryImage' => $categoryImage,
-                'sort' => $sort
-            ], htmlspecialchars($categoryName) . ' - OxWinches');
+                'sort' => $sort,
+                'filterMode' => $filterMode
+            ], htmlspecialchars($categoryName));
         } catch (\Exception $e) {
             error_log("Failed to load category products: " . $e->getMessage());
             $this->show404();
@@ -225,7 +229,7 @@ class PageController extends BaseController
             $this->renderLayout('categories', [
                 'categories' => $tags,
                 'categoryMetadata' => $categoryMetadata
-            ], 'Categories - OxWinches');
+            ], 'Categories');
         } catch (\Exception $e) {
             error_log("Failed to load categories: " . $e->getMessage());
             $this->show404();
@@ -269,6 +273,16 @@ class PageController extends BaseController
             $categories = $this->client->products->getCategories($filters);
             $allCategories = $categories['categories'] ?? [];
             
+            // DEBUG: Log what we're getting from the API
+            error_log("=== DEBUG getProductCategories ===");
+            error_log("API Filters: " . json_encode($filters));
+            error_log("Total categories from API: " . count($allCategories));
+            error_log("First 10 categories:");
+            foreach (array_slice($allCategories, 0, 10) as $cat) {
+                error_log("  - Name: " . $cat['name'] . " | Count: " . $cat['count']);
+            }
+            error_log("=========================");
+            
             $primaryCategories = [];
             $filterGroups = [];
             
@@ -286,12 +300,19 @@ class PageController extends BaseController
                         $filterGroups[$key] = [];
                     }
                     
+                    // Store the full category data without splitting by commas
+                    // The template will handle hierarchical parsing if needed
                     $filterGroups[$key][] = [
                         'name' => $value,
                         'fullName' => $category['name'],
                         'count' => $category['count']
                     ];
                 }
+            }
+            
+            error_log("Filter groups created: " . count($filterGroups));
+            foreach ($filterGroups as $key => $values) {
+                error_log("  Group '$key': " . count($values) . " items");
             }
             
             return [
@@ -306,27 +327,27 @@ class PageController extends BaseController
 
     public function about(): void
     {
-        $this->renderLayout('about', [], 'About Us - OxWinches');
+        $this->renderLayout('about', [], 'About Us');
     }
 
     public function contact(): void
     {
-        $this->renderLayout('contact', [], 'Contact Us - OxWinches');
+        $this->renderLayout('contact', [], 'Contact Us');
     }
 
     public function help(): void
     {
-        $this->renderLayout('help', [], 'Help & Support - OxWinches');
+        $this->renderLayout('help', [], 'Help & Support');
     }
 
     public function privacy(): void
     {
-        $this->renderLayout('privacy', [], 'Privacy Policy - OxWinches');
+        $this->renderLayout('privacy', [], 'Privacy Policy');
     }
 
     public function terms(): void
     {
-        $this->renderLayout('terms', [], 'Terms & Conditions - OxWinches');
+        $this->renderLayout('terms', [], 'Terms & Conditions');
     }
 
     public function show404(): void
@@ -335,7 +356,7 @@ class PageController extends BaseController
         $content = $this->view->render('404');
         
         echo $this->view->renderLayout('layout', $content, [
-            'title' => '404 Not Found - OxWinches',
+            'title' => '404 Not Found',
             'cartCount' => $this->getCartItemCount(),
             'customer' => $this->getCustomer(),
             'isLoggedIn' => $this->isLoggedIn()

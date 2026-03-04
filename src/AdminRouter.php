@@ -120,7 +120,20 @@ class AdminRouter
     {
         $this->view = new View(__DIR__ . '/templates/admin');
         HtmlResources::getInstance()->addDefaults();
-        HtmlResources::getInstance()->setTitle('Admin Panel - OxWinches');
+        
+        // Set admin title from settings
+        $siteId = $_ENV['MIA_SITE_ID'] ?? getenv('MIA_SITE_ID');
+        if ($siteId) {
+            $settingsCache = new SettingsCache($siteId);
+            $companyName = $settingsCache->get('BRAND:company_name');
+            if ($companyName && isset($companyName['value'])) {
+                HtmlResources::getInstance()->setTitle('Admin Panel - ' . $companyName['value']);
+            } else {
+                HtmlResources::getInstance()->setTitle('Admin Panel');
+            }
+        } else {
+            HtmlResources::getInstance()->setTitle('Admin Panel');
+        }
     }
 
     private function initializeControllers(): void

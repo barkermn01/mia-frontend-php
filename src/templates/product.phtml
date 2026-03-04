@@ -263,19 +263,19 @@
                             $inventoryType = $stock['inventoryType'] ?? 'physical';
                             
                             if ($isUnlimited || $inventoryType === 'digital') {
-                                $stockText = 'In Stock - Order by 1PM for same day dispatch';
+                                $stockText = $view->setting('PRODUCT:stock_in_stock_text', 'In Stock - Order by 1PM for same day dispatch');
                                 $stockColor = 'text-green-600';
                                 $stockIcon = 'check-circle';
                             } elseif ($available > 10) {
-                                $stockText = 'In Stock - Order by 1PM for same day dispatch';
+                                $stockText = $view->setting('PRODUCT:stock_in_stock_text', 'In Stock - Order by 1PM for same day dispatch');
                                 $stockColor = 'text-green-600';
                                 $stockIcon = 'check-circle';
                             } elseif ($available > 0) {
-                                $stockText = 'Low Stock - Order by 1PM for same day dispatch';
+                                $stockText = $view->setting('PRODUCT:stock_low_stock_text', 'Low Stock - Order by 1PM for same day dispatch');
                                 $stockColor = 'text-yellow-600';
                                 $stockIcon = 'exclamation-circle';
                             } else {
-                                $stockText = 'Out of Stock - Call for ETA.';
+                                $stockText = $view->setting('PRODUCT:stock_out_of_stock_text', 'Out of Stock - Call for ETA.');
                                 $stockColor = 'text-red-600';
                                 $stockIcon = 'times-circle';
                             }
@@ -358,20 +358,23 @@
                     
                     <!-- Payment Methods -->
                     <div class="mt-4 text-center">
-                        <p class="text-base font-bold mb-2" style="color: var(--ox-red);">Buy now Pay Later available at checkout</p>
-                        <img src="/images/payment.png" alt="Accepted payment methods" class="max-w-full h-auto mx-auto">
+                        <p class="text-base font-bold mb-2" style="color: var(--ox-red);"><?= htmlspecialchars($view->setting('PRODUCT:buy_now_pay_later_text', 'Buy now Pay Later available at checkout')) ?></p>
+                        <img src="<?= htmlspecialchars($view->setting('ASSETS:payment_methods_image', '/images/payment.png')) ?>" alt="Accepted payment methods" class="max-w-full h-auto mx-auto">
                     </div>
                     
                     <!-- Need Help Section -->
                     <div class="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
                         <div class="flex items-center justify-center mb-2">
                             <i class="fas fa-phone-alt mr-2" style="color: var(--ox-red);"></i>
-                            <h3 class="text-lg font-semibold text-gray-800">Need Help?</h3>
+                            <h3 class="text-lg font-semibold text-gray-800"><?= htmlspecialchars($view->setting('PRODUCT:need_help_title', 'Need Help?')) ?></h3>
                         </div>
                         <p class="text-sm text-gray-600">
-                            Call our team on <a href="tel:+441924201120" class="font-semibold hover:underline" style="color: var(--ox-red);">+44 (0)1924 201120</a>
-                            <br>
-                            We will be happy to help.
+                            <?php
+                            $needHelpText = $view->setting('PRODUCT:need_help_text', 'Call our team on {phone_number}\nWe will be happy to help.');
+                            $phoneNumber = $view->setting('CONTACT:phone_display', '+44 (0)1234 567890');
+                            $needHelpText = str_replace('{phone_number}', '<a href="tel:' . htmlspecialchars($view->setting('CONTACT:phone_number', '')) . '" class="font-semibold hover:underline" style="color: var(--ox-red);">' . htmlspecialchars($phoneNumber) . '</a>', $needHelpText);
+                            echo nl2br($needHelpText);
+                            ?>
                         </p>
                     </div>
                 </div>

@@ -19,7 +19,7 @@ Parameters:
   
   FrontendDomains:
     Type: CommaDelimitedList
-    Description: Comma-separated list of domains (e.g., oxwinches.com,oxwinch.com,oxwinches.miaai.me)
+    Description: Comma-separated list of domains (e.g., miltek.miaai.me)
   
   SSLCertificateArn:
     Type: String
