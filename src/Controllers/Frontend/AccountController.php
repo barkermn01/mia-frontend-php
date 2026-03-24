@@ -412,6 +412,8 @@ class AccountController extends BaseController
                 }
                 if (!empty($address['phone'])) {
                     $data['shippingAddress']['phone'] = trim($address['phone']);
+                    // Also save phone at profile level
+                    $data['phone'] = trim($address['phone']);
                 }
             }
             

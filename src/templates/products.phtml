@@ -570,6 +570,9 @@ class ProductFilters {
             const content = group.querySelector('.filter-content');
             const icon = group.querySelector('.filter-icon');
             
+            // Skip if no toggle button (hierarchical mode)
+            if (!icon) return;
+            
             if (this.expandedFilters.includes(filterKey)) {
                 this.showFilterGroup(content, icon);
             } else {
@@ -599,13 +602,13 @@ class ProductFilters {
     }
 
     showFilterGroup(content, icon) {
-        content.style.display = 'block';
-        icon.style.transform = 'rotate(180deg)';
+        if (content) content.style.display = 'block';
+        if (icon) icon.style.transform = 'rotate(180deg)';
     }
 
     hideFilterGroup(content, icon) {
-        content.style.display = 'none';
-        icon.style.transform = 'rotate(0deg)';
+        if (content) content.style.display = 'none';
+        if (icon) icon.style.transform = 'rotate(0deg)';
     }
 }
 

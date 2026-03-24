@@ -68,6 +68,12 @@ window.CartPage = {
         if (form) {
             form.addEventListener('submit', this.handleAddressSubmit.bind(this));
         }
+        
+        // Initialize guest email form
+        const emailForm = document.getElementById('guest-email-form');
+        if (emailForm) {
+            emailForm.addEventListener('submit', this.handleEmailSubmit.bind(this));
+        }
     },
     
     async handleAddressSubmit(e) {
@@ -123,6 +129,37 @@ window.CartPage = {
         } catch (error) {
             console.error('Save address error:', error);
             MiaStore.showToast('Failed to save address', 'error');
+        }
+    },
+    
+    async handleEmailSubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const email = formData.get('email');
+        
+        // Validate email format
+        if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+            MiaStore.showToast('Please enter a valid email address', 'error');
+            return;
+        }
+        
+        try {
+            const response = await MiaStore.request('/api/cart/save-guest-email', {
+                method: 'POST',
+                body: JSON.stringify({ email })
+            });
+            
+            if (response.success) {
+                MiaStore.showToast('Email saved successfully!');
+                // Reload page to show saved email
+                window.location.reload();
+            } else {
+                MiaStore.showToast(response.message || 'Failed to save email', 'error');
+            }
+        } catch (error) {
+            console.error('Save email error:', error);
+            MiaStore.showToast('Failed to save email', 'error');
         }
     }
 };
@@ -181,4 +218,14 @@ window.showAddressForm = function() {
 window.hideAddressForm = function() {
     document.getElementById('saved-address').classList.remove('hidden');
     document.getElementById('address-form').classList.add('hidden');
+};
+
+window.showEmailForm = function() {
+    document.getElementById('saved-email').classList.add('hidden');
+    document.getElementById('email-form').classList.remove('hidden');
+};
+
+window.hideEmailForm = function() {
+    document.getElementById('saved-email').classList.remove('hidden');
+    document.getElementById('email-form').classList.add('hidden');
 };

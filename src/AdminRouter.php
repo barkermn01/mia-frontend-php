@@ -368,6 +368,15 @@ class AdminRouter
                 }
                 break;
             
+            case '/settings/clear-cache':
+                if ($method === 'POST') {
+                    $this->settingsController->clearCache();
+                } else {
+                    http_response_code(405);
+                    echo json_encode(['error' => 'Method not allowed']);
+                }
+                break;
+            
             // Get single setting
             case (preg_match('/^\/settings\/(.+)$/', $apiRoute, $matches) ? true : false):
                 if ($method === 'GET') {

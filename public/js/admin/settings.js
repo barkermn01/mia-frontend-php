@@ -51,6 +51,13 @@ class SettingsManager {
                 this.editSetting(name, setting);
             }
             
+            // Clear cache buttons
+            if (e.target.closest('.clear-cache-btn')) {
+                const btn = e.target.closest('.clear-cache-btn');
+                const name = btn.dataset.name;
+                this.clearSettingCache(name);
+            }
+            
             // Delete setting buttons
             if (e.target.closest('.delete-setting-btn')) {
                 const btn = e.target.closest('.delete-setting-btn');
@@ -642,16 +649,27 @@ class SettingsManager {
             confirmClass: 'danger',
             onConfirm: async () => {
                 try {
+                    // Get current search and page from URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const returnSearch = urlParams.get('search') || '';
+                    const returnPage = urlParams.get('page') || '1';
+                    
                     const response = await fetch(`${this.adminPath}/api/settings/delete`, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ settingName })
+                        body: JSON.stringify({ 
+                            settingName,
+                            returnSearch,
+                            returnPage
+                        })
                     });
                     
                     const data = await response.json();
                     
                     if (data.success) {
-                        window.location.href = `${this.adminPath}/settings?success=` + encodeURIComponent('Setting deleted successfully');
+                        // Use the redirectUrl from the response if provided, otherwise build it
+                        const redirectUrl = data.redirectUrl || `${this.adminPath}/settings?success=` + encodeURIComponent('Setting deleted successfully');
+                        window.location.href = redirectUrl + (data.redirectUrl ? '&success=' + encodeURIComponent('Setting deleted successfully') : '');
                     } else {
                         this.modalManager.alert({
                             title: 'Error',
@@ -666,6 +684,114 @@ class SettingsManager {
                         type: 'error'
                     });
                 }
+            }
+        });
+    }
+    
+    clearCache() {
+        this.modalManager.confirm({
+            title: 'Clear Settings Cache',
+            message: 'Are you sure you want to clear the settings cache? This will force all settings to be reloaded from the API.',
+            confirmText: 'Clear Cache',
+            confirmClass: 'warning',
+            onConfirm: async () => {
+                try {
+                    const response = await fetch(`${this.adminPath}/api/settings/clear-cache`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'}
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.modalManager.alert({
+                            title: 'Success',
+                            message: data.message,
+                            type: 'success',
+                            onClose: () => {
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        this.modalManager.alert({
+                            title: 'Error',
+                            message: data.message,
+                            type: 'error'
+                        });
+                    }
+                } catch (error) {
+                    this.modalManager.alert({
+                        title: 'Error',
+                        message: 'Error clearing cache: ' + error.message,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+    
+    clearSettingCache(settingName) {
+        // Get the button element
+        const btn = document.querySelector(`.clear-cache-btn[data-name="${settingName}"]`);
+        if (!btn) return;
+        
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+        
+        fetch(`${this.adminPath}/api/settings/clear-cache`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ settingName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success briefly
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.remove('text-yellow-600', 'hover:text-yellow-900');
+                btn.classList.add('text-green-600');
+                
+                // Show success message
+                if (this.modalManager) {
+                    this.modalManager.alert({
+                        title: 'Cache Cleared',
+                        message: `Cache cleared for setting "${settingName}"`,
+                        type: 'success'
+                    });
+                }
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('text-green-600');
+                    btn.classList.add('text-yellow-600', 'hover:text-yellow-900');
+                    btn.disabled = false;
+                }, 1500);
+            } else {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                if (this.modalManager) {
+                    this.modalManager.alert({
+                        title: 'Error',
+                        message: data.message,
+                        type: 'error'
+                    });
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            if (this.modalManager) {
+                this.modalManager.alert({
+                    title: 'Error',
+                    message: 'Error clearing cache: ' + error.message,
+                    type: 'error'
+                });
+            } else {
+                alert('Error clearing cache: ' + error.message);
             }
         });
     }

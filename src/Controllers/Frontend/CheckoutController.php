@@ -21,6 +21,13 @@ class CheckoutController extends BaseController
             // Get customer data if logged in
             $customer = $this->isLoggedIn() ? $this->getCustomer() : null;
             
+            // For guest users, validate email is provided
+            if (!$this->isLoggedIn() && empty($_SESSION['guest_email'])) {
+                $_SESSION['checkout_error'] = 'Please provide your email address before checkout.';
+                $this->redirect('/cart');
+                return;
+            }
+            
             // Create Stripe checkout session and redirect
             try {
                 // Build return URLs
@@ -34,18 +41,14 @@ class CheckoutController extends BaseController
                     'returnUrl' => $returnUrl
                 ];
                 
-                // Add customer info ONLY if logged in
-                if ($customer && $this->isLoggedIn()) {
-                    if (!empty($customer['email'])) {
-                        $requestData['customerEmail'] = $customer['email'];
-                    }
-                    if (!empty($customer['id'])) {
-                        $requestData['customerId'] = $customer['id'];
-                    }
+                // Add guestEmail ONLY for guest users
+                if (!$this->isLoggedIn() && !empty($_SESSION['guest_email'])) {
+                    $requestData['guestEmail'] = $_SESSION['guest_email'];
                 }
                 
-                // NOTE: For guest checkout, do NOT send customerEmail or customerId
-                // Backend will set customerId to "guest" automatically
+                // NOTE: For authenticated users, do NOT send customerEmail, customerId, or guestEmail
+                // The SDK automatically uses the authenticated user's email
+                // For guest checkout, ONLY send guestEmail parameter
                 
                 // Add shipping address - check customer profile first, then guest session
                 $shippingAddress = null;
@@ -131,6 +134,7 @@ class CheckoutController extends BaseController
                 $errorMessage = $e->getMessage();
                 $errorClass = get_class($e);
                 error_log("Stripe checkout error [{$errorClass}]: {$errorMessage}");
+                error_log("Request data sent: " . json_encode($requestData));
                 
                 // Check for specific errors and redirect back to cart with user-friendly error
                 if (strpos($errorMessage, 'stripe_not_configured') !== false) {

@@ -154,9 +154,41 @@ class SettingsController extends BaseController
                 $this->settingsCache->delete($settingName);
             }
             
-            $this->redirect('/settings', "Setting '{$settingName}' updated successfully");
+            // Preserve search and page parameters
+            $redirectUrl = '/settings';
+            $params = [];
+            
+            if (!empty($_POST['return_search'])) {
+                $params['search'] = $_POST['return_search'];
+            }
+            
+            if (!empty($_POST['return_page'])) {
+                $params['page'] = $_POST['return_page'];
+            }
+            
+            if (!empty($params)) {
+                $redirectUrl .= '?' . http_build_query($params);
+            }
+            
+            $this->redirect($redirectUrl, "Setting '{$settingName}' updated successfully");
         } catch (\Exception $e) {
-            $this->redirect('/settings', $e->getMessage(), true);
+            // Preserve search and page parameters on error too
+            $redirectUrl = '/settings';
+            $params = [];
+            
+            if (!empty($_POST['return_search'])) {
+                $params['search'] = $_POST['return_search'];
+            }
+            
+            if (!empty($_POST['return_page'])) {
+                $params['page'] = $_POST['return_page'];
+            }
+            
+            if (!empty($params)) {
+                $redirectUrl .= '?' . http_build_query($params);
+            }
+            
+            $this->redirect($redirectUrl, $e->getMessage(), true);
         }
     }
 
@@ -180,12 +212,84 @@ class SettingsController extends BaseController
                 $this->settingsCache->delete($settingName);
             }
             
+            // Build redirect URL with preserved search and page
+            $redirectUrl = $this->adminPath . '/settings';
+            $params = [];
+            
+            if (!empty($data['returnSearch'])) {
+                $params['search'] = $data['returnSearch'];
+            }
+            
+            if (!empty($data['returnPage'])) {
+                $params['page'] = $data['returnPage'];
+            }
+            
+            if (!empty($params)) {
+                $redirectUrl .= '?' . http_build_query($params);
+            }
+            
             echo json_encode([
                 'success' => true,
-                'message' => "Setting '{$settingName}' deleted successfully"
+                'message' => "Setting '{$settingName}' deleted successfully",
+                'redirectUrl' => $redirectUrl
             ]);
         } catch (\Exception $e) {
             http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function clearCache(): void
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $settingName = $data['settingName'] ?? null;
+            
+            if ($this->settingsCache) {
+                if ($settingName) {
+                    // Clear specific setting
+                    $success = $this->settingsCache->delete($settingName);
+                    
+                    if ($success) {
+                        echo json_encode([
+                            'success' => true,
+                            'message' => "Cache cleared for setting '{$settingName}'"
+                        ]);
+                    } else {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Cache is not available or failed to clear'
+                        ]);
+                    }
+                } else {
+                    // Clear all cache (WARNING: This flushes the entire Memcached instance)
+                    $success = $this->settingsCache->clear();
+                    
+                    if ($success) {
+                        echo json_encode([
+                            'success' => true,
+                            'message' => 'All settings cache cleared successfully (WARNING: This cleared the entire Memcached instance)'
+                        ]);
+                    } else {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => 'Cache is not available or failed to clear'
+                        ]);
+                    }
+                }
+            } else {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Cache is not configured'
+                ]);
+            }
+        } catch (\Exception $e) {
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => $e->getMessage()

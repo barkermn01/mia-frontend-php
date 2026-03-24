@@ -316,6 +316,45 @@ class CartController extends BaseController
         }
     }
 
+    public function apiSaveGuestEmail(): void
+    {
+        header('Content-Type: application/json');
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+
+            // Validate email
+            if (empty($data['email'])) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Email is required'
+                ]);
+                return;
+            }
+
+            $email = trim($data['email']);
+
+            // Validate email format
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Please enter a valid email address'
+                ]);
+                return;
+            }
+
+            // Save to session for guest checkout
+            $_SESSION['guest_email'] = $email;
+
+            echo json_encode(['success' => true, 'message' => 'Email saved successfully']);
+        } catch (\Exception $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
     
     private function getVatRate(): float
     {

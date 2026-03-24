@@ -250,14 +250,6 @@ class ProductForm {
     }
 
     async uploadSingleFile(file) {
-        // Check if image is square before uploading
-        try {
-            await this.validateImageIsSquare(file);
-        } catch (validationError) {
-            // Re-throw validation errors with clear message
-            throw new Error(validationError.message);
-        }
-        
         // Generate upload token
         const tokenResponse = await fetch(this.config.adminPath + '/api/upload-token', {
             method: 'POST',
@@ -311,35 +303,6 @@ class ProductForm {
         return uploadData.data.imageUrl;
     }
 
-    async validateImageIsSquare(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            
-            reader.onload = (e) => {
-                const img = new Image();
-                
-                img.onload = () => {
-                    if (img.width !== img.height) {
-                        reject(new Error(`Image must be square. Current dimensions: ${img.width}x${img.height}`));
-                    } else {
-                        resolve();
-                    }
-                };
-                
-                img.onerror = () => {
-                    reject(new Error('Failed to load image'));
-                };
-                
-                img.src = e.target.result;
-            };
-            
-            reader.onerror = () => {
-                reject(new Error('Failed to read file'));
-            };
-            
-            reader.readAsDataURL(file);
-        });
-    }
 
     addImageToGallery(imageUrl) {
         const gallery = document.getElementById('image-gallery');

@@ -175,19 +175,16 @@ abstract class BaseController
             
             // Cache hit with data
             if ($cached !== null && $cached !== false) {
-                error_log("[SETTINGS] Cache HIT: {$name}");
                 return $cached;
             }
             
             // Cache hit with "not found" marker
             if ($cached === false) {
-                error_log("[SETTINGS] Cache HIT (not found): {$name}");
                 return null;
             }
         }
 
         // Cache miss or unavailable - fetch from API
-        error_log("[SETTINGS] Cache MISS: {$name} - fetching from API");
         try {
             $setting = $this->client->siteSettings->getSetting($name);
             

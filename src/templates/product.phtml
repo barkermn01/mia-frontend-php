@@ -14,6 +14,15 @@
         </ol>
     </nav>
 
+    <?php if (isset($customer['role']) && in_array($customer['role'], ['site_admin', 'super_admin'])): ?>
+        <div class="mb-4">
+            <a href="/admin/products/edit?id=<?= htmlspecialchars($product['id']) ?>" 
+               class="inline-flex items-center px-4 py-2 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-800 transition-colors">
+                <i class="fas fa-edit mr-2"></i>Edit Product
+            </a>
+        </div>
+    <?php endif; ?>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
         <!-- Product Images -->
         <div class="space-y-4">
