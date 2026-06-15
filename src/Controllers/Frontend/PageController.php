@@ -58,11 +58,43 @@ class PageController extends BaseController
             // Fetch hero image setting
             $heroImage = $this->getCategorySetting('hero_image', '/images/hero-banner.png');
             
+            // Check if homepage configurator is enabled
+            $showConfigurator = false;
+            $configuratorMakes = [];
+            try {
+                $confSetting = $this->getSetting('homepage_feature_configurator');
+                if ($confSetting && ($confSetting['value'] === 'true' || $confSetting['value'] === true)) {
+                    $confEnabled = $this->getSetting('configurator_enabled');
+                    if ($confEnabled && ($confEnabled['value'] === 'true' || $confEnabled['value'] === true)) {
+                        $systems = new \Marti\Frontend\SystemsDataProvider(__DIR__ . '/../../../data');
+                        if ($systems->isAvailable()) {
+                            $showConfigurator = true;
+                            $configuratorMakes = $systems->getMakes();
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                error_log("Failed to load configurator for homepage: " . $e->getMessage());
+            }
+
+            // Check if featured products are enabled
+            $showFeaturedProducts = true;
+            try {
+                $fpSetting = $this->getSetting('homepage_featured_products');
+                if ($fpSetting && isset($fpSetting['value'])) {
+                    $val = $fpSetting['value'];
+                    $showFeaturedProducts = $val === true || $val === 'true' || $val === '1';
+                }
+            } catch (\Exception $e) {}
+
             $this->renderLayout('home', [
                 'products' => $products,
                 'homepageCategories' => $homepageCategories,
                 'categoryMetadata' => $categoryMetadata,
-                'heroImage' => $heroImage
+                'heroImage' => $heroImage,
+                'showConfigurator' => $showConfigurator,
+                'configuratorMakes' => $configuratorMakes,
+                'showFeaturedProducts' => $showFeaturedProducts,
             ], 'Home');
         } catch (\Exception $e) {
             error_log("Failed to load products for homepage: " . $e->getMessage());
@@ -71,7 +103,10 @@ class PageController extends BaseController
                 'products' => ['items' => [], 'total' => 0],
                 'homepageCategories' => null,
                 'categoryMetadata' => [],
-                'heroImage' => '/images/hero-banner.png'
+                'heroImage' => '/images/hero-banner.png',
+                'showConfigurator' => false,
+                'configuratorMakes' => [],
+                'showFeaturedProducts' => true,
             ], 'Home');
         }
     }

@@ -29,7 +29,7 @@ window.ProductPage = {
             if (stockDisplayElement) {
                 // Check if it shows "Out of Stock" to determine initial button state
                 const isOutOfStock = stockDisplayElement.textContent.includes('Out of Stock');
-                this.updateAddToCartButton(!isOutOfStock);
+                this.updateAddToCartButton(!isOutOfStock || (window.MiaStoreConfig && window.MiaStoreConfig.backorderingEnabled));
             }
         }
     },
@@ -77,7 +77,7 @@ window.ProductPage = {
         const inventoryType = stockInfo.inventoryType || 'physical';
         
         // Determine if in stock
-        const isInStock = unlimited || inventoryType === 'digital' || available > 0;
+        const isInStock = unlimited || inventoryType === 'digital' || available > 0 || (window.MiaStoreConfig && window.MiaStoreConfig.backorderingEnabled);
         
         // Update stock display
         this.updateStockDisplay(stockInfo, isInStock);
@@ -111,6 +111,13 @@ window.ProductPage = {
             stockText = 'Low Stock';
             stockClass = 'text-orange-600';
             icon = 'exclamation-circle';
+        } else if (window.MiaStoreConfig && window.MiaStoreConfig.backorderingEnabled) {
+            const sku = this.selectedSku || '';
+            const etas = (window.MiaStoreConfig && window.MiaStoreConfig.backorderEtas) || {};
+            const eta = etas[sku] || '';
+            stockText = 'Available on Back Order' + (eta ? ' — ETA: ' + eta : '');
+            stockClass = 'text-blue-600';
+            icon = 'clock';
         } else {
             stockText = 'Out of Stock';
             stockClass = 'text-red-600';

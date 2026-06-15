@@ -1,0 +1,76 @@
+<section class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">
+        <?php if ($query): ?>
+            Search results for "<?= htmlspecialchars($query) ?>"
+        <?php else: ?>
+            Search
+        <?php endif; ?>
+    </h1>
+
+    <?php if (!$query): ?>
+        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+            <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">Enter a search term to find products and exhaust systems.</p>
+        </div>
+    <?php else: ?>
+        <?php
+        $productCount = count($products['items'] ?? []);
+        $systemCount = count($systemResults);
+        $totalCount = $productCount + $systemCount;
+        ?>
+
+        <p class="text-gray-600 mb-6"><?= $totalCount ?> result<?= $totalCount !== 1 ? 's' : '' ?> found</p>
+
+        <?php if ($systemCount > 0): ?>
+        <div class="mb-10">
+            <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-cogs mr-2"></i>Exhaust Systems (<?= $systemCount ?>)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <?php foreach ($systemResults as $sys): ?>
+                    <a href="/systems/<?= rawurlencode($sys['make']) ?>/<?= rawurlencode($sys['model']) ?>/<?= $view->slug($sys['variant_desc'] ?? '') ?>/<?= $view->slug($sys['system_name'] ?? '') ?>/<?= rawurlencode($sys['system_number']) ?>"
+                       class="block bg-white rounded-lg shadow hover:shadow-lg transition-shadow border-2 border-transparent hover:border-red-500 overflow-hidden">
+                        <div class="h-36 bg-gray-100 flex items-center justify-center overflow-hidden relative">
+                            <?php if (!empty($sys['motorsport'])): ?>
+                                <span class="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold z-10"><i class="fas fa-flag-checkered mr-1"></i>Motorsport</span>
+                            <?php endif; ?>
+                            <?php if (!empty($sys['system_detail_images'])): ?>
+                                <?php $imgSrc = $sys['system_detail_images'][0]; ?>
+                                <img src="<?= htmlspecialchars(str_starts_with($imgSrc, 'http') ? $imgSrc : '/images/systems/' . $imgSrc) ?>"
+                                     alt="<?= htmlspecialchars($sys['system_number']) ?>"
+                                     class="w-full h-full object-contain"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+                                <i class="fas fa-cog text-4xl text-gray-300" style="display:none"></i>
+                            <?php else: ?>
+                                <i class="fas fa-cog text-4xl text-gray-300"></i>
+                            <?php endif; ?>
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-bold text-gray-800"><?= htmlspecialchars($sys['system_number']) ?></h3>
+                            <p class="text-sm text-gray-600"><?= htmlspecialchars($sys['make'] . ' ' . $sys['model']) ?></p>
+                            <p class="text-xs text-gray-500"><?= htmlspecialchars($sys['variant_desc']) ?></p>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($productCount > 0): ?>
+        <div>
+            <h2 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-box mr-2"></i>Products (<?= $productCount ?>)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <?php foreach ($products['items'] as $product): ?>
+                    <?= $view->partial('product-card', ['product' => $product]) ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($totalCount === 0): ?>
+        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+            <i class="fas fa-search text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-500 text-lg">No results found for "<?= htmlspecialchars($query) ?>"</p>
+            <p class="text-gray-400 mt-2">Try a different search term or browse our <a href="/products" class="text-blue-600 hover:underline">products</a>.</p>
+        </div>
+        <?php endif; ?>
+    <?php endif; ?>
+</section>

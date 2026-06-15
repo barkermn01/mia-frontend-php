@@ -1,0 +1,8 @@
+{
+  "containerOverrides": [
+    {
+      "name": "scraper",
+      "command": ["node", "ecs-entrypoint.js", "--stock-only"]
+    }
+  ]
+}

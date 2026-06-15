@@ -2,7 +2,41 @@
 <section class="relative hero-banner" style="background-image: url('<?= $view->setting('ASSETS:hero_banner', '/images/hero-banner.png') ?>'); background-size: cover; background-position: center; background-repeat: no-repeat;">
     <!-- Hero Text Overlay -->
     <div class="absolute top-0 left-0 right-0 bottom-0 flex items-center justify-center hero-overlay">
-        <div class="text-center text-white px-4">
+        <div class="text-center text-white px-4 w-full max-w-5xl">
+            <?php if (!empty($showConfigurator)): ?>
+            <!-- Configurator Widget in Hero -->
+            <div class="mt-8">
+            <div id="home-configurator" class="bg-white bg-opacity-80 rounded-lg shadow-lg p-4 sm:p-6 mb-4 sm:mb-6 mx-auto max-w-4xl">
+                <h2 class="text-lg sm:text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-cogs mr-2"></i>Find Your Exhaust System
+                </h2>
+                <div class="flex gap-3 items-center">
+                    <div class="flex-1">
+                        <select data-cfg="make" class="w-full border border-gray-300 bg-white text-gray-800 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            <option value="">-- Select Make --</option>
+                            <?php foreach ($configuratorMakes as $m): ?>
+                                <option value="<?= htmlspecialchars($m) ?>"><?= htmlspecialchars($m) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <select data-cfg="model" disabled class="w-full border border-gray-300 bg-white text-gray-800 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            <option value="">-- Select Model --</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <select data-cfg="variant" disabled class="w-full border border-gray-300 bg-white text-gray-800 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500">
+                            <option value="">-- Select Variant --</option>
+                        </select>
+                    </div>
+                    <a id="cfg-go-btn" href="/systems" class="bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors opacity-50 pointer-events-none px-3 py-2">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            </div>
+            <?php endif; ?>
+
             <div class="bg-black bg-opacity-70 rounded-lg px-6 py-4 mb-4 sm:mb-6 md:mb-8 inline-block">
                 <img src="<?= htmlspecialchars($view->setting('ASSETS:logo_large', '/images/logo.png')) ?>" alt="<?= htmlspecialchars($view->setting('ASSETS:logo_alt_text', 'Company Logo')) ?>" class="h-48 mx-auto hidden lg:block" /> 
                 <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 md:mb-4"><?= htmlspecialchars($view->setting('BRAND:hero_title', 'Welcome to Our Store')) ?></h1>
@@ -17,6 +51,64 @@
         </div>
     </div>
 </section>
+<?php if (!empty($showConfigurator)): ?>
+<script src="/js/configurator.js"></script>
+<script>
+(function() {
+    const container = document.getElementById('home-configurator');
+    const makeSelect = container.querySelector('[data-cfg="make"]');
+    const modelSelect = container.querySelector('[data-cfg="model"]');
+    const variantSelect = container.querySelector('[data-cfg="variant"]');
+    const goBtn = document.getElementById('cfg-go-btn');
+
+    function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+
+    function updateGoBtn() {
+        const make = makeSelect.value;
+        const model = modelSelect.value;
+        const variant = variantSelect.value;
+        let url = '/systems';
+        if (make) url += '/' + encodeURIComponent(make);
+        if (model) url += '/' + encodeURIComponent(model);
+        if (variant) url += '/' + encodeURIComponent(slugify(variant));
+        goBtn.href = url;
+        if (make) {
+            goBtn.classList.remove('opacity-50', 'pointer-events-none');
+        } else {
+            goBtn.classList.add('opacity-50', 'pointer-events-none');
+        }
+    }
+
+    makeSelect.addEventListener('change', async function() {
+        modelSelect.innerHTML = '<option value="">-- Select Model --</option>';
+        variantSelect.innerHTML = '<option value="">-- Select Variant --</option>';
+        modelSelect.disabled = true;
+        variantSelect.disabled = true;
+        if (this.value) {
+            const res = await fetch('/api/configurator/options?type=models&make=' + encodeURIComponent(this.value));
+            const data = await res.json();
+            (data.items || []).forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; modelSelect.appendChild(o); });
+            modelSelect.disabled = false;
+        }
+        updateGoBtn();
+    });
+
+    modelSelect.addEventListener('change', async function() {
+        variantSelect.innerHTML = '<option value="">-- Select Variant --</option>';
+        variantSelect.disabled = true;
+        if (this.value) {
+            const res = await fetch('/api/configurator/options?type=variants&make=' + encodeURIComponent(makeSelect.value) + '&model=' + encodeURIComponent(this.value));
+            const data = await res.json();
+            Object.keys(data.items || {}).forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; variantSelect.appendChild(o); });
+            variantSelect.disabled = false;
+        }
+        updateGoBtn();
+    });
+
+    variantSelect.addEventListener('change', updateGoBtn);
+})();
+</script>
+<?php endif; ?>
 
 <!-- Error Message -->
 <?php if (isset($_GET['error'])): ?>
@@ -90,10 +182,10 @@ if (!empty($homepageCategories) && is_array($homepageCategories)):
 <?php endif; ?>
 
 <!-- Featured Products -->
-<?php if (!empty($products['items'])): ?>
+<?php if (($showFeaturedProducts ?? true) && !empty($products['items'])): ?>
 <section class="container mx-auto px-4 py-16">
     <div class="text-center mb-12">
-        <h2 class="text-3xl font-bold text-gray-800 mb-4">Featured Products</h2>
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">Featured <?= $view->productDisplayName() ?></h2>
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -104,16 +196,16 @@ if (!empty($homepageCategories) && is_array($homepageCategories)):
     
     <div class="text-center mt-12">
         <a href="/products" class="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-flex items-center">
-            View All Products
+            View All <?= $view->productDisplayName() ?>
             <i class="fas fa-arrow-right ml-2"></i>
         </a>
     </div>
 </section>
-<?php else: ?>
+<?php elseif (($showFeaturedProducts ?? true)): ?>
 <section class="container mx-auto px-4 py-16">
     <div class="text-center bg-white rounded-lg shadow-lg p-12">
         <i class="fas fa-box-open text-6xl text-gray-400 mb-6"></i>
-        <h2 class="text-2xl font-bold text-gray-800 mb-4">No Products Available</h2>
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">No <?= $view->productDisplayName() ?> Available</h2>
         <p class="text-gray-600">Check back soon for new products!</p>
     </div>
 </section>

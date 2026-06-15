@@ -99,12 +99,28 @@
                         </div>
                     <?php endif; ?>
                     
-                    <a href="/products" class="text-gray-700 hover:text-blue-600 transition-colors">Products</a>
+                    <?php if ($view->setting('configurator_enabled', '') === 'true'): ?>
+                        <a href="/systems" class="text-gray-700 hover:text-blue-600 transition-colors">Configurator</a>
+                    <?php endif; ?>
+                    <a href="/products" class="text-gray-700 hover:text-blue-600 transition-colors"><?= $view->productDisplayName() ?></a>
                     <a href="/about" class="text-gray-700 hover:text-blue-600 transition-colors">About</a>
                 </nav>
 
                 <!-- User Menu -->
                 <div class="flex items-center space-x-4">
+                    <!-- Search -->
+                    <?php if ($view->setting('menu_search', '') === 'true'): ?>
+                    <form action="/search" method="GET" class="hidden md:flex items-center">
+                        <div class="relative">
+                            <input type="text" name="q" placeholder="Search..." value="<?= htmlspecialchars($_GET['q'] ?? '') ?>"
+                                   class="w-40 lg:w-56 border border-gray-300 rounded-lg pl-3 pr-9 py-1.5 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 focus:w-64 transition-all">
+                            <button type="submit" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-red-600">
+                                <i class="fas fa-search text-sm"></i>
+                            </button>
+                        </div>
+                    </form>
+                    <?php endif; ?>
+
                     <!-- Cart -->
                     <button id="cart-toggle" class="relative p-2 text-gray-700 hover:text-blue-600 transition-colors">
                         <i class="fas fa-shopping-cart text-xl"></i>
@@ -181,7 +197,10 @@
                         </div>
                     <?php endif; ?>
                     
-                    <a href="/products" class="text-gray-700 hover:text-blue-600 py-2">Products</a>
+                    <?php if ($view->setting('configurator_enabled', '') === 'true'): ?>
+                        <a href="/systems" class="text-gray-700 hover:text-blue-600 py-2">Configurator</a>
+                    <?php endif; ?>
+                    <a href="/products" class="text-gray-700 hover:text-blue-600 py-2"><?= $view->productDisplayName() ?></a>
                     <a href="/about" class="text-gray-700 hover:text-blue-600 py-2">About</a>
                     <?php if ($isLoggedIn): ?>
                         <?php if (isset($customer['role']) && in_array($customer['role'], ['site_admin', 'super_admin'])): ?>
@@ -238,7 +257,7 @@
                 <div>
                     <h4 class="font-semibold mb-4">Quick Links</h4>
                     <ul class="space-y-2 text-gray-300">
-                        <li><a href="/products" class="hover:text-white">Products</a></li>
+                        <li><a href="/products" class="hover:text-white"><?= $view->productDisplayName() ?></a></li>
                         <li><a href="/about" class="hover:text-white">About</a></li>
                         <li><a href="/contact" class="hover:text-white">Contact</a></li>
                     </ul>

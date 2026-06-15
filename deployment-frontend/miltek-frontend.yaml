@@ -152,7 +152,68 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: sts:AssumeRole
-      # No additional policies needed - frontend only makes HTTP calls to API
+      Policies:
+        - PolicyName: CatalogueS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:HeadObject
+                Resource: !Sub 'arn:aws:s3:::${CatalogueBucket}/*'
+
+  ScraperTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ScraperS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::${CatalogueBucket}/*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:PutObjectTagging
+                  - s3:DeleteObjectTagging
+                Resource: 'arn:aws:s3:::mia-backend-imagesbucket-*/*'
+
+  ScheduledTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: RunECSTask
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ecs:RunTask
+                Resource: !Ref ScraperTaskDefinition
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource:
+                  - !GetAtt ECSTaskExecutionRole.Arn
+                  - !GetAtt ScraperTaskRole.Arn
 
   # ==================== APPLICATION LOAD BALANCER ====================
 
@@ -257,6 +318,8 @@ Resources:
               Value: '10.0.11.6'
             - Name: MEMCACHED_PORT
               Value: '11211'
+            - Name: CATALOGUE_S3_BUCKET
+              Value: !Ref CatalogueBucket
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -336,6 +399,123 @@ Resources:
         ScaleInCooldown: 300
         ScaleOutCooldown: 60
 
+  # ==================== CATALOGUE S3 BUCKET ====================
+
+  CatalogueBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-catalogue-sync'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      LifecycleConfiguration:
+        Rules:
+          - Id: CleanupOldVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+
+  CatalogueBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CatalogueBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadForFrontend
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${CatalogueBucket}/*'
+
+  # ==================== SCRAPER ====================
+
+  ScraperTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub '${ProjectName}-scraper'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 512
+      Memory: 1024
+      ExecutionRoleArn: !Ref ECSTaskExecutionRole
+      TaskRoleArn: !Ref ScraperTaskRole
+      ContainerDefinitions:
+        - Name: scraper
+          Image: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ProjectName}-scraper:${ImageTag}'
+          Environment:
+            - Name: CATALOGUE_S3_BUCKET
+              Value: !Ref CatalogueBucket
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ScraperLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+
+  ScraperLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/${ProjectName}-scraper'
+      RetentionInDays: 14
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  # ==================== SCHEDULED TASKS ====================
+
+  DailyStockUpdateRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${ProjectName}-daily-stock-update'
+      Description: Stock and price update from Milltek every 6 hours
+      ScheduleExpression: 'rate(6 hours)'
+      State: ENABLED
+      Targets:
+        - Id: StockUpdateTask
+          Arn: !GetAtt ECSCluster.Arn
+          RoleArn: !GetAtt ScheduledTaskRole.Arn
+          EcsParameters:
+            TaskDefinitionArn: !Ref ScraperTaskDefinition
+            TaskCount: 1
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                SecurityGroups:
+                  - !Ref ECSSecurityGroup
+                Subnets:
+                  - subnet-07f1e36ca44257169
+                AssignPublicIp: ENABLED
+          Input: '{"containerOverrides":[{"name":"scraper","command":["node","ecs-entrypoint.js","--stock-only"]}]}'
+
+  WeeklyFullSyncRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${ProjectName}-weekly-full-sync'
+      Description: Weekly full scrape and sync from Milltek
+      ScheduleExpression: 'cron(0 2 ? * SUN *)'
+      State: ENABLED
+      Targets:
+        - Id: FullSyncTask
+          Arn: !GetAtt ECSCluster.Arn
+          RoleArn: !GetAtt ScheduledTaskRole.Arn
+          EcsParameters:
+            TaskDefinitionArn: !Ref ScraperTaskDefinition
+            TaskCount: 1
+            LaunchType: FARGATE
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                SecurityGroups:
+                  - !Ref ECSSecurityGroup
+                Subnets:
+                  - subnet-07f1e36ca44257169
+                AssignPublicIp: ENABLED
+          Input: '{"containerOverrides":[{"name":"scraper","command":["node","ecs-entrypoint.js","--full-sync"]}]}'
+
 Outputs:
   ALBDNSName:
     Description: Frontend Application Load Balancer DNS name - Point your Cloudflare DNS to this
@@ -363,3 +543,11 @@ Outputs:
       - 'Create A/CNAME records in Cloudflare pointing ${Domains} to ${ALB}'
       - Domains: !Join [', ', !Ref FrontendDomains]
         ALB: !GetAtt ApplicationLoadBalancer.DNSName
+
+  CatalogueBucketName:
+    Description: S3 bucket for catalogue sync
+    Value: !Ref CatalogueBucket
+
+  ScraperRepositoryURI:
+    Description: Scraper ECR repository URI
+    Value: !Sub '${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ProjectName}-scraper'

@@ -1,10 +1,11 @@
 <div class="container mx-auto px-4 py-8">
+    <?php $backorderingEnabled = $view->setting('enable_backordering', '') === 'true'; ?>
     <!-- Breadcrumb -->
     <nav class="mb-8">
         <ol class="flex items-center space-x-2 text-sm text-gray-600">
             <li><a href="/" class="hover:text-red-600">Home</a></li>
             <li><i class="fas fa-chevron-right text-xs"></i></li>
-            <li><a href="/products" class="hover:text-red-600">Products</a></li>
+            <li><a href="/products" class="hover:text-red-600"><?= $view->productDisplayName() ?></a></li>
             <?php if (!empty($product['categories']) && is_array($product['categories'])): ?>
                 <li><i class="fas fa-chevron-right text-xs"></i></li>
                 <li><a href="/products?category=<?= urlencode($product['categories'][0]) ?>" class="hover:text-red-600 capitalize"><?= htmlspecialchars($product['categories'][0]) ?></a></li>
@@ -58,6 +59,14 @@
         <div class="space-y-6">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 mb-2"><?= htmlspecialchars($product['title']) ?></h1>
+                
+                <?php if (!empty($product['tags']) && in_array('motorsport', $product['tags'])): ?>
+                    <div class="bg-red-600 text-white px-4 py-2 rounded-lg mb-4 flex items-center">
+                        <i class="fas fa-flag-checkered mr-2"></i>
+                        <span class="font-semibold">Motorsport Use Only</span>
+                        <span class="ml-2 text-sm opacity-90">— Not for road use. Designed for race/track applications only.</span>
+                    </div>
+                <?php endif; ?>
                 
                 <?php if (!empty($product['rating'])): ?>
                     <div class="flex items-center space-x-2 mb-4">
@@ -193,7 +202,7 @@
                                             data-attributes="<?= htmlspecialchars(json_encode($variant['attributes'] ?? [])) ?>"
                                             <?= $index === 0 ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($view->getVariantName($variant)) ?>
-                                        <?php if (!$view->isInStock($variant)): ?>
+                                        <?php if (!$backorderingEnabled && !$view->isInStock($variant)): ?>
                                             (Out of Stock)
                                         <?php endif; ?>
                                     </option>
@@ -236,6 +245,12 @@
                                 $stockText = 'Low Stock';
                                 $stockColor = 'text-orange-600';
                                 $stockIcon = 'exclamation-circle';
+                            } elseif ($backorderingEnabled) {
+                                $sku = $variants[0]['sku'] ?? '';
+                                $eta = $backorderEtas[$sku] ?? '';
+                                $stockText = 'Available on Back Order' . ($eta ? " — ETA: {$eta}" : '');
+                                $stockColor = 'text-blue-600';
+                                $stockIcon = 'clock';
                             } else {
                                 $stockText = 'Out of Stock - Please call for ETA.';
                                 $stockColor = 'text-red-600';
@@ -283,6 +298,12 @@
                                 $stockText = $view->setting('PRODUCT:stock_low_stock_text', 'Low Stock - Order by 1PM for same day dispatch');
                                 $stockColor = 'text-yellow-600';
                                 $stockIcon = 'exclamation-circle';
+                            } elseif ($backorderingEnabled) {
+                                $sku = $variants[0]['sku'] ?? '';
+                                $eta = $backorderEtas[$sku] ?? '';
+                                $stockText = 'Available on Back Order' . ($eta ? " — ETA: {$eta}" : '');
+                                $stockColor = 'text-blue-600';
+                                $stockIcon = 'clock';
                             } else {
                                 $stockText = $view->setting('PRODUCT:stock_out_of_stock_text', 'Out of Stock - Call for ETA.');
                                 $stockColor = 'text-red-600';
@@ -322,15 +343,13 @@
                         $initialButtonClass = 'bg-blue-600 hover:bg-blue-700';
                         $initialButtonIcon = 'cart-plus';
                         
-                        if (!empty($variants)) {
+                        if (!empty($variants) && !$backorderingEnabled) {
                             if (count($variants) === 1) {
-                                // Single variant - check its stock
                                 $isInStock = $view->isInStock($variants[0]);
                                 if (!$isInStock) {
                                     $showAddToCartButton = false;
                                 }
                             } else {
-                                // Multiple variants - check first variant stock
                                 $isInStock = $view->isInStock($variants[0]);
                                 if (!$isInStock) {
                                     $initialButtonText = 'Out of Stock';
@@ -459,6 +478,8 @@ function updateAttributesDisplay(attributesData) {
 // Set VAT rate in config
 window.MiaStoreConfig = window.MiaStoreConfig || {};
 window.MiaStoreConfig.vatRate = <?= $vatRate ?? 0.20 ?>;
+window.MiaStoreConfig.backorderingEnabled = <?= $backorderingEnabled ? 'true' : 'false' ?>;
+window.MiaStoreConfig.backorderEtas = <?= json_encode($backorderEtas ?? []) ?>;
 
 // Initialize variant display on page load
 document.addEventListener('DOMContentLoaded', function() {

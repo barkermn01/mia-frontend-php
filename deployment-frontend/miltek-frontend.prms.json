@@ -13,7 +13,7 @@
     },
     {
         "ParameterKey":  "FrontendDomains",
-        "ParameterValue":  "miltek.miaai.me"
+        "ParameterValue":  "miltek.miaai.me, milltekexhaust.co.uk"
     },
     {
         "ParameterKey":  "SSLCertificateArn",

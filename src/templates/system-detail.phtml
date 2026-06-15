@@ -1,0 +1,204 @@
+<section class="container mx-auto px-4 py-8">
+    <nav class="mb-6">
+        <ol class="flex items-center space-x-2 text-sm text-gray-600 flex-wrap">
+            <li><a href="/" class="hover:text-red-600">Home</a></li>
+            <li><i class="fas fa-chevron-right text-xs"></i></li>
+            <li><a href="/systems" class="hover:text-red-600">Configurator</a></li>
+            <li><i class="fas fa-chevron-right text-xs"></i></li>
+            <li><a href="/systems/<?= rawurlencode($system['make']) ?>" class="hover:text-red-600"><?= htmlspecialchars($system['make']) ?></a></li>
+            <li><i class="fas fa-chevron-right text-xs"></i></li>
+            <li><a href="/systems/<?= rawurlencode($system['make']) ?>/<?= rawurlencode($system['model']) ?>" class="hover:text-red-600"><?= htmlspecialchars($system['model']) ?></a></li>
+            <li><i class="fas fa-chevron-right text-xs"></i></li>
+            <li><a href="/systems/<?= rawurlencode($system['make']) ?>/<?= rawurlencode($system['model']) ?>/<?= rawurlencode(\Marti\Frontend\Controllers\Frontend\ConfiguratorController::slugifyVariant($system['variant_desc'])) ?>" class="hover:text-red-600"><?= htmlspecialchars($system['variant_desc']) ?></a></li>
+            <li><i class="fas fa-chevron-right text-xs"></i></li>
+            <li class="text-gray-900"><?= htmlspecialchars($system['system_number']) ?></li>
+        </ol>
+    </nav>
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="flex items-center justify-center bg-gray-50 rounded-lg p-4 min-h-[300px]">
+                <?php $mainImage = !empty($system['system_detail_images']) ? $system['system_detail_images'][0] : (!empty($system['system_images']) ? (is_array($system['system_images']) ? $system['system_images'][0] : $system['system_images']) : null); ?>
+                <?php if ($mainImage): ?>
+                    <img src="<?= htmlspecialchars(str_starts_with($mainImage, 'http') ? $mainImage : '/images/systems/' . $mainImage) ?>" alt="<?= htmlspecialchars($system['system_number']) ?>" class="max-w-full max-h-[400px] object-contain" onerror="this.parentElement.innerHTML='<i class=\'fas fa-cog text-6xl text-gray-300\'></i>'">
+                <?php else: ?>
+                    <i class="fas fa-cog text-6xl text-gray-300"></i>
+                <?php endif; ?>
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2"><?= htmlspecialchars($system['system_number']) ?></h1>
+                <?php if (!empty($system['system_name'])): ?>
+                    <p class="text-lg text-gray-600 mb-2"><?= htmlspecialchars($system['system_name']) ?></p>
+                <?php endif; ?>
+                <?php
+                $addableParts = [];
+                $systemPriceExVat = 0;
+                $systemRrpExVat = 0;
+                foreach ($system['part_numbers'] as $pn) {
+                    if (isset($productMap[$pn])) {
+                        $addableParts[] = $productMap[$pn];
+                        $price = $productMap[$pn]['price'] ?? null;
+                        if ($price) {
+                            $systemPriceExVat += $view->getDisplayPrice($price);
+                            // Get RRP if available
+                            $priceData = is_array($price[0]) ? $price[0] : $price;
+                            if (isset($priceData['rrp']) && $priceData['rrp'] > 0) {
+                                $systemRrpExVat += $priceData['rrp'] / 100;
+                            } else {
+                                $systemRrpExVat += $view->getDisplayPrice($price);
+                            }
+                        }
+                    }
+                }
+                $systemPriceIncVat = $systemPriceExVat * (1 + ($vatRate ?? 0.20));
+                $systemRrpIncVat = $systemRrpExVat * (1 + ($vatRate ?? 0.20));
+                $systemSavingsPercent = ($systemRrpExVat > 0 && $systemRrpExVat > $systemPriceExVat) ? (($systemRrpExVat - $systemPriceExVat) / $systemRrpExVat) * 100 : 0;
+                $totalParts = count($system['part_numbers']);
+                $availableParts = count($addableParts);
+                ?>
+                <p class="text-lg text-gray-600 mb-4"><?= htmlspecialchars($system['make'] . ' ' . $system['model']) ?> — <?= htmlspecialchars($system['variant_desc']) ?></p>
+                <?php if (!empty($system['motorsport'])): ?>
+                    <div class="bg-red-600 text-white px-4 py-2 rounded-lg mb-4 flex items-center">
+                        <i class="fas fa-flag-checkered mr-2"></i>
+                        <span class="font-semibold">Motorsport Use Only</span>
+                        <span class="ml-2 text-sm opacity-90">— Not for road use. Designed for race/track applications only.</span>
+                    </div>
+                <?php endif; ?>
+                <?php if ($systemPriceExVat > 0): ?>
+                <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-gray-500 mb-2">Complete System Price</p>
+                    <div class="flex items-center gap-4">
+                        <?php if ($systemSavingsPercent >= 0.5): ?>
+                        <div class="bg-red-600 text-white rounded-full w-16 h-16 flex flex-col items-center justify-center shadow-lg transform rotate-12 flex-shrink-0">
+                            <i class="fas fa-star text-yellow-300 text-xs mb-0.5"></i>
+                            <span class="text-xs font-bold">SAVE</span>
+                            <span class="text-sm font-bold"><?= round($systemSavingsPercent) ?>%</span>
+                        </div>
+                        <?php endif; ?>
+                        <div>
+                            <span class="text-2xl font-bold" style="color: var(--ox-red, #dc2626);">£<?= number_format($systemPriceIncVat, 2) ?></span>
+                            <span class="text-sm text-gray-500 ml-2">(ex-VAT £<?= number_format($systemPriceExVat, 2) ?>)</span>
+                            <?php if ($systemSavingsPercent >= 0.5): ?>
+                            <div class="text-sm text-gray-600 mt-1">
+                                RRP £<?= number_format($systemRrpIncVat, 2) ?> (ex-VAT £<?= number_format($systemRrpExVat, 2) ?>)
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                <?php if (!empty($vehicles) && count($vehicles) > 1): ?>
+                <div class="mb-4">
+                    <p class="text-sm font-medium text-gray-700 mb-1"><i class="fas fa-car mr-1"></i> Also fits:</p>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <?php foreach ($vehicles as $v): ?>
+                            <?php if ($v['make'] === $system['make'] && $v['model'] === $system['model'] && $v['variant'] === $system['variant_desc']) continue; ?>
+                            <li>
+                                <a href="/systems/<?= rawurlencode($v['make']) ?>/<?= rawurlencode($v['model']) ?>/<?= rawurlencode(\Marti\Frontend\Controllers\Frontend\ConfiguratorController::slugifyVariant($v['variant'])) ?>" class="text-blue-600 hover:underline">
+                                    <?= htmlspecialchars($v['make'] . ' ' . $v['model']) ?> — <?= htmlspecialchars($v['variant']) ?>
+                                    <?php if ($v['year_range']): ?><span class="text-gray-400">(<?= htmlspecialchars($v['year_range']) ?>)</span><?php endif; ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+                <?php endif; ?>
+                <div class="space-y-2 text-sm text-gray-700 mb-6">
+                    <?php if (!empty($system['year_range'])): ?><p><i class="fas fa-calendar-alt mr-2 text-gray-400"></i> <?= htmlspecialchars($system['year_range']) ?></p><?php endif; ?>
+                    <?php if (!empty($system['pipe_diameter']) && $system['pipe_diameter'] !== 'N/A'): ?><p><i class="fas fa-ruler mr-2 text-gray-400"></i> Pipe Diameter: <?= htmlspecialchars($system['pipe_diameter']) ?></p><?php endif; ?>
+                    <?php if (!empty($system['shipping_info'])): ?><p><i class="fas fa-truck mr-2 text-gray-400"></i> <?= htmlspecialchars($system['shipping_info']) ?></p>
+                    <?php elseif (!empty($system['weight_kg'])): ?><p><i class="fas fa-weight-hanging mr-2 text-gray-400"></i> Weight: <?= htmlspecialchars($system['weight_kg']) ?> kg</p><?php endif; ?>
+                    <?php if (!empty($system['barcode'])): ?><p><i class="fas fa-barcode mr-2 text-gray-400"></i> <?= htmlspecialchars($system['barcode']) ?></p><?php endif; ?>
+                </div>
+                <?php if (!empty($system['notes'])): ?>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 mb-4">
+                        <p class="text-sm text-yellow-800"><i class="fas fa-info-circle mr-2"></i><?= htmlspecialchars($system['notes']) ?></p>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($system['fitting_kit_pdf'])): ?>
+                    <a href="<?= htmlspecialchars($system['fitting_kit_pdf']) ?>" target="_blank" rel="noopener" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6"><i class="fas fa-file-pdf mr-2"></i> Download Fitting Kit Instructions</a>
+                <?php endif; ?>
+                <?php if ($availableParts > 0): ?>
+                <div class="mt-4">
+                    <button id="add-all-btn" onclick="addAllSystemParts()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold text-lg transition-colors">
+                        <i class="fas fa-cart-plus mr-2"></i>Add Complete System to Basket (<?= $availableParts ?>/<?= $totalParts ?> parts)
+                    </button>
+                    <?php if ($availableParts < $totalParts): ?><p class="text-sm text-gray-500 mt-2 text-center"><?= $totalParts - $availableParts ?> part<?= ($totalParts - $availableParts) !== 1 ? 's' : '' ?> not yet available in store</p><?php endif; ?>
+                </div>
+                <?php elseif ($totalParts > 0): ?>
+                <div class="mt-4">
+                    <button disabled class="w-full bg-gray-400 text-white py-3 px-6 rounded-lg font-semibold text-lg cursor-not-allowed"><i class="fas fa-cart-plus mr-2"></i>Parts not yet available in store</button>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <h2 class="text-2xl font-bold text-gray-800 mb-4">Parts in this System</h2>
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Part Number</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Description</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Price (ex VAT)</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Stock</th>
+                        <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    <?php foreach ($system['part_numbers'] as $pn): ?>
+                    <?php $part = $parts[$pn] ?? null; $product = $productMap[$pn] ?? null; ?>
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 font-medium text-gray-900">
+                            <?php if ($product): ?><a href="/product/<?= htmlspecialchars($product['productId']) ?>/<?= htmlspecialchars($product['slug'] ?: 'part') ?>" class="text-blue-600 hover:text-blue-800 hover:underline"><?= htmlspecialchars($pn) ?></a><?php else: ?><?= htmlspecialchars($pn) ?><?php endif; ?>
+                        </td>
+                        <td class="px-4 py-3 text-gray-600">
+                            <?= htmlspecialchars($part['description'] ?? 'N/A') ?>
+                            <?php if (!empty($part['tailpipe'])): ?><span class="text-xs text-gray-400 block"><?= htmlspecialchars($part['tailpipe']) ?></span><?php endif; ?>
+                        </td>
+                        <td class="px-4 py-3 text-gray-800">
+                            <?php if ($product && !empty($product['price'])): ?><?= $view->formatPrice($product['price']) ?><?php elseif ($part && !empty($part['price_ex_vat'])): ?><?= htmlspecialchars($part['price_ex_vat']) ?><?php else: ?>—<?php endif; ?>
+                        </td>
+                        <td class="px-4 py-3">
+                            <?php
+                            $stockVal = null; $dueBefore = '';
+                            if ($product && isset($product['stock'])) { $stockVal = $product['stock']['available'] ?? 0; }
+                            elseif ($part && $part['stock'] !== '') { $stockVal = (int)$part['stock']; }
+                            if ($part && !empty($part['due_before'])) { $dueBefore = $part['due_before']; }
+                            ?>
+                            <?php if ($stockVal !== null): ?>
+                                <?php if ($stockVal > 0): ?><span class="text-green-600"><?= $stockVal ?> in stock</span>
+                                <?php elseif (!empty($dueBefore)): ?><span class="text-orange-600">On back order</span><span class="text-xs text-gray-500 block">ETA: <?= htmlspecialchars($dueBefore) ?></span>
+                                <?php else: ?><span class="text-red-600">Out of stock</span><?php endif; ?>
+                            <?php else: ?>—<?php endif; ?>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <?php if ($product): ?><button onclick="addToCart('<?= htmlspecialchars($product['sku']) ?>', 1, this)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm transition-colors"><i class="fas fa-cart-plus mr-1"></i> Add</button><?php else: ?><span class="text-xs text-gray-400">Not in store</span><?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+<script>
+async function addAllSystemParts() {
+    const btn = document.getElementById('add-all-btn');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Adding all parts...';
+    btn.disabled = true;
+    const parts = <?= json_encode(array_map(function($p) { return ['sku' => $p['sku'], 'qty' => 1]; }, array_values($addableParts))) ?>;
+    let ok = 0, fail = 0;
+    for (const part of parts) {
+        try {
+            const r = await MiaStore.request('/api/cart/add', { method: 'POST', body: JSON.stringify({ sku: part.sku, qty: part.qty }) });
+            if (r.success) { ok++; MiaStore.updateCartCount(r.cartCount); } else { fail++; }
+        } catch (e) { fail++; }
+    }
+    MiaStore.showToast(fail === 0 ? `All ${ok} parts added to basket!` : `${ok} added, ${fail} failed`, fail > 0 ? 'error' : 'success');
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+}
+</script>

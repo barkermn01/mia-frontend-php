@@ -251,6 +251,23 @@ class ProductController extends BaseController
             
             $variants = $this->client->products->getProductVariants($id);
             
+            // If configurator is enabled, look up backorder ETAs from the systems catalogue
+            $backorderEtas = [];
+            $configuratorEnabled = $this->getSetting('configurator_enabled');
+            if ($configuratorEnabled && ($configuratorEnabled['value'] ?? '') === 'true') {
+                $systems = new \Marti\Frontend\SystemsDataProvider(__DIR__ . '/../../../data');
+                if ($systems->isAvailable()) {
+                    foreach ($variants['items'] ?? [] as $variant) {
+                        $sku = $variant['sku'] ?? '';
+                        if (!$sku) continue;
+                        $part = $systems->findPartBySku($sku);
+                        if ($part && !empty($part['due_before'])) {
+                            $backorderEtas[$sku] = $part['due_before'];
+                        }
+                    }
+                }
+            }
+            
             // Add product-specific resources
             HtmlResources::getInstance()->setTitle(htmlspecialchars($product['title']));
             HtmlResources::getInstance()->setDescription(strip_tags($product['description'] ?? ''));
@@ -259,7 +276,8 @@ class ProductController extends BaseController
             $content = $this->view->render('product', [
                 'product' => $product,
                 'variants' => $variants['items'] ?? [],
-                'vatRate' => $this->getVatRate()
+                'vatRate' => $this->getVatRate(),
+                'backorderEtas' => $backorderEtas
             ]);
             
             echo $this->view->renderLayout('layout', $content, [

@@ -8,6 +8,7 @@ use Marti\Frontend\Controllers\Frontend\CartController;
 use Marti\Frontend\Controllers\Frontend\CheckoutController;
 use Marti\Frontend\Controllers\Frontend\AccountController;
 use Marti\Frontend\Controllers\Frontend\PageController;
+use Marti\Frontend\Controllers\Frontend\ConfiguratorController;
 
 class FrontendRouter
 {
@@ -56,9 +57,35 @@ class FrontendRouter
         $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $method = $_SERVER['REQUEST_METHOD'];
 
+        // Ensure catalogue is synced from S3 (checks once per day)
+        if (getenv('CATALOGUE_S3_BUCKET')) {
+            $sync = new CatalogueSync(__DIR__ . '/../data');
+            $sync->ensureCatalogue();
+        }
+
         // Handle API requests
         if (str_starts_with($path, '/api/')) {
             $this->handleApiRequest($path, $method);
+            return;
+        }
+
+        // Redirect /images/systems/ to CDN
+        if (str_starts_with($path, '/images/systems/')) {
+            $filename = substr($path, strlen('/images/systems/'));
+            $mapFile = __DIR__ . '/../data/image_url_map.json';
+            if (file_exists($mapFile)) {
+                $map = json_decode(file_get_contents($mapFile), true);
+                if (isset($map[$filename])) {
+                    $cdnUrl = is_string($map[$filename]) ? $map[$filename] : ($map[$filename]['cdnUrl'] ?? null);
+                    if ($cdnUrl) {
+                        $cdnUrl = str_replace('d9yeis51ekfh8.cloudfront.net', 'images.miaai.me', $cdnUrl);
+                        header("Location: {$cdnUrl}", true, 301);
+                        return;
+                    }
+                }
+            }
+            http_response_code(404);
+            echo 'Image not found';
             return;
         }
 
@@ -193,6 +220,62 @@ class FrontendRouter
             return;
         }
 
+        // Configurator routes
+        if ($path === '/systems' || str_starts_with($path, '/systems/')) {
+            // Redirect old query string URLs to new clean URLs
+            if ($path === '/systems' && (!empty($_GET['make']) || !empty($_GET['model']) || !empty($_GET['variant']))) {
+                $segments = '/systems';
+                if (!empty($_GET['make'])) $segments .= '/' . rawurlencode($_GET['make']);
+                if (!empty($_GET['model'])) $segments .= '/' . rawurlencode($_GET['model']);
+                if (!empty($_GET['variant'])) $segments .= '/' . rawurlencode($this->slugifyVariant($_GET['variant']));
+                header("Location: {$segments}", true, 301);
+                return;
+            }
+            $controller = new ConfiguratorController($this->client, $this->view);
+            if (str_starts_with($path, '/systems/system/')) {
+                // Legacy URL redirect: /systems/system/SSXFD097/slug -> new format
+                $systemPath = substr($path, strlen('/systems/system/'));
+                $systemParts = explode('/', $systemPath, 2);
+                $systemNumber = urldecode($systemParts[0]);
+                // Redirect to new format (let showSystem handle it with just the number for now)
+                $_GET['system'] = $systemNumber;
+                $controller->showSystem();
+            } elseif ($path === '/systems/system' && !empty($_GET['system'])) {
+                $_GET['system'] = $_GET['system'];
+                $controller->showSystem();
+            } else {
+                // Parse clean URL segments: /systems/{make}/{model}/{variant-slug}/{system-name}/{system-number}
+                $segments = explode('/', trim($path, '/'));
+                // segments[0] = 'systems'
+                if (isset($segments[1]) && $segments[1] !== '') $_GET['make'] = urldecode($segments[1]);
+                if (isset($segments[2]) && $segments[2] !== '') $_GET['model'] = urldecode($segments[2]);
+                if (isset($segments[3]) && $segments[3] !== '') $_GET['variantSlug'] = urldecode($segments[3]);
+                // If 5 segments: [4] = system-name-slug, [5] = system number
+                if (isset($segments[5]) && $segments[5] !== '') {
+                    $_GET['system'] = urldecode($segments[5]);
+                    $controller->showSystem();
+                } else {
+                    $controller->index();
+                }
+            }
+            return;
+        }
+
+        // Redirect old /configurator URLs to /systems
+        if ($path === '/configurator' || str_starts_with($path, '/configurator/')) {
+            $newPath = '/systems' . substr($path, strlen('/configurator'));
+            $qs = $_SERVER['QUERY_STRING'] ?? '';
+            header("Location: {$newPath}" . ($qs ? "?{$qs}" : ''), true, 301);
+            return;
+        }
+
+        // Search route
+        if ($path === '/search') {
+            $controller = new \Marti\Frontend\Controllers\Frontend\SearchController($this->client, $this->view);
+            $controller->index();
+            return;
+        }
+
         // Static page routes
         if ($path === '/') {
             $controller = new PageController($this->client, $this->view);
@@ -315,6 +398,13 @@ class FrontendRouter
                 return;
             }
 
+            // Configurator API
+            if ($path === '/api/configurator/options') {
+                $controller = new ConfiguratorController($this->client, $this->view);
+                $controller->apiGetOptions();
+                return;
+            }
+
             // Product API
             if (preg_match('#^/api/products/([a-f0-9-]+)$#', $path, $matches)) {
                 $controller = new \Marti\Frontend\Controllers\Frontend\ProductController($this->client, $this->view);
@@ -382,5 +472,11 @@ class FrontendRouter
         }
         
         return $slug ?: 'product';
+    }
+
+    private function slugifyVariant(string $variant): string
+    {
+        $slug = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '-', $variant));
+        return trim($slug, '-');
     }
 }

@@ -212,6 +212,30 @@ class View
     }
 
     /**
+     * Get the display term for "products" (e.g. "Components" for Miltek)
+     */
+    public function productDisplayName(bool $capitalize = true): string
+    {
+        $term = $this->setting('product_display', '') ?: 'products';
+        return $capitalize ? ucfirst($term) : $term;
+    }
+
+    /**
+     * Generate a URL slug from text (matches generateProductSlug logic)
+     */
+    public function slug(string $text): string
+    {
+        $slug = strtolower(trim($text));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+        $slug = trim($slug, '-');
+        if (strlen($slug) > 50) {
+            $slug = substr($slug, 0, 50);
+            $slug = rtrim($slug, '-');
+        }
+        return $slug ?: 'system';
+    }
+
+    /**
      * Get country display name from country code
      * Looks up the country code in the supportedCountries array
      */

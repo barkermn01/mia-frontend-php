@@ -92,8 +92,32 @@ if ($AWSProfile) {
     $accountId = (aws sts get-caller-identity --query Account --output text --no-cli-pager)
 }
 
-# Build repository URI
+# Ensure scraper ECR repository exists
+$scraperRepoName = "$StackName-scraper"
+Write-Host "Checking repository: $scraperRepoName" -ForegroundColor Blue
+
+$ErrorActionPreference = "Continue"
+if ($AWSProfile) {
+    $null = aws ecr describe-repositories --repository-names $scraperRepoName --region $Region --profile $AWSProfile --no-cli-pager 2>&1
+} else {
+    $null = aws ecr describe-repositories --repository-names $scraperRepoName --region $Region --no-cli-pager 2>&1
+}
+$ErrorActionPreference = "Stop"
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Creating repository: $scraperRepoName" -ForegroundColor Yellow
+    if ($AWSProfile) {
+        aws ecr create-repository --repository-name $scraperRepoName --region $Region --profile $AWSProfile --no-cli-pager | Out-Null
+    } else {
+        aws ecr create-repository --repository-name $scraperRepoName --region $Region --no-cli-pager | Out-Null
+    }
+} else {
+    Write-Host "Repository exists: $scraperRepoName" -ForegroundColor Green
+}
+
+# Build repository URIs
 $webRepo = "$accountId.dkr.ecr.$Region.amazonaws.com/$StackName-web"
+$scraperRepo = "$accountId.dkr.ecr.$Region.amazonaws.com/$StackName-scraper"
 $ecrLoginCommand = "aws ecr get-login-password --region $Region | docker login --username AWS --password-stdin $accountId.dkr.ecr.$Region.amazonaws.com"
 
 # Convert parameters to CLI format
@@ -114,6 +138,7 @@ foreach ($param in $parameters) {
 }
 
 Write-Host "Web Repository: $webRepo"
+Write-Host "Scraper Repository: $scraperRepo"
 
 # Login to ECR and build/push image BEFORE deploying main stack
 Write-Host "Logging into ECR..." -ForegroundColor Yellow
@@ -134,6 +159,15 @@ docker build -t "mia-frontend:${ImageTag}" -f deployment-frontend/Dockerfile .
 docker tag "mia-frontend:${ImageTag}" "${webRepo}:${ImageTag}"
 docker push "${webRepo}:${ImageTag}"
 Write-Host "Frontend image pushed successfully" -ForegroundColor Green
+Pop-Location
+
+# Scraper Image
+Write-Host "Building Scraper image..." -ForegroundColor Blue
+Push-Location "../../Scraper"
+docker build -t "mia-scraper:${ImageTag}" .
+docker tag "mia-scraper:${ImageTag}" "${scraperRepo}:${ImageTag}"
+docker push "${scraperRepo}:${ImageTag}"
+Write-Host "Scraper image pushed successfully" -ForegroundColor Green
 Pop-Location
 
 # Now deploy the main CloudFormation stack
@@ -335,9 +369,11 @@ Write-Host "Deployment Information:" -ForegroundColor Blue
 
 $albDns = ($outputs | Where-Object { $_.OutputKey -eq "ALBDNSName" }).OutputValue
 $frontendDomain = ($outputs | Where-Object { $_.OutputKey -eq "FrontendDomain" }).OutputValue
+$catalogueBucket = ($outputs | Where-Object { $_.OutputKey -eq "CatalogueBucketName" }).OutputValue
 
 Write-Host "ALB DNS Name: $albDns"
 Write-Host "Frontend Domain: $frontendDomain"
+Write-Host "Catalogue Bucket: $catalogueBucket"
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Yellow
 Write-Host "1. Configure your CloudFlare DNS:"
